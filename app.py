@@ -1,101 +1,214 @@
-from flask import Flask, request, jsonify, render_template
-import sqlite3
-from werkzeug.security import check_password_hash
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+import mysql.connector
+from functools import wraps
+import hashlib
 import os
+from base64 import b64encode, b64decode
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from dotenv import load_dotenv
+from manager import manager_bp
+from sales import sales_bp
+from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
-# Database setup
-def init_db():
-    """Initialize the database with a users table if it doesn't exist"""
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
-    )
-    ''')
+# Constants for encryption
+SECRET_KEY = os.getenv('ENCRYPTION_SECRET_KEY')
+SECRET_IV = os.getenv('ENCRYPTION_SECRET_IV')
+
+# Database configuration
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_NAME')
+}
+
+# Function to get database connection
+def get_db_connection():
+    try:
+        connection = mysql.connector.connect(**DB_CONFIG)
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Database connection error: {err}")
+        return None
+
+# Password encryption/decryption functions
+def encrypt_password(raw_password):
+    # Create an AES cipher
+    key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0')
+    iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0')
+    cipher = AES.new(key, AES.MODE_CBC, iv)
     
-    # Add a test user for demonstration
-    cursor.execute('''
-    INSERT OR IGNORE INTO users (username, password) 
-    VALUES ('admin', 'pbkdf2:sha256:150000$KKgd0xN5$4bc40645c94f5696b2a50a3676c5d3e9eb950d26b113959ca225e02eda5c282a')
-    ''')
+    # Pad the password and encrypt it
+    padded_password = pad(raw_password.encode('utf-8'), AES.block_size)
+    encrypted_password = cipher.encrypt(padded_password)
     
-    conn.commit()
-    conn.close()
+    # Return base64 encoded string
+    return b64encode(encrypted_password).decode('utf-8')
 
-# Initialize database when app starts
-with app.app_context():
-    init_db()
+def decrypt_password(encrypted_password):
+    try:
+        # Create an AES cipher
+        key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0')
+        iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0')
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        
+        # Decode base64 and decrypt
+        encrypted_bytes = b64decode(encrypted_password)
+        decrypted_password = unpad(cipher.decrypt(encrypted_bytes), AES.block_size)
+        
+        return decrypted_password.decode('utf-8')
+    except Exception as e:
+        print(f"Decryption error: {e}")
+        return None
 
+# Enhanced login required decorator with role checking
+def login_required(required_role=None):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Check if user is logged in
+            if 'user_id' not in session:
+                return redirect(url_for('login_page'))
+            
+            # If role is specified, check if user has the required role
+            if required_role:
+                user_role = session.get('role')
+                if user_role != required_role:
+                    # Redirect to user's own dashboard if trying to access another role's dashboard
+                    return redirect(get_redirect_url(user_role))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# Register the manager blueprint
+app.register_blueprint(manager_bp)
+app.register_blueprint(sales_bp)
+
+# Routes
 @app.route('/')
 def index():
-    """Serve the login page"""
+    if 'user_id' in session:
+        # User is already logged in, redirect to appropriate dashboard
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')  # Your main login page
+
+@app.route('/login_page')
+def login_page():
     return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
 def login():
-    """Handle login requests"""
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
+    username = request.form.get('username')
+    password = request.form.get('password')
+
     if not username or not password:
         return jsonify({'success': False, 'message': 'Username and password are required'})
+
+    # Connect to database
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Connection Error'})
+    
+    cursor = conn.cursor(dictionary=True)
     
     try:
-        # Connect to database
-        conn = sqlite3.connect('users.db')
-        cursor = conn.cursor()
-        
-        # Query user
-        cursor.execute('SELECT username, password FROM users WHERE username = ?', (username,))
+        # Query the database for the user
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cursor.fetchone()
-        conn.close()
         
-        # Check if user exists and password matches
-        if user and check_password_hash(user[1], password):
+        if not user:
+            return jsonify({'success': False, 'message': 'User Not Found!'})
+        
+        # Check password
+        stored_password = user['password']
+        if encrypted_password_matches(password, stored_password):
+            # Store user info in session
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            
+            # Determine redirect based on role
+            redirect_url = get_redirect_url(user['role'])
+            
             return jsonify({
                 'success': True, 
                 'message': 'Login successful',
-                'redirect': '/dashboard'
+                'redirect': redirect_url
             })
         else:
-            return jsonify({'success': False, 'message': 'Invalid username or password'})
-            
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'})
+            return jsonify({'success': False, 'message': 'Invalid Password!'})
+    
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return jsonify({'success': False, 'message': 'Database error'})
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+def encrypted_password_matches(raw_password, stored_encrypted_password):
+    # Encrypt the provided password and compare with stored password
+    encrypted_input = encrypt_password(raw_password)
+    return encrypted_input == stored_encrypted_password
 
 @app.route('/dashboard')
+@login_required()
 def dashboard():
-    """A simple dashboard page after successful login"""
-    return '<h1>Welcome to Dashboard</h1><p>You have successfully logged in!</p>'
+    # Generic dashboard - redirects to specific role-based dashboard
+    role = session.get('role', '')
+    return redirect(get_redirect_url(role))
+
+# Admin Dashboard - Only accessible by Admin role
+@app.route('/admin/dashboard')
+@login_required('Admin')
+def admin_dashboard():
+    return render_template('dashboards/admin/admin.html')
+
+
+# Packaging Dashboard - Only accessible by Packaging role
+@app.route('/packaging/dashboard')
+@login_required('Packaging')
+def packaging_dashboard():
+    return render_template('dashboards/packaging/packaging.html')
+
+# Transport Dashboard - Only accessible by Transport role
+@app.route('/transport/dashboard')
+@login_required('Transport')
+def transport_dashboard():
+    return render_template('dashboards/transport/transport.html')
+
+# Account Dashboard - Only accessible by Account role
+@app.route('/account/dashboard')
+@login_required('Account')
+def account_dashboard():
+    return render_template('dashboards/account/account.html')
+
+# Builty Dashboard - Only accessible by Builty role
+@app.route('/builty/dashboard')
+@login_required('Builty')
+def builty_dashboard():
+    return render_template('dashboards/builty/builty.html')
+
+# Retail Dashboard - Only accessible by Retail role
+@app.route('/retail/dashboard')
+@login_required('Retail')
+def retail_dashboard():
+    return render_template('dashboards/retail/retail.html')
+
+# Logout route
+@app.route('/logout')
+def logout():
+    # Clear the session
+    session.clear()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    # Make sure templates directory exists
-    if not os.path.exists('templates'):
-        os.makedirs('templates')
-    
-    # Create templates/index.html if it doesn't exist
-    if not os.path.exists('templates/index.html'):
-        with open('templates/index.html', 'w') as f:
-            f.write('''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page</title>
-    <!-- CSS and JavaScript are included in this file for simplicity -->
-    <!-- In production, you should separate these files -->
-    <!-- Rest of the HTML content here (copied from the frontend code) -->
-</head>
-<body>
-    <!-- The login form content here -->
-</body>
-</html>''')
-    
-    # Run the Flask app
-    app.run(debug=True)
+    app.run(debug=True)  # Set debug=False in production
