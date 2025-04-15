@@ -383,42 +383,38 @@
                             <h3>Payment Details</h3>
                             
                             <div class="form-group">
-                                <label>Payment Mode:</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_mode" value="cash" checked>
-                                        <label class="form-check-label">Cash</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_mode" value="online">
-                                        <label class="form-check-label">Online</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_mode" value="not_paid">
-                                        <label class="form-check-label">Not Paid</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_mode" value="others">
-                                        <label class="form-check-label">Others</label>
-                                    </div>
-                                </div>
+                                <label for="paymentMode">Payment Mode:</label>
+                                <select class="form-select" id="paymentMode" name="payment_mode" required>
+                                    <option value="cash">Cash</option>
+                                    <option value="online">Online</option>
+                                    <option value="not_paid">Not Paid</option>
+                                    <option value="others">Others</option>
+                                </select>
                             </div>
                             
                             <div class="form-group" id="otherPaymentDetails" style="display: none;">
                                 <label for="otherPaymentMode">Other Payment Mode Details:</label>
-                                <input type="text" class="form-control" id="otherPaymentMode" name="other_payment_mode">
+                                <textarea class="form-control" id="otherPaymentMode" name="other_payment_mode" rows="2"></textarea>
                             </div>
 
                             <div class="form-group">
-                                <label>Payment Type:</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_type" value="full_payment" checked>
-                                        <label class="form-check-label">Full Payment</label>
+                                <label for="paymentType">Payment Type:</label>
+                                <select class="form-select" id="paymentType" name="payment_type" required>
+                                    <option value="full_payment">Full Payment</option>
+                                    <option value="half_payment">Half Payment</option>
+                                    <option value="custom">Custom Payment</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="customPaymentDetails" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="paidAmount">Paid Amount:</label>
+                                        <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" step="0.01">
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_type" value="half_payment">
-                                        <label class="form-check-label">Half Payment</label>
+                                    <div class="col-md-6">
+                                        <label for="leftToPay">Left to Pay:</label>
+                                        <input type="number" class="form-control" id="leftToPay" name="left_to_pay" value="0" min="0" step="0.01" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -430,15 +426,15 @@
                                     <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="paidAmount">Paid Amount:</label>
-                                    <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" step="0.01">
+                                <div class="form-group" id="defaultPaymentDetails">
+                                    <label for="defaultPaidAmount">Paid Amount:</label>
+                                    <input type="number" class="form-control" id="defaultPaidAmount" name="default_paid_amount" value="0" min="0" step="0.01">
                                 </div>
                                 
                                 <div class="total-row">
                                     <strong>Left to Pay:</strong>
-                                    <span id="leftToPay">₹0.00</span>
-                                    <input type="hidden" name="left_to_pay" id="leftToPayInput" value="0">
+                                    <span id="leftToPayDisplay">₹0.00</span>
+                                    <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
                                 </div>
                             </div>
                         </div>
@@ -564,7 +560,6 @@
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
-            document.getElementById('paidAmount').addEventListener('input', updateLeftToPay);
             document.getElementById('billingForm').addEventListener('submit', handleSubmit);
             document.getElementById('printBtn').addEventListener('click', printBill);
             
@@ -572,6 +567,69 @@
             document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
             document.getElementById('modalQuantity').addEventListener('input', updateModalFinalPrice);
             document.getElementById('modalIncludeGST').addEventListener('change', updateModalFinalPrice);
+
+            // Payment mode select change handler
+            document.getElementById('paymentMode').addEventListener('change', function() {
+                const otherPaymentDetails = document.getElementById('otherPaymentDetails');
+                if (this.value === 'others') {
+                    otherPaymentDetails.style.display = 'block';
+                } else {
+                    otherPaymentDetails.style.display = 'none';
+                }
+            });
+
+            // Payment type select change handler
+            document.getElementById('paymentType').addEventListener('change', function() {
+                const customPaymentDetails = document.getElementById('customPaymentDetails');
+                const defaultPaymentDetails = document.getElementById('defaultPaymentDetails');
+                
+                if (this.value === 'custom') {
+                    customPaymentDetails.style.display = 'block';
+                    defaultPaymentDetails.style.display = 'none';
+                } else {
+                    customPaymentDetails.style.display = 'none';
+                    defaultPaymentDetails.style.display = 'block';
+                    
+                    if (this.value === 'full_payment') {
+                        document.getElementById('defaultPaidAmount').value = grandTotal.toFixed(2);
+                    } else if (this.value === 'half_payment') {
+                        document.getElementById('defaultPaidAmount').value = (grandTotal / 2).toFixed(2);
+                    }
+                }
+                updateLeftToPay();
+            });
+
+            // Paid amount input handlers
+            document.getElementById('defaultPaidAmount').addEventListener('input', updateLeftToPay);
+            document.getElementById('paidAmount').addEventListener('input', function() {
+                const leftToPay = grandTotal - parseFloat(this.value) || 0;
+                document.getElementById('leftToPay').value = leftToPay.toFixed(2);
+                updateLeftToPayDisplay();
+            });
+
+            // Update left to pay amount
+            function updateLeftToPay() {
+                const paymentType = document.getElementById('paymentType').value;
+                let paidAmount = 0;
+                let leftToPay = 0;
+
+                if (paymentType === 'custom') {
+                    paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
+                } else {
+                    paidAmount = parseFloat(document.getElementById('defaultPaidAmount').value) || 0;
+                }
+
+                leftToPay = grandTotal - paidAmount;
+                document.getElementById('leftToPayDisplay').textContent = `₹${leftToPay.toFixed(2)}`;
+                document.getElementById('leftToPayInput').value = leftToPay;
+            }
+
+            // Update left to pay display
+            function updateLeftToPayDisplay() {
+                const leftToPay = parseFloat(document.getElementById('leftToPay').value) || 0;
+                document.getElementById('leftToPayDisplay').textContent = `₹${leftToPay.toFixed(2)}`;
+                document.getElementById('leftToPayInput').value = leftToPay;
+            }
 
             // Fetch customers from the server
             function fetchCustomers() {
@@ -772,23 +830,8 @@
                 document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
                 document.getElementById('grandTotalInput').value = grandTotal;
                 
-                // Update paid amount based on payment type
-                const paymentType = document.querySelector('input[name="payment_type"]:checked').value;
-                if (paymentType === 'full_payment') {
-                    document.getElementById('paidAmount').value = grandTotal.toFixed(2);
-                } else if (paymentType === 'half_payment') {
-                    document.getElementById('paidAmount').value = (grandTotal / 2).toFixed(2);
-                }
-                
+                // Update left to pay amount
                 updateLeftToPay();
-            }
-
-            // Update left to pay amount
-            function updateLeftToPay() {
-                const paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
-                const leftToPay = grandTotal - paidAmount;
-                document.getElementById('leftToPay').textContent = `₹${leftToPay.toFixed(2)}`;
-                document.getElementById('leftToPayInput').value = leftToPay;
             }
 
             // Handle form submission
