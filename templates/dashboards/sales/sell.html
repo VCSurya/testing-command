@@ -7,15 +7,12 @@
     <title>Sell Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <style>
         :root {
             --primary: #4361ee;
             --secondary: #3a0ca3;
-            --success: #4cc9f0;
-            --warning: #f72585;
-            --info: #7209b7;
-            --dark: #2b2d42;
-            --light: #f8f9fa;
         }
 
         body {
@@ -57,8 +54,6 @@
             transform: translateX(5px);
         }
 
-       
-
         .header-container {
             background-color: white;
             border-radius: 12px;
@@ -71,22 +66,170 @@
             display: none;
         }
 
-        .profile-menu img {
-            width: 35px;
-            height: 35px;
+        /* Billing System Styles */
+        .billing-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin: 1rem;
+        }
+
+        .billing-container h1 {
+            color: var(--primary);
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+
+        .split-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .split-row > div {
+            flex: 1;
+        }
+
+        #productTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #productTable th {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            font-weight: 500;
+        }
+
+        #productTable td {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        #productTable tr:last-child td {
+            border-bottom: none;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .payment-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .total-calculation {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .total-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-row strong {
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .total-row span {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
             border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
-        /* Animated stats */
-        .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.3;
-            position: absolute;
-            right: 1rem;
-            bottom: 1rem;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* Responsive styles */
         @media (max-width: 991.98px) {
             .sidebar {
                 position: fixed;
@@ -122,74 +265,34 @@
             .overlay.show {
                 display: block;
             }
-        }
 
-        @media (max-width: 767.98px) {
-            .dashboard-stats .col-md-3 {
-                margin-bottom: 1rem;
+            .split-row {
+                flex-direction: column;
             }
 
-            .card-title {
-                font-size: 1rem;
+            .billing-container {
+                padding: 1rem;
+                margin: 0.5rem;
             }
-
-            .card-text {
-                font-size: 1.5rem;
-            }
-        }
-
-        /* Animation for dashboard cards */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-fade-in {
-            animation: fadeInUp 0.5s ease forwards;
-        }
-
-        .animate-delay-1 {
-            animation-delay: 0.1s;
-        }
-
-        .animate-delay-2 {
-            animation-delay: 0.2s;
-        }
-
-        .animate-delay-3 {
-            animation-delay: 0.3s;
-        }
-
-        .animate-delay-4 {
-            animation-delay: 0.4s;
         }
     </style>
 </head>
 
 <body>
-    <!-- Mobile sidebar overlay -->
     <div class="overlay" id="sidebarOverlay"></div>
 
     <div class="container-fluid p-0">
         <div class="row g-0">
-            <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
                 <div class="sidebar-logo mb-4">
                     <h3 class="logo-text">Sales<span class="text-warning">Pro</span></h3>
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link" href="#"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
+                        <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#"><i class="bi bi-people me-2"></i>Customers</a>
@@ -198,51 +301,213 @@
                         <a class="nav-link" href="#"><i class="bi bi-cart me-2"></i>Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-calendar-event me-2"></i>Calendar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-chat-left-text me-2"></i>Messages</a>
-                    </li>
-                    <li class="nav-item mt-3">
                         <a class="nav-link" href="#"><i class="bi bi-gear me-2"></i>Settings</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-question-circle me-2"></i>Help</a>
                     </li>
                 </ul>
             </div>
 
-            <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
                 <div class="header-container d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                         <button class="btn mobile-toggle me-3" id="sidebarToggle">
                             <i class="bi bi-list fs-4"></i>
                         </button>
-                        <h4 class="mb-0">Sell</h4>
+                        <h4 class="mb-0">Billing System</h4>
                     </div>
-                    <div class="dropdown profile-menu">
-                        <button class="btn dropdown-toggle d-flex align-items-center" type="button"
-                            id="dropdownMenuButton" data-bs-toggle="dropdown">
-                            <!-- <img src="/api/placeholder/100/500" alt="profile" class="me-2"> -->
-                            <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
-                            </span>
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown">
+                            <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/logout"><i
-                                        class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </div>
+                </div>
+
+                <!-- Billing System Container -->
+                <div class="billing-container">
+                    <form id="billingForm">
+                        <!-- Customer Information -->
+                        <div class="form-group">
+                            <label for="customerSelect">Customer:</label>
+                            <select class="form-select" id="customerSelect" name="customer_id" required>
+                                <option value="">Select Customer</option>
+                            </select>
+                        </div>
+
+                        <div class="split-row">
+                            <div class="form-group">
+                                <label for="billNo">Bill No:</label>
+                                <input type="text" class="form-control" id="billNo" name="bill_no" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="deliveryMode">Delivery Mode:</label>
+                                <input type="text" class="form-control" id="deliveryMode" name="delivery_mode">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="transportCompany">Transport Company Name:</label>
+                            <input type="text" class="form-control" id="transportCompany" name="transport_company">
+                        </div>
+
+                        <!-- Product Selection -->
+                        <h3>Products</h3>
+                        <div class="d-flex gap-2 mb-3">
+                            <select class="form-select" id="productSelect">
+                                <option value="">Select Product</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" id="addProductBtn">Add Product</button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table id="productTable" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product Name</th>
+                                        <th>Base Price</th>
+                                        <th>GST (18%)</th>
+                                        <th>Final Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Payment Information -->
+                        <div class="payment-section">
+                            <h3>Payment Details</h3>
+                            
+                            <div class="form-group">
+                                <label>Payment Mode:</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_mode" value="cash" checked>
+                                        <label class="form-check-label">Cash</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_mode" value="online">
+                                        <label class="form-check-label">Online</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_mode" value="not_paid">
+                                        <label class="form-check-label">Not Paid</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_mode" value="others">
+                                        <label class="form-check-label">Others</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" id="otherPaymentDetails" style="display: none;">
+                                <label for="otherPaymentMode">Other Payment Mode Details:</label>
+                                <input type="text" class="form-control" id="otherPaymentMode" name="other_payment_mode">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Payment Type:</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_type" value="full_payment" checked>
+                                        <label class="form-check-label">Full Payment</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_type" value="half_payment">
+                                        <label class="form-check-label">Half Payment</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="total-calculation">
+                                <div class="total-row">
+                                    <strong>Grand Total:</strong>
+                                    <span id="grandTotal">₹0.00</span>
+                                    <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="paidAmount">Paid Amount:</label>
+                                    <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" step="0.01">
+                                </div>
+                                
+                                <div class="total-row">
+                                    <strong>Left to Pay:</strong>
+                                    <span id="leftToPay">₹0.00</span>
+                                    <input type="hidden" name="left_to_pay" id="leftToPayInput" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="salesNote">Sales Note:</label>
+                            <textarea class="form-control" id="salesNote" name="sales_note" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button type="submit" class="btn btn-primary">Generate Bill</button>
+                            <button type="button" class="btn btn-secondary" id="printBtn">Print Bill</button>
+                            <button type="reset" class="btn btn-danger">Clear Form</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Product Details Modal -->
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productDetailsModalLabel">Product Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="modalProductName">Product Name:</label>
+                        <input type="text" class="form-control" id="modalProductName" readonly>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="modalBasePrice">Base Price:</label>
+                        <input type="number" class="form-control" id="modalBasePrice" min="0" step="0.01">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="modalQuantity">Quantity:</label>
+                        <input type="number" class="form-control" id="modalQuantity" min="1" value="1">
+                    </div>
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modalIncludeGST">
+                            <label class="form-check-label" for="modalIncludeGST">Include GST (18%)</label>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="modalFinalPrice">Final Price:</label>
+                        <input type="number" class="form-control" id="modalFinalPrice" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddProduct">Add to Bill</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Sidebar toggle functionality
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -260,13 +525,353 @@
                 overlay.addEventListener('click', toggleSidebar);
             }
 
-            // Close sidebar on window resize if screen becomes large
             window.addEventListener('resize', function () {
                 if (window.innerWidth > 992 && sidebar.classList.contains('show')) {
                     sidebar.classList.remove('show');
                     overlay.classList.remove('show');
                 }
             });
+
+            // Billing System JavaScript
+            let customers = [];
+            let products = [];
+            let selectedProducts = [];
+            let grandTotal = 0;
+            const GST_RATE = 18; // 18% GST
+            let currentProduct = null;
+
+            // Load customers and products from the server
+            fetchCustomers();
+            fetchProducts();
+            
+            // Initialize Select2 for customer select
+            $(document).ready(function() {
+                $('#customerSelect').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Search and select customer',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                $('#productSelect').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Search and select product',
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+            
+            // Set up event listeners
+            document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
+            document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
+            document.getElementById('paidAmount').addEventListener('input', updateLeftToPay);
+            document.getElementById('billingForm').addEventListener('submit', handleSubmit);
+            document.getElementById('printBtn').addEventListener('click', printBill);
+            
+            // Modal event listeners
+            document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
+            document.getElementById('modalQuantity').addEventListener('input', updateModalFinalPrice);
+            document.getElementById('modalIncludeGST').addEventListener('change', updateModalFinalPrice);
+
+            // Fetch customers from the server
+            function fetchCustomers() {
+                fetch('/sales/customers')
+                    .then(response => response.json())
+                    .then(data => {
+                        customers = data;
+                        const customerSelect = document.getElementById('customerSelect');
+                        customerSelect.innerHTML = '<option value="">Select Customer</option>';
+                        data.forEach(customer => {
+                            const option = document.createElement('option');
+                            option.value = customer.id;
+                            option.textContent = `${customer.name}`;
+                            customerSelect.appendChild(option);
+                        });
+                        // Refresh Select2 after loading customers
+                        $('#customerSelect').trigger('change');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching customers:', error);
+                        alert('Failed to load customers. Please refresh the page and try again.');
+                    });
+            }
+
+            // Fetch products from the server
+            function fetchProducts() {
+                fetch('/sales/products')
+                    .then(response => response.json())
+                    .then(data => {
+                        products = data;
+                        const productSelect = document.getElementById('productSelect');
+                        productSelect.innerHTML = '<option value="">Select Product</option>';
+                        data.forEach(product => {
+                            const option = document.createElement('option');
+                            option.value = product.id;
+                            option.textContent = `${product.name} - ₹${product.price}`;
+                            productSelect.appendChild(option);
+                        });
+                        // Refresh Select2 after loading products
+                        $('#productSelect').trigger('change');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching products:', error);
+                        alert('Failed to load products. Please refresh the page and try again.');
+                    });
+            }
+
+            // Show product details modal
+            function showProductDetailsModal() {
+                const productId = document.getElementById('productSelect').value;
+                if (!productId) {
+                    alert('Please select a product.');
+                    return;
+                }
+
+                currentProduct = products.find(p => p.id == productId);
+                if (!currentProduct) return;
+
+                // Set modal values
+                document.getElementById('modalProductName').value = currentProduct.name;
+                document.getElementById('modalBasePrice').value = currentProduct.price;
+                document.getElementById('modalQuantity').value = 1;
+                document.getElementById('modalIncludeGST').checked = true;
+                
+                // Update final price
+                updateModalFinalPrice();
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
+                modal.show();
+            }
+
+            // Update modal final price
+            function updateModalFinalPrice() {
+                const basePrice = parseFloat(document.getElementById('modalBasePrice').value) || 0;
+                const quantity = parseInt(document.getElementById('modalQuantity').value) || 1;
+                const includeGST = document.getElementById('modalIncludeGST').checked;
+                
+                let finalPrice = basePrice;
+                let gstAmount = 0;
+
+                if (includeGST) {
+                    // If price includes GST, calculate base price and GST
+                    const originalPrice = basePrice;
+                    finalPrice = originalPrice;
+                    const calculatedBasePrice = originalPrice / (1 + GST_RATE / 100);
+                    gstAmount = originalPrice - calculatedBasePrice;
+                } else {
+                    // If price doesn't include GST, show original price with zero GST
+                    gstAmount = 0;
+                    finalPrice = basePrice;
+                }
+                
+                document.getElementById('modalFinalPrice').value = (finalPrice * quantity).toFixed(2);
+            }
+
+            // Add product to the bill
+            function addProduct() {
+                if (!currentProduct) return;
+
+                const basePrice = parseFloat(document.getElementById('modalBasePrice').value);
+                const quantity = parseInt(document.getElementById('modalQuantity').value);
+                const includeGST = document.getElementById('modalIncludeGST').checked;
+                
+                if (isNaN(basePrice) || basePrice <= 0) {
+                    alert('Please enter a valid price.');
+                    return;
+                }
+                
+                if (isNaN(quantity) || quantity <= 0) {
+                    alert('Please enter a valid quantity.');
+                    return;
+                }
+
+                let gstAmount = 0;
+                let finalPrice = basePrice;
+                let calculatedBasePrice = basePrice;
+
+                if (includeGST) {
+                    // If price includes GST, calculate base price and GST
+                    const originalPrice = basePrice;
+                    finalPrice = originalPrice;
+                    calculatedBasePrice = originalPrice / (1 + GST_RATE / 100);
+                    gstAmount = originalPrice - calculatedBasePrice;
+                } else {
+                    // If price doesn't include GST, show original price with zero GST
+                    gstAmount = 0;
+                    finalPrice = basePrice;
+                    calculatedBasePrice = basePrice;
+                }
+                
+                const productTotal = finalPrice * quantity;
+                
+                // Check if product already exists in the table
+                const existingProductIndex = selectedProducts.findIndex(p => p.id == currentProduct.id);
+                if (existingProductIndex !== -1) {
+                    // Update the existing product
+                    selectedProducts[existingProductIndex].quantity += quantity;
+                    selectedProducts[existingProductIndex].total += productTotal;
+                } else {
+                    // Add new product
+                    selectedProducts.push({
+                        id: currentProduct.id,
+                        name: currentProduct.name,
+                        basePrice: calculatedBasePrice,
+                        gstAmount: gstAmount,
+                        finalPrice: finalPrice,
+                        quantity: quantity,
+                        total: productTotal,
+                        includeGST: includeGST
+                    });
+                }
+                
+                updateProductTable();
+                updateTotals();
+                
+                // Reset product selection
+                $('#productSelect').val('').trigger('change');
+                
+                // Hide modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailsModal'));
+                modal.hide();
+            }
+
+            // Update product table
+            function updateProductTable() {
+                const tableBody = document.getElementById('productTableBody');
+                tableBody.innerHTML = '';
+                
+                selectedProducts.forEach((product, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'product-row';
+                    row.innerHTML = `
+                        <td>${product.name}</td>
+                        <td>${product.basePrice.toFixed(2)}</td>
+                        <td>₹${product.gstAmount.toFixed(2)}</td>
+                        <td>₹${product.finalPrice.toFixed(2)}</td>
+                        <td>${product.quantity}</td>
+                        <td>₹${product.total.toFixed(2)}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeProduct(${index})">Remove</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Remove product from the bill
+            window.removeProduct = function(index) {
+                selectedProducts.splice(index, 1);
+                updateProductTable();
+                updateTotals();
+            };
+
+            // Update totals
+            function updateTotals() {
+                grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+                document.getElementById('grandTotalInput').value = grandTotal;
+                
+                // Update paid amount based on payment type
+                const paymentType = document.querySelector('input[name="payment_type"]:checked').value;
+                if (paymentType === 'full_payment') {
+                    document.getElementById('paidAmount').value = grandTotal.toFixed(2);
+                } else if (paymentType === 'half_payment') {
+                    document.getElementById('paidAmount').value = (grandTotal / 2).toFixed(2);
+                }
+                
+                updateLeftToPay();
+            }
+
+            // Update left to pay amount
+            function updateLeftToPay() {
+                const paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
+                const leftToPay = grandTotal - paidAmount;
+                document.getElementById('leftToPay').textContent = `₹${leftToPay.toFixed(2)}`;
+                document.getElementById('leftToPayInput').value = leftToPay;
+            }
+
+            // Handle form submission
+            function handleSubmit(event) {
+                event.preventDefault();
+                
+                if (selectedProducts.length === 0) {
+                    alert('Please add at least one product to the bill.');
+                    return;
+                }
+                
+                // Show loading spinner
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // Prepare form data
+                const formData = new FormData(event.target);
+                
+                // Add product data
+                formData.append('products', JSON.stringify(selectedProducts));
+                
+                // Send data to server
+                fetch('/api/generate-bill', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to generate bill');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Hide loading spinner
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    
+                    // Create URL for the PDF blob
+                    const pdfUrl = URL.createObjectURL(blob);
+                    
+                    // Open PDF in new tab
+                    window.open(pdfUrl, '_blank');
+                })
+                .catch(error => {
+                    // Hide loading spinner
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    console.error('Error:', error);
+                    alert('Failed to generate bill. Please try again.');
+                });
+            }
+
+            // Print bill
+            function printBill() {
+                if (selectedProducts.length === 0) {
+                    alert('Please add at least one product to the bill.');
+                    return;
+                }
+                
+                // Prepare form data
+                const formData = new FormData(document.getElementById('billingForm'));
+                formData.append('products', JSON.stringify(selectedProducts));
+                
+                // Send data to server to generate PDF
+                fetch('/api/generate-bill', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to generate bill');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const pdfUrl = URL.createObjectURL(blob);
+                    const printWindow = window.open(pdfUrl);
+                    printWindow.onload = function() {
+                        printWindow.print();
+                    };
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to print bill. Please try again.');
+                });
+            }
         });
     </script>
 </body>
