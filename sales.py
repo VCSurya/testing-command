@@ -19,6 +19,12 @@ sales_bp = Blueprint('sales', __name__)
 @sales_bp.route('/sales/dashboard')
 @login_required('Sales')
 def sales_dashboard():
-    return render_template('dashboards/sales/sales.html')
+    return render_template('dashboards/sales/main.html')
+
+@sales_bp.route('/sales/sell')
+@login_required('Sales')
+def sales():
+    return render_template('dashboards/sales/sell.html')
 
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)
+
