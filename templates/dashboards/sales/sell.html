@@ -453,9 +453,6 @@
                         <!-- Product Selection -->
                         <h3>Products</h3>
                         <div class="d-flex gap-2 mb-3">
-                            <select class="form-select" id="productSelect">
-                                <option value="">Select Product</option>
-                            </select>
                             <button type="button" class="btn btn-primary" id="addProductBtn">Add Product</button>
                         </div>
 
@@ -496,26 +493,24 @@
                                 <textarea class="form-control" id="otherPaymentMode" name="other_payment_mode" rows="2"></textarea>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" id="paymentTypeGroup">
                                 <label for="paymentType">Payment Type:</label>
                                 <select class="form-select" id="paymentType" name="payment_type" required>
                                     <option value="full_payment">Full Payment</option>
                                     <option value="half_payment">Half Payment</option>
-                                    <option value="custom">Custom Payment</option>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="customPaymentDetails" style="display: none;">
-                                <div class="row">
-                                    <div class="col-md-6" style="width: 100%;">
-                                        <label for="paidAmount">Paid Amount:</label>
-                                        <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" step="0.01">
-                                    </div>
-                                    <div style="display: none;">
-                                        <label for="leftToPay">Left to Pay:</label>
-                                        <input type="number" class="form-control" id="leftToPay" name="left_to_pay" value="0" min="0" step="0.01" readonly>
-                                    </div>
-                                </div>
+                            <div class="form-group" id="paidAmountGroup" style="display: none;">
+                                <label for="paidAmount">Paid Amount:</label>
+                                <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
+                                <div class="invalid-feedback">Paid amount must be between 0 and the grand total.</div>
+                            </div>
+
+                            <div class="form-group" id="leftToPayGroup" style="display: none;">
+                                <label for="leftToPayDisplay">Left to Pay:</label>
+                                <input type="text" class="form-control" id="leftToPayDisplay" readonly disabled>
+                                <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
                             </div>
 
                             <div class="total-calculation">
@@ -523,17 +518,6 @@
                                     <strong>Grand Total:</strong>
                                     <span id="grandTotal">₹0.00</span>
                                     <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
-                                </div>
-                                
-                                <div class="form-group" id="defaultPaymentDetails">
-                                    <label for="defaultPaidAmount">Paid Amount:</label>
-                                    <input type="number" class="form-control" id="defaultPaidAmount" name="default_paid_amount" value="0" min="0" step="0.01">
-                                </div>
-                                
-                                <div class="total-row">
-                                    <strong>Left to Pay:</strong>
-                                    <span id="leftToPayDisplay">₹0.00</span>
-                                    <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
                                 </div>
                             </div>
                         </div>
@@ -564,25 +548,27 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-group mb-3">
-                        <label for="modalProductName">Product Name:</label>
-                        <input type="text" class="form-control" id="modalProductName" readonly>
+                        <label for="modalProductSelect">Search and Select Product:</label>
+                        <select class="form-select" id="modalProductSelect" required>
+                            <option value="">Search and select product</option>
+                        </select>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="modalBasePrice">Base Price:</label>
-                        <input type="number" class="form-control" id="modalBasePrice" min="0" step="0.01">
+                        <label for="modalBasePrice">Product Price (₹):</label>
+                        <input type="number" class="form-control" id="modalBasePrice" min="0" step="0.01" required>
                     </div>
                     <div class="form-group mb-3">
                         <label for="modalQuantity">Quantity:</label>
-                        <input type="number" class="form-control" id="modalQuantity" min="1" value="1">
+                        <input type="number" class="form-control" id="modalQuantity" min="1" value="1" required>
                     </div>
                     <div class="form-group mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="modalIncludeGST">
+                            <input class="form-check-input" type="checkbox" id="modalIncludeGST" checked>
                             <label class="form-check-label" for="modalIncludeGST">Include GST (18%)</label>
                         </div>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="modalFinalPrice">Final Price:</label>
+                        <label for="modalFinalPrice">Product Total (₹):</label>
                         <input type="number" class="form-control" id="modalFinalPrice" readonly>
                     </div>
                 </div>
@@ -635,10 +621,6 @@
             const GST_RATE = 18; // 18% GST
             let currentProduct = null;
 
-            // Load customers and products from the server
-            fetchCustomers();
-            fetchProducts();
-            
             // Initialize Select2 for customer select
             $(document).ready(function() {
                 $('#customerSelect').select2({
@@ -648,13 +630,44 @@
                     width: '100%'
                 });
 
-                $('#productSelect').select2({
+                // Initialize product select with search enabled
+                $('#modalProductSelect').select2({
                     theme: 'bootstrap-5',
                     placeholder: 'Search and select product',
                     allowClear: true,
-                    width: '100%'
+                    width: '100%',
+                    dropdownParent: $('#productDetailsModal'),
+                    minimumInputLength: 0,
+                    language: {
+                        noResults: function() {
+                            return "No products found";
+                        }
+                    }
+                });
+
+                // Add event listener for product selection
+                $('#modalProductSelect').on('select2:select', function(e) {
+                    const productId = e.params.data.id;
+                    currentProduct = products.find(p => p.id == productId);
+                    if (currentProduct) {
+                        document.getElementById('modalBasePrice').value = currentProduct.price;
+                        document.getElementById('modalQuantity').value = 1;
+                        document.getElementById('modalIncludeGST').checked = true;
+                        updateModalFinalPrice();
+                    }
+                });
+
+                // Add event listener for product deselection
+                $('#modalProductSelect').on('select2:clear', function() {
+                    document.getElementById('modalBasePrice').value = '';
+                    document.getElementById('modalQuantity').value = 1;
+                    document.getElementById('modalFinalPrice').value = '';
                 });
             });
+
+            // Load customers and products from the server
+            fetchCustomers();
+            fetchProducts();
             
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
@@ -680,41 +693,79 @@
             // Payment mode select change handler
             document.getElementById('paymentMode').addEventListener('change', function() {
                 const otherPaymentDetails = document.getElementById('otherPaymentDetails');
-                if (this.value === 'others') {
+                const paymentTypeGroup = document.getElementById('paymentTypeGroup');
+                const paidAmountGroup = document.getElementById('paidAmountGroup');
+                const leftToPayGroup = document.getElementById('leftToPayGroup');
+                
+                if (this.value === 'not_paid') {
+                    otherPaymentDetails.style.display = 'none';
+                    paymentTypeGroup.style.display = 'none';
+                    paidAmountGroup.style.display = 'none';
+                    leftToPayGroup.style.display = 'none';
+                } else if (this.value === 'others') {
                     otherPaymentDetails.style.display = 'block';
+                    paymentTypeGroup.style.display = 'block';
+                    leftToPayGroup.style.display = 'none';
                 } else {
                     otherPaymentDetails.style.display = 'none';
+                    paymentTypeGroup.style.display = 'block';
+                    leftToPayGroup.style.display = 'none';
                 }
             });
 
             // Payment type select change handler
             document.getElementById('paymentType').addEventListener('change', function() {
-                const customPaymentDetails = document.getElementById('customPaymentDetails');
-                const defaultPaymentDetails = document.getElementById('defaultPaymentDetails');
+                const paidAmountGroup = document.getElementById('paidAmountGroup');
+                const paidAmountField = document.getElementById('paidAmount');
+                const leftToPayGroup = document.getElementById('leftToPayGroup');
                 
-                if (this.value === 'custom') {
-                    customPaymentDetails.style.display = 'block';
-                    defaultPaymentDetails.style.display = 'none';
-                } else {
-                    customPaymentDetails.style.display = 'none';
-                    defaultPaymentDetails.style.display = 'block';
-                    
-                    if (this.value === 'full_payment') {
-                        document.getElementById('defaultPaidAmount').value = grandTotal.toFixed(2);
-                    } else if (this.value === 'half_payment') {
-                        document.getElementById('defaultPaidAmount').value = (grandTotal / 2).toFixed(2);
-                    }
+                if (this.value === 'full_payment') {
+                    paidAmountGroup.style.display = 'none';
+                    leftToPayGroup.style.display = 'none';
+                    paidAmountField.value = grandTotal.toFixed(2);
+                    paidAmountField.required = false;
+                } else if (this.value === 'half_payment') {
+                    paidAmountGroup.style.display = 'block';
+                    leftToPayGroup.style.display = 'block';
+                    paidAmountField.value = (grandTotal / 2).toFixed(2);
+                    paidAmountField.required = true;
                 }
                 updateLeftToPay();
             });
 
-            // Paid amount input handlers
-            document.getElementById('defaultPaidAmount').addEventListener('input', updateLeftToPay);
-            document.getElementById('paidAmount').addEventListener('input', function() {
-                const leftToPay = grandTotal - parseFloat(this.value) || 0;
-                document.getElementById('leftToPay').value = leftToPay.toFixed(2);
-                updateLeftToPayDisplay();
-            });
+            // Update totals
+            function updateTotals() {
+                grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+                document.getElementById('grandTotalInput').value = grandTotal;
+                
+                // Update paid amount max value
+                const paidAmountField = document.getElementById('paidAmount');
+                if (paidAmountField) {
+                    paidAmountField.max = grandTotal;
+                    const currentValue = parseFloat(paidAmountField.value) || 0;
+                    if (currentValue > grandTotal) {
+                        paidAmountField.value = grandTotal.toFixed(2);
+                    }
+                }
+                
+                // Update left to pay amount
+                updateLeftToPay();
+            }
+
+            // Validate paid amount
+            window.validatePaidAmount = function(input) {
+                const value = parseFloat(input.value) || 0;
+                const max = parseFloat(input.max) || 0;
+                
+                if (value < 0) {
+                    input.value = '0';
+                } else if (value > max) {
+                    input.value = max.toFixed(2);
+                }
+                
+                updateLeftToPay();
+            };
 
             // Update left to pay amount
             function updateLeftToPay() {
@@ -722,21 +773,14 @@
                 let paidAmount = 0;
                 let leftToPay = 0;
 
-                if (paymentType === 'custom') {
-                    paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
+                if (paymentType === 'full_payment') {
+                    paidAmount = grandTotal;
                 } else {
-                    paidAmount = parseFloat(document.getElementById('defaultPaidAmount').value) || 0;
+                    paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
                 }
 
                 leftToPay = grandTotal - paidAmount;
-                document.getElementById('leftToPayDisplay').textContent = `₹${leftToPay.toFixed(2)}`;
-                document.getElementById('leftToPayInput').value = leftToPay;
-            }
-
-            // Update left to pay display
-            function updateLeftToPayDisplay() {
-                const leftToPay = parseFloat(document.getElementById('leftToPay').value) || 0;
-                document.getElementById('leftToPayDisplay').textContent = `₹${leftToPay.toFixed(2)}`;
+                document.getElementById('leftToPayDisplay').value = `₹${leftToPay.toFixed(2)}`;
                 document.getElementById('leftToPayInput').value = leftToPay;
             }
 
@@ -754,7 +798,6 @@
                             option.textContent = `${customer.name}`;
                             customerSelect.appendChild(option);
                         });
-                        // Refresh Select2 after loading customers
                         $('#customerSelect').trigger('change');
                     })
                     .catch(error => {
@@ -769,16 +812,22 @@
                     .then(response => response.json())
                     .then(data => {
                         products = data;
-                        const productSelect = document.getElementById('productSelect');
-                        productSelect.innerHTML = '<option value="">Select Product</option>';
+                        const productSelect = $('#modalProductSelect');
+                        productSelect.empty();
+                        productSelect.append('<option value="">Search and select product</option>');
+                        
                         data.forEach(product => {
-                            const option = document.createElement('option');
-                            option.value = product.id;
-                            option.textContent = `${product.name} - ₹${product.price}`;
-                            productSelect.appendChild(option);
+                            const option = new Option(
+                                `${product.name}`,
+                                product.id,
+                                false,
+                                false
+                            );
+                            productSelect.append(option);
                         });
-                        // Refresh Select2 after loading products
-                        $('#productSelect').trigger('change');
+
+                        // Refresh Select2
+                        productSelect.trigger('change');
                     })
                     .catch(error => {
                         console.error('Error fetching products:', error);
@@ -788,27 +837,21 @@
 
             // Show product details modal
             function showProductDetailsModal() {
-                const productId = document.getElementById('productSelect').value;
-                if (!productId) {
-                    alert('Please select a product.');
-                    return;
-                }
-
-                currentProduct = products.find(p => p.id == productId);
-                if (!currentProduct) return;
-
-                // Set modal values
-                document.getElementById('modalProductName').value = currentProduct.name;
-                document.getElementById('modalBasePrice').value = currentProduct.price;
+                // Reset modal form
+                $('#modalProductSelect').val('').trigger('change');
+                document.getElementById('modalBasePrice').value = '';
                 document.getElementById('modalQuantity').value = 1;
                 document.getElementById('modalIncludeGST').checked = true;
+                document.getElementById('modalFinalPrice').value = '';
                 
-                // Update final price
-                updateModalFinalPrice();
-
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
                 modal.show();
+                
+                // Focus on the product select and open dropdown
+                setTimeout(() => {
+                    $('#modalProductSelect').select2('open');
+                }, 500);
             }
 
             // Update modal final price
@@ -837,7 +880,10 @@
 
             // Add product to the bill
             function addProduct() {
-                if (!currentProduct) return;
+                if (!currentProduct) {
+                    alert('Please select a product first.');
+                    return;
+                }
 
                 const basePrice = parseFloat(document.getElementById('modalBasePrice').value);
                 const quantity = parseInt(document.getElementById('modalQuantity').value);
@@ -895,8 +941,12 @@
                 updateProductTable();
                 updateTotals();
                 
-                // Reset product selection
-                $('#productSelect').val('').trigger('change');
+                // Reset modal form
+                $('#modalProductSelect').val('').trigger('change');
+                document.getElementById('modalBasePrice').value = '';
+                document.getElementById('modalQuantity').value = 1;
+                document.getElementById('modalIncludeGST').checked = true;
+                document.getElementById('modalFinalPrice').value = '';
                 
                 // Hide modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailsModal'));
@@ -913,7 +963,7 @@
                     row.className = 'product-row';
                     row.innerHTML = `
                         <td>${product.name}</td>
-                        <td>${product.basePrice.toFixed(2)}</td>
+                        <td>₹${product.basePrice.toFixed(2)}</td>
                         <td>₹${product.gstAmount.toFixed(2)}</td>
                         <td>₹${product.finalPrice.toFixed(2)}</td>
                         <td>${product.quantity}</td>
@@ -924,6 +974,19 @@
                     `;
                     tableBody.appendChild(row);
                 });
+
+                // Update paid amount max value when grand total changes
+                const paidAmountField = document.getElementById('paidAmount');
+                if (paidAmountField) {
+                    paidAmountField.max = grandTotal;
+                    const currentValue = parseFloat(paidAmountField.value) || 0;
+                    if (currentValue < 0) {
+                        paidAmountField.value = '0';
+                    } else if (currentValue > grandTotal) {
+                        paidAmountField.value = grandTotal.toFixed(2);
+                    }
+                    updateLeftToPay();
+                }
             }
 
             // Remove product from the bill
@@ -932,16 +995,6 @@
                 updateProductTable();
                 updateTotals();
             };
-
-            // Update totals
-            function updateTotals() {
-                grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
-                document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-                document.getElementById('grandTotalInput').value = grandTotal;
-                
-                // Update left to pay amount
-                updateLeftToPay();
-            }
 
             // Handle form submission
             function handleSubmit(event) {
@@ -960,9 +1013,6 @@
                 
                 // Add product data
                 formData.append('products', JSON.stringify(selectedProducts));
-                
-                // Log the form data for debugging
-                console.log('Form Data:', Object.fromEntries(formData));
                 
                 // Send data to server
                 fetch('/sales/generate-bill', {
