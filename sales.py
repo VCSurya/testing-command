@@ -90,6 +90,30 @@ def get_products():
         cursor.close()
         conn.close()
 
+@sales_bp.route('/sales/check-bill-number/<bill_no>')
+@login_required('Sales')
+def check_bill_number(bill_no):
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Check if bill number exists in the sales table
+        cursor.execute("SELECT COUNT(*) as count FROM sales WHERE bill_no = %s", (bill_no,))
+        result = cursor.fetchone()
+        
+        return jsonify({
+            'exists': result['count'] > 0
+        })
+    except Exception as e:
+        print(f"Error checking bill number: {e}")
+        return jsonify({'error': 'Failed to check bill number'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @sales_bp.route('/sales/add_new_product', methods=['POST'])
 def add_new_product():
     try:
@@ -144,6 +168,7 @@ def generate_bill():
         grand_total = float(request.form.get('grand_total', 0))
         sales_note = request.form.get('sales_note', '')
         
+
         # Format current time
         formatted_time = datetime.datetime.now().strftime("%d/%m/%Y %I:%M %p")
         
@@ -315,12 +340,25 @@ def generate_bill():
         
         
         # TOTAL row - separate from product table, exactly like sample
-        total_data = [
-            ["","GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
-            ["","RECEIVED AMOUNT", "","","", f"Rs {paid_amount:.0f}"],
-            ["","BALANCE AMOUNT", "","","", f"Rs {(grand_total - paid_amount):.0f}"],
 
-        ]
+
+        if payment_type == "half_payment" and payment_mode != "not_paid":
+            total_data = [
+                ["","GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
+                ["","RECEIVED AMOUNT", "","","", f"Rs {paid_amount:.0f}"],
+                ["","REMAINING AMOUNT", "","","", f"Rs {(grand_total - paid_amount):.0f}"],
+            ]
+        else:
+            if payment_mode != "not_paid":
+                total_data = [
+                    ["","GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
+                ]
+
+        if payment_mode == "not_paid":
+            total_data = [
+                    ["","GRAND TOTAL Not Paid", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
+                ]
+
         total_table = Table(total_data, colWidths=[0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
         total_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),

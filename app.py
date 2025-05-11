@@ -41,8 +41,8 @@ def get_db_connection():
 # Password encryption/decryption functions
 def encrypt_password(raw_password):
     # Create an AES cipher
-    key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0')
-    iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0')
+    key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0') # type: ignore
+    iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0') # type: ignore
     cipher = AES.new(key, AES.MODE_CBC, iv)
     
     # Pad the password and encrypt it
@@ -55,8 +55,8 @@ def encrypt_password(raw_password):
 def decrypt_password(encrypted_password):
     try:
         # Create an AES cipher
-        key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0')
-        iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0')
+        key = SECRET_KEY.encode('utf-8')[:16].ljust(16, b'\0') # type: ignore
+        iv = SECRET_IV.encode('utf-8')[:16].ljust(16, b'\0') # type: ignore
         cipher = AES.new(key, AES.MODE_CBC, iv)
         
         # Decode base64 and decrypt
@@ -128,16 +128,14 @@ def login():
             return jsonify({'success': False, 'message': 'User Not Found!'})
         
         # Check password
-        stored_password = user['password']
+        stored_password = user['password'] # type: ignore
         if encrypted_password_matches(password, stored_password):
             # Store user info in session
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
-            
+            session['user_id'] = user['id'] # type: ignore
+            session['username'] = user['username'] # type: ignore
+            session['role'] = user['role'] # type: ignore
             # Determine redirect based on role
-            redirect_url = get_redirect_url(user['role'])
-            
+            redirect_url = get_redirect_url(user['role']) # type: ignore
             return jsonify({
                 'success': True, 
                 'message': 'Login successful',

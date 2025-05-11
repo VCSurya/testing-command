@@ -8,7 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
     <style>
         :root {
             --primary: #4361ee;
@@ -101,7 +102,8 @@
             display: block;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 0.75rem 1rem;
@@ -109,7 +111,8 @@
             background-color: #f8f9fa;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
             background-color: white;
@@ -121,7 +124,7 @@
             margin-bottom: 1.5rem;
         }
 
-        .split-row > div {
+        .split-row>div {
             flex: 1;
         }
 
@@ -315,8 +318,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 991.98px) {
@@ -409,11 +417,13 @@
                         <h4 class="mb-0">Billing System</h4>
                     </div>
                     <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton"
+                            data-bs-toggle="dropdown">
                             <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                            <li><a class="dropdown-item" href="/logout"><i
+                                        class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </div>
                 </div>
@@ -433,6 +443,8 @@
                             <div class="form-group">
                                 <label for="billNo">Bill No:</label>
                                 <input type="text" class="form-control" id="billNo" name="bill_no" required>
+                                <div class="invalid-feedback" id="billNoError">This bill number already exists. Please
+                                    choose another one.</div>
                             </div>
                             <div class="form-group">
                                 <label for="deliveryMode">Delivery Mode:</label>
@@ -477,7 +489,7 @@
                         <!-- Payment Information -->
                         <div class="payment-section">
                             <h3>Payment Details</h3>
-                            
+
                             <div class="form-group">
                                 <label for="paymentMode">Payment Mode:</label>
                                 <select class="form-select" id="paymentMode" name="payment_mode" required>
@@ -487,15 +499,17 @@
                                     <option value="others">Others</option>
                                 </select>
                             </div>
-                            
+
                             <div class="form-group" id="otherPaymentDetails" style="display: none;">
                                 <label for="otherPaymentMode">Other Payment Mode Details:</label>
-                                <textarea class="form-control" id="otherPaymentMode" name="other_payment_mode" rows="2"></textarea>
+                                <textarea class="form-control" id="otherPaymentMode" name="other_payment_mode"
+                                    rows="2"></textarea>
                             </div>
 
                             <div class="form-group" id="paymentTypeGroup">
                                 <label for="paymentType">Payment Type:</label>
                                 <select class="form-select" id="paymentType" name="payment_type" required>
+                                    <option disabled selected>Select Payment Type</option>
                                     <option value="full_payment">Full Payment</option>
                                     <option value="half_payment">Half Payment</option>
                                 </select>
@@ -503,7 +517,8 @@
 
                             <div class="form-group" id="paidAmountGroup" style="display: none;">
                                 <label for="paidAmount">Paid Amount:</label>
-                                <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0" min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
+                                <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0"
+                                    min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
                                 <div class="invalid-feedback">Paid amount must be between 0 and the grand total.</div>
                             </div>
 
@@ -528,9 +543,9 @@
                         </div>
 
                         <div class="d-flex gap-2 justify-content-end">
-                            <button type="submit" class="btn btn-primary">Generate Bill</button>
+                            <!-- <button type="submit" class="btn btn-primary">Generate Bill</button> -->
                             <button type="button" class="btn btn-secondary" id="printBtn">Print Bill</button>
-                            <button type="reset" class="btn btn-danger">Clear Form</button>
+                            <button type="reset" class="btn btn-danger" onclick="clearForm()">Clear Form</button>
                         </div>
                     </form>
                 </div>
@@ -539,7 +554,8 @@
     </div>
 
     <!-- Product Details Modal -->
-    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -622,7 +638,7 @@
             let currentProduct = null;
 
             // Initialize Select2 for customer select
-            $(document).ready(function() {
+            $(document).ready(function () {
                 $('#customerSelect').select2({
                     theme: 'bootstrap-5',
                     placeholder: 'Search and select customer',
@@ -639,14 +655,14 @@
                     dropdownParent: $('#productDetailsModal'),
                     minimumInputLength: 0,
                     language: {
-                        noResults: function() {
+                        noResults: function () {
                             return "No products found";
                         }
                     }
                 });
 
                 // Add event listener for product selection
-                $('#modalProductSelect').on('select2:select', function(e) {
+                $('#modalProductSelect').on('select2:select', function (e) {
                     const productId = e.params.data.id;
                     currentProduct = products.find(p => p.id == productId);
                     if (currentProduct) {
@@ -658,7 +674,7 @@
                 });
 
                 // Add event listener for product deselection
-                $('#modalProductSelect').on('select2:clear', function() {
+                $('#modalProductSelect').on('select2:clear', function () {
                     document.getElementById('modalBasePrice').value = '';
                     document.getElementById('modalQuantity').value = 1;
                     document.getElementById('modalFinalPrice').value = '';
@@ -668,20 +684,20 @@
             // Load customers and products from the server
             fetchCustomers();
             fetchProducts();
-            
+
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
             document.getElementById('billingForm').addEventListener('submit', handleSubmit);
             document.getElementById('printBtn').addEventListener('click', printBill);
-            
+
             // Modal event listeners
             document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
             document.getElementById('modalQuantity').addEventListener('input', updateModalFinalPrice);
             document.getElementById('modalIncludeGST').addEventListener('change', updateModalFinalPrice);
 
             // Delivery mode select change handler
-            document.getElementById('deliveryMode').addEventListener('change', function() {
+            document.getElementById('deliveryMode').addEventListener('change', function () {
                 const transportCompanyGroup = document.getElementById('transportCompanyGroup');
                 if (this.value === 'transport') {
                     transportCompanyGroup.style.display = 'block';
@@ -691,12 +707,12 @@
             });
 
             // Payment mode select change handler
-            document.getElementById('paymentMode').addEventListener('change', function() {
+            document.getElementById('paymentMode').addEventListener('change', function () {
                 const otherPaymentDetails = document.getElementById('otherPaymentDetails');
                 const paymentTypeGroup = document.getElementById('paymentTypeGroup');
                 const paidAmountGroup = document.getElementById('paidAmountGroup');
                 const leftToPayGroup = document.getElementById('leftToPayGroup');
-                
+
                 if (this.value === 'not_paid') {
                     otherPaymentDetails.style.display = 'none';
                     paymentTypeGroup.style.display = 'none';
@@ -714,11 +730,11 @@
             });
 
             // Payment type select change handler
-            document.getElementById('paymentType').addEventListener('change', function() {
+            document.getElementById('paymentType').addEventListener('change', function () {
                 const paidAmountGroup = document.getElementById('paidAmountGroup');
                 const paidAmountField = document.getElementById('paidAmount');
                 const leftToPayGroup = document.getElementById('leftToPayGroup');
-                
+
                 if (this.value === 'full_payment') {
                     paidAmountGroup.style.display = 'none';
                     leftToPayGroup.style.display = 'none';
@@ -738,9 +754,11 @@
                 grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
                 document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
                 document.getElementById('grandTotalInput').value = grandTotal;
-                
+
+
                 // Update paid amount max value
                 const paidAmountField = document.getElementById('paidAmount');
+
                 if (paidAmountField) {
                     paidAmountField.max = grandTotal;
                     const currentValue = parseFloat(paidAmountField.value) || 0;
@@ -748,40 +766,51 @@
                         paidAmountField.value = grandTotal.toFixed(2);
                     }
                 }
-                
+
                 // Update left to pay amount
                 updateLeftToPay();
             }
 
             // Validate paid amount
-            window.validatePaidAmount = function(input) {
+            window.validatePaidAmount = function (input) {
                 const value = parseFloat(input.value) || 0;
                 const max = parseFloat(input.max) || 0;
-                
+
                 if (value < 0) {
                     input.value = '0';
                 } else if (value > max) {
                     input.value = max.toFixed(2);
                 }
-                
+
                 updateLeftToPay();
             };
 
             // Update left to pay amount
             function updateLeftToPay() {
                 const paymentType = document.getElementById('paymentType').value;
-                let paidAmount = 0;
+                let paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;;
                 let leftToPay = 0;
 
+
                 if (paymentType === 'full_payment') {
+                    document.getElementById('paidAmount').value = grandTotal;
                     paidAmount = grandTotal;
                 } else {
                     paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
                 }
 
-                leftToPay = grandTotal - paidAmount;
+                leftToPay = Math.max(grandTotal - paidAmount, 0);
                 document.getElementById('leftToPayDisplay').value = `₹${leftToPay.toFixed(2)}`;
-                document.getElementById('leftToPayInput').value = leftToPay;
+                document.getElementById('leftToPayInput').value = leftToPay.toFixed(2);
+
+
+                if (paidAmount < grandTotal) {
+                    document.getElementById('paymentType').value = 'half_payment';
+                } else {
+                    document.getElementById('paymentType').value = 'full_payment';
+                }
+
+
             }
 
             // Fetch customers from the server
@@ -815,7 +844,7 @@
                         const productSelect = $('#modalProductSelect');
                         productSelect.empty();
                         productSelect.append('<option value="">Search and select product</option>');
-                        
+
                         data.forEach(product => {
                             const option = new Option(
                                 `${product.name}`,
@@ -843,11 +872,11 @@
                 document.getElementById('modalQuantity').value = 1;
                 document.getElementById('modalIncludeGST').checked = true;
                 document.getElementById('modalFinalPrice').value = '';
-                
+
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('productDetailsModal'));
                 modal.show();
-                
+
                 // Focus on the product select and open dropdown
                 setTimeout(() => {
                     $('#modalProductSelect').select2('open');
@@ -859,7 +888,7 @@
                 const basePrice = parseFloat(document.getElementById('modalBasePrice').value) || 0;
                 const quantity = parseInt(document.getElementById('modalQuantity').value) || 1;
                 const includeGST = document.getElementById('modalIncludeGST').checked;
-                
+
                 let finalPrice = basePrice;
                 let gstAmount = 0;
 
@@ -874,7 +903,7 @@
                     gstAmount = 0;
                     finalPrice = basePrice;
                 }
-                
+
                 document.getElementById('modalFinalPrice').value = (finalPrice * quantity).toFixed(2);
             }
 
@@ -888,12 +917,12 @@
                 const basePrice = parseFloat(document.getElementById('modalBasePrice').value);
                 const quantity = parseInt(document.getElementById('modalQuantity').value);
                 const includeGST = document.getElementById('modalIncludeGST').checked;
-                
+
                 if (isNaN(basePrice) || basePrice <= 0) {
                     alert('Please enter a valid price.');
                     return;
                 }
-                
+
                 if (isNaN(quantity) || quantity <= 0) {
                     alert('Please enter a valid quantity.');
                     return;
@@ -915,9 +944,9 @@
                     finalPrice = basePrice;
                     calculatedBasePrice = basePrice;
                 }
-                
+
                 const productTotal = finalPrice * quantity;
-                
+
                 // Check if product already exists in the table
                 const existingProductIndex = selectedProducts.findIndex(p => p.id == currentProduct.id);
                 if (existingProductIndex !== -1) {
@@ -937,17 +966,17 @@
                         includeGST: includeGST
                     });
                 }
-                
+
                 updateProductTable();
                 updateTotals();
-                
+
                 // Reset modal form
                 $('#modalProductSelect').val('').trigger('change');
                 document.getElementById('modalBasePrice').value = '';
                 document.getElementById('modalQuantity').value = 1;
                 document.getElementById('modalIncludeGST').checked = true;
                 document.getElementById('modalFinalPrice').value = '';
-                
+
                 // Hide modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailsModal'));
                 modal.hide();
@@ -957,7 +986,7 @@
             function updateProductTable() {
                 const tableBody = document.getElementById('productTableBody');
                 tableBody.innerHTML = '';
-                
+
                 selectedProducts.forEach((product, index) => {
                     const row = document.createElement('tr');
                     row.className = 'product-row';
@@ -990,7 +1019,7 @@
             }
 
             // Remove product from the bill
-            window.removeProduct = function(index) {
+            window.removeProduct = function (index) {
                 selectedProducts.splice(index, 1);
                 updateProductTable();
                 updateTotals();
@@ -999,50 +1028,50 @@
             // Handle form submission
             function handleSubmit(event) {
                 event.preventDefault();
-                
+
                 if (selectedProducts.length === 0) {
                     alert('Please add at least one product to the bill.');
                     return;
                 }
-                
+
                 // Show loading spinner
                 document.getElementById('loadingOverlay').style.display = 'flex';
-                
+
                 // Prepare form data
                 const formData = new FormData(event.target);
-                
+
                 // Add product data
                 formData.append('products', JSON.stringify(selectedProducts));
-                
+
                 // Send data to server
                 fetch('/sales/generate-bill', {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.error || 'Failed to generate bill');
-                        });
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    // Hide loading spinner
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    
-                    // Create URL for the PDF blob
-                    const pdfUrl = URL.createObjectURL(blob);
-                    
-                    // Open PDF in new tab
-                    window.open(pdfUrl, '_blank');
-                })
-                .catch(error => {
-                    // Hide loading spinner
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    console.error('Error:', error);
-                    alert(`Failed to generate bill: ${error.message}`);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.error || 'Failed to generate bill');
+                            });
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // Hide loading spinner
+                        document.getElementById('loadingOverlay').style.display = 'none';
+
+                        // Create URL for the PDF blob
+                        const pdfUrl = URL.createObjectURL(blob);
+
+                        // Open PDF in new tab
+                        window.open(pdfUrl, '_blank');
+                    })
+                    .catch(error => {
+                        // Hide loading spinner
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                        console.error('Error:', error);
+                        alert(`Failed to generate bill: ${error.message}`);
+                    });
             }
 
             // Print bill
@@ -1051,35 +1080,102 @@
                     alert('Please add at least one product to the bill.');
                     return;
                 }
-                
+
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
-                
+
                 // Send data to server to generate PDF
                 fetch('/sales/generate-bill', {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to generate bill');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const pdfUrl = URL.createObjectURL(blob);
-                    const printWindow = window.open(pdfUrl);
-                    printWindow.onload = function() {
-                        printWindow.print();
-                    };
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to print bill. Please try again.');
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to generate bill');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const pdfUrl = URL.createObjectURL(blob);
+                        const printWindow = window.open(pdfUrl);
+                        printWindow.onload = function () {
+                            printWindow.print();
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to print bill. Please try again.');
+                    });
             }
+
+            // Bill number validation
+            const billNoInput = document.getElementById('billNo');
+            const billNoError = document.getElementById('billNoError');
+            let billNoTimeout;
+
+            billNoInput.addEventListener('input', function () {
+                clearTimeout(billNoTimeout);
+                const billNo = this.value.trim();
+
+                if (billNo === '') {
+                    this.classList.remove('is-valid', 'is-invalid');
+                    billNoError.style.display = 'none';
+                    return;
+                }
+
+                // Add debounce to prevent too many requests
+                billNoTimeout = setTimeout(() => {
+                    fetch(`/sales/check-bill-number/${billNo}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.exists) {
+                                this.classList.add('is-invalid');
+                                this.classList.remove('is-valid');
+                                billNoError.style.display = 'block';
+                            } else {
+                                this.classList.add('is-valid');
+                                this.classList.remove('is-invalid');
+                                billNoError.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking bill number:', error);
+                        });
+                }, 500); // 500ms debounce
+            });
         });
+
+        // Clear form function
+        function clearForm() {
+            document.getElementById('billingForm').reset();
+            document.getElementById('productTableBody').innerHTML = '';
+            // Reset all form inputs
+            $('form')[0].reset();
+
+            // Reset Select2 dropdown and show placeholder
+            $('#customerSelect').val(null).trigger('change');
+
+            selectedProducts = [];
+            grandTotal = 0;
+            updateTotals();
+        }
+        // Show loading spinner
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        // Hide loading spinner
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        // Show loading spinner on form submission
+        document.getElementById('billingForm').addEventListener('submit', showLoading);
+        // Hide loading spinner on form reset
+        document.getElementById('billingForm').addEventListener('reset', hideLoading);
+        // Hide loading spinner on page load
+        window.addEventListener('load', hideLoading);
+
+
     </script>
 </body>
 
