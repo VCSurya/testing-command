@@ -378,6 +378,82 @@
             width: 83.333333%;
         }
     </style>
+    <style>
+        /* General styling for the container */
+        .payment-container {
+            display: flex;
+            justify-content: center;
+            /* Centers the button horizontally */
+            align-items: center;
+            /* Centers the button vertically */
+            /* margin-top: 20px; */
+            /* Adds some space at the top */
+        }
+
+        /* Styling for the "Add Payment Note" button */
+        .add-payment-btn {
+            background-color: #4c5eaf;
+            /* Green background */
+            color: white;
+            /* White text */
+            padding: 7px 10px;
+            /* Padding for the button */
+            font-size: 25px;
+            /* Font size */
+            font-weight: bold;
+            /* Bold text */
+            border-radius: 8px;
+            /* Rounded corners */
+            cursor: pointer;
+            /* Pointer cursor on hover */
+            transition: all 0.3s ease;
+            /* Smooth transition for all changes */
+            text-align: center;
+            /* Centers text inside the button */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* Adds subtle shadow for depth */
+        }
+
+        /* Hover effect */
+        .add-payment-btn:hover {
+            background-color: #45a049;
+            /* Darker green when hovered */
+            transform: translateY(-2px);
+            /* Slight lift effect on hover */
+        }
+
+        /* Focus effect for accessibility */
+        .add-payment-btn:focus {
+            outline: none;
+            /* Removes default outline */
+            box-shadow: 0 0 5px rgba(72, 182, 72, 0.8);
+            /* Green outline on focus */
+        }
+
+        #paymentMode {
+            width: 100%;
+            margin-right: 10px;
+        }
+
+        /* Responsive design for small screens */
+        @media (max-width: 600px) {
+            .add-payment-btn {
+                font-size: 14px;
+                /* Slightly smaller font size on small screens */
+                padding: 10px 20px;
+                /* Adjusts padding */
+            }
+        }
+
+        @media (max-width: 400px) {
+            .add-payment-btn {
+                font-size: 12px;
+                /* Even smaller font size on very small screens */
+                padding: 8px 16px;
+                /* Adjusts padding further */
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -434,18 +510,23 @@
                         <!-- Customer Information -->
                         <div class="form-group">
                             <label for="customerSelect">Customer:</label>
-                            <select class="form-select" id="customerSelect" name="customer_id" required>
-                                <option value="">Select Customer</option>
-                            </select>
+                            <div style="display: flex;gap: 20px;">
+                                <select class="form-select" id="customerSelect" name="customer_id" required>
+                                    <option value="">Select Customer</option>
+                                </select>
+                                <button type="button" style="border-radius: 5px;padding: 0px 10px;width: 12%;"
+                                    id="addCustomerBtn">Add New
+                                    Customer</button>
+                            </div>
                         </div>
 
                         <div class="split-row">
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label for="billNo">Bill No:</label>
                                 <input type="text" class="form-control" id="billNo" name="bill_no" required>
                                 <div class="invalid-feedback" id="billNoError">This bill number already exists. Please
                                     choose another one.</div>
-                            </div>
+                            </div> -->
                             <div class="form-group">
                                 <label for="deliveryMode">Delivery Mode:</label>
                                 <select class="form-select" id="deliveryMode" name="delivery_mode" required>
@@ -473,9 +554,9 @@
                                 <thead>
                                     <tr>
                                         <th>Product Name</th>
-                                        <th>Base Price</th>
-                                        <th>GST (18%)</th>
-                                        <th>Final Price</th>
+                                        <!-- <th>Base Price</th> -->
+                                        <!-- <th>GST (18%)</th> -->
+                                        <th>Price</th>
                                         <th>Quantity</th>
                                         <th>Total</th>
                                         <th>Action</th>
@@ -492,17 +573,22 @@
 
                             <div class="form-group">
                                 <label for="paymentMode">Payment Mode:</label>
-                                <select class="form-select" id="paymentMode" name="payment_mode" required>
-                                    <option value="cash">Cash</option>
-                                    <option value="online">Online</option>
-                                    <option value="not_paid">Not Paid</option>
-                                    <option value="others">Others</option>
-                                </select>
+                                <div style="display: flex;">
+                                    <select class="form-select" id="paymentMode" name="payment_mode" required>
+                                        <option value="cash">Cash</option>
+                                        <option value="online">Online</option>
+                                        <option value="not_paid">Not Paid</option>
+                                    </select>
+                                    <div class="payment-container" id="paymentDiv">
+                                        <div class="add-payment-btn" id="addPaymentButton">✍️</div>
+                                    </div>
+                                </div>
                             </div>
 
+                            <!-- this is for payment notes here user can enter the notes about payment -->
                             <div class="form-group" id="otherPaymentDetails" style="display: none;">
-                                <label for="otherPaymentMode">Other Payment Mode Details:</label>
-                                <textarea class="form-control" id="otherPaymentMode" name="other_payment_mode"
+                                <label for="otherPaymentNote">Enter Relevant Payment Notes:</label>
+                                <textarea class="form-control" id="otherPaymentNote" name="payment_note"
                                     rows="2"></textarea>
                             </div>
 
@@ -526,6 +612,13 @@
                                 <label for="leftToPayDisplay">Left to Pay:</label>
                                 <input type="text" class="form-control" id="leftToPayDisplay" readonly disabled>
                                 <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="IncludeGST" id="IncludeGST">
+                                    <label class="form-check-label" for="IncludeGST ">Include GST (18%)</label>
+                                </div>
                             </div>
 
                             <div class="total-calculation">
@@ -553,6 +646,53 @@
         </div>
     </div>
 
+    <!-- Add Customer Modal -->
+
+    <div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customerModalLabel">Enter New Customer Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="form-group mb-3">
+                        <label for="customerName">Name:</label>
+                        <input type="text" class="form-control" id="customerName" name="cname" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="customerAddress">Address:</label>
+                        <input type="text" class="form-control" id="customerAddress" name="caddress" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="customerState">State:</label>
+                        <input type="text" class="form-control" id="customerState" name="cstate">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="customerPincode">Pincode:</label>
+                        <input type="number" class="form-control" id="customerPincode" name="cpincode" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="customerMobile">Mobile:</label>
+                        <input type="number" class="form-control" id="customerMobile" name="cmobile" required>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddCustomer">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     <!-- Product Details Modal -->
     <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel"
         aria-hidden="true">
@@ -576,12 +716,6 @@
                     <div class="form-group mb-3">
                         <label for="modalQuantity">Quantity:</label>
                         <input type="number" class="form-control" id="modalQuantity" min="1" value="1" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="modalIncludeGST" checked>
-                            <label class="form-check-label" for="modalIncludeGST">Include GST (18%)</label>
-                        </div>
                     </div>
                     <div class="form-group mb-3">
                         <label for="modalFinalPrice">Product Total (₹):</label>
@@ -643,7 +777,7 @@
                     theme: 'bootstrap-5',
                     placeholder: 'Search and select customer',
                     allowClear: true,
-                    width: '100%'
+                    width: '87.5%'
                 });
 
                 // Initialize product select with search enabled
@@ -668,7 +802,7 @@
                     if (currentProduct) {
                         document.getElementById('modalBasePrice').value = currentProduct.price;
                         document.getElementById('modalQuantity').value = 1;
-                        document.getElementById('modalIncludeGST').checked = true;
+                        // document.getElementById('modalIncludeGST').checked = true;
                         updateModalFinalPrice();
                     }
                 });
@@ -687,6 +821,10 @@
 
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
+            document.getElementById('addCustomerBtn').addEventListener('click', addCustomerModal);
+            document.getElementById('addPaymentButton').addEventListener('click', showOtherPaymentDetailsTextBox);
+
+            document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
             document.getElementById('billingForm').addEventListener('submit', handleSubmit);
             document.getElementById('printBtn').addEventListener('click', printBill);
@@ -694,36 +832,32 @@
             // Modal event listeners
             document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
             document.getElementById('modalQuantity').addEventListener('input', updateModalFinalPrice);
-            document.getElementById('modalIncludeGST').addEventListener('change', updateModalFinalPrice);
+
+            // document.getElementById('modalIncludeGST').addEventListener('change', updateModalFinalPrice);
 
             // Delivery mode select change handler
             document.getElementById('deliveryMode').addEventListener('change', function () {
                 const transportCompanyGroup = document.getElementById('transportCompanyGroup');
                 if (this.value === 'transport') {
                     transportCompanyGroup.style.display = 'block';
+
                 } else {
                     transportCompanyGroup.style.display = 'none';
+                    document.getElementById('transportCompany').value = '';
                 }
             });
 
             // Payment mode select change handler
             document.getElementById('paymentMode').addEventListener('change', function () {
-                const otherPaymentDetails = document.getElementById('otherPaymentDetails');
                 const paymentTypeGroup = document.getElementById('paymentTypeGroup');
                 const paidAmountGroup = document.getElementById('paidAmountGroup');
                 const leftToPayGroup = document.getElementById('leftToPayGroup');
 
                 if (this.value === 'not_paid') {
-                    otherPaymentDetails.style.display = 'none';
                     paymentTypeGroup.style.display = 'none';
                     paidAmountGroup.style.display = 'none';
                     leftToPayGroup.style.display = 'none';
-                } else if (this.value === 'others') {
-                    otherPaymentDetails.style.display = 'block';
-                    paymentTypeGroup.style.display = 'block';
-                    leftToPayGroup.style.display = 'none';
                 } else {
-                    otherPaymentDetails.style.display = 'none';
                     paymentTypeGroup.style.display = 'block';
                     leftToPayGroup.style.display = 'none';
                 }
@@ -810,6 +944,10 @@
                     document.getElementById('paymentType').value = 'full_payment';
                 }
 
+                if (paidAmount == 0) {
+                    document.getElementById('leftToPayDisplay').value = `₹${grandTotal.toFixed(2)}`;
+                }
+
 
             }
 
@@ -865,12 +1003,35 @@
             }
 
             // Show product details modal
+            function addCustomerModal() {
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('customerModal'));
+                modal.show();
+
+            }
+
+            function showOtherPaymentDetailsTextBox() {
+
+                const otherPaymentDetails = document.getElementById('otherPaymentDetails');
+
+                if (otherPaymentDetails.style.display === 'none' || otherPaymentDetails.style.display === '') {
+                    otherPaymentDetails.style.display = 'block'; // Show the element
+                } else {
+                    otherPaymentDetails.style.display = 'none';  // Hide the element
+                    document.getElementById('otherPaymentNote').value = ''; // Clear input value
+                }
+
+
+            }
+
+            // Show product details modal
             function showProductDetailsModal() {
                 // Reset modal form
                 $('#modalProductSelect').val('').trigger('change');
                 document.getElementById('modalBasePrice').value = '';
                 document.getElementById('modalQuantity').value = 1;
-                document.getElementById('modalIncludeGST').checked = true;
+                // document.getElementById('modalIncludeGST').checked = true;
                 document.getElementById('modalFinalPrice').value = '';
 
                 // Show modal
@@ -887,24 +1048,60 @@
             function updateModalFinalPrice() {
                 const basePrice = parseFloat(document.getElementById('modalBasePrice').value) || 0;
                 const quantity = parseInt(document.getElementById('modalQuantity').value) || 1;
-                const includeGST = document.getElementById('modalIncludeGST').checked;
+                // const includeGST = document.getElementById('modalIncludeGST').checked;
 
-                let finalPrice = basePrice;
-                let gstAmount = 0;
+                document.getElementById('modalFinalPrice').value = (basePrice * quantity).toFixed(2);
+            }
 
-                if (includeGST) {
-                    // If price includes GST, calculate base price and GST
-                    const originalPrice = basePrice;
-                    finalPrice = originalPrice;
-                    const calculatedBasePrice = originalPrice / (1 + GST_RATE / 100);
-                    gstAmount = originalPrice - calculatedBasePrice;
-                } else {
-                    // If price doesn't include GST, show original price with zero GST
-                    gstAmount = 0;
-                    finalPrice = basePrice;
+            // Add new customer
+            function addCustomer() {
+                const customerName = document.getElementById('customerName').value;
+                const customerAddress = document.getElementById('customerAddress').value;
+                const customerState = document.getElementById('customerState').value;
+                const customerPincode = document.getElementById('customerPincode').value;
+                const customerMobile = document.getElementById('customerMobile').value;
+
+                if (!customerName || !customerAddress || !customerPincode || !customerMobile) {
+                    alert('Please fill in all fields.');
+                    return;
                 }
 
-                document.getElementById('modalFinalPrice').value = (finalPrice * quantity).toFixed(2);
+                // Send data to server
+                fetch('/sales/add-customer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: customerName,
+                        address: customerAddress,
+                        state: customerState,
+                        pincode: customerPincode,
+                        mobile: customerMobile
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Customer added successfully.');
+                            $('#customerModal').modal('hide');
+
+                            // Clear the form fields
+                            document.getElementById('customerName').value = '';
+                            document.getElementById('customerAddress').value = '';
+                            document.getElementById('customerState').value = '';
+                            document.getElementById('customerPincode').value = '';
+                            document.getElementById('customerMobile').value = '';
+                            fetchCustomers();
+
+                        } else {
+                            alert('Failed to add customer. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding customer:', error);
+                        alert('Failed to add customer. Please try again.');
+                    });
             }
 
             // Add product to the bill
@@ -916,7 +1113,7 @@
 
                 const basePrice = parseFloat(document.getElementById('modalBasePrice').value);
                 const quantity = parseInt(document.getElementById('modalQuantity').value);
-                const includeGST = document.getElementById('modalIncludeGST').checked;
+                // const includeGST = document.getElementById('modalIncludeGST').checked;
 
                 if (isNaN(basePrice) || basePrice <= 0) {
                     alert('Please enter a valid price.');
@@ -928,24 +1125,11 @@
                     return;
                 }
 
-                let gstAmount = 0;
-                let finalPrice = basePrice;
-                let calculatedBasePrice = basePrice;
+                // let gstAmount = 0;
+                // let finalPrice = basePrice;
+                // let calculatedBasePrice = basePrice;
 
-                if (includeGST) {
-                    // If price includes GST, calculate base price and GST
-                    const originalPrice = basePrice;
-                    finalPrice = originalPrice;
-                    calculatedBasePrice = originalPrice / (1 + GST_RATE / 100);
-                    gstAmount = originalPrice - calculatedBasePrice;
-                } else {
-                    // If price doesn't include GST, show original price with zero GST
-                    gstAmount = 0;
-                    finalPrice = basePrice;
-                    calculatedBasePrice = basePrice;
-                }
-
-                const productTotal = finalPrice * quantity;
+                const productTotal = basePrice * quantity;
 
                 // Check if product already exists in the table
                 const existingProductIndex = selectedProducts.findIndex(p => p.id == currentProduct.id);
@@ -958,12 +1142,12 @@
                     selectedProducts.push({
                         id: currentProduct.id,
                         name: currentProduct.name,
-                        basePrice: calculatedBasePrice,
-                        gstAmount: gstAmount,
-                        finalPrice: finalPrice,
+                        // basePrice: calculatedBasePrice,
+                        // gstAmount: gstAmount,
+                        finalPrice: basePrice,
                         quantity: quantity,
                         total: productTotal,
-                        includeGST: includeGST
+                        // includeGST: includeGST
                     });
                 }
 
@@ -974,7 +1158,7 @@
                 $('#modalProductSelect').val('').trigger('change');
                 document.getElementById('modalBasePrice').value = '';
                 document.getElementById('modalQuantity').value = 1;
-                document.getElementById('modalIncludeGST').checked = true;
+                // document.getElementById('modalIncludeGST').checked = true;
                 document.getElementById('modalFinalPrice').value = '';
 
                 // Hide modal
@@ -992,8 +1176,6 @@
                     row.className = 'product-row';
                     row.innerHTML = `
                         <td>${product.name}</td>
-                        <td>₹${product.basePrice.toFixed(2)}</td>
-                        <td>₹${product.gstAmount.toFixed(2)}</td>
                         <td>₹${product.finalPrice.toFixed(2)}</td>
                         <td>${product.quantity}</td>
                         <td>₹${product.total.toFixed(2)}</td>
@@ -1044,7 +1226,7 @@
                 formData.append('products', JSON.stringify(selectedProducts));
 
                 // Send data to server
-                fetch('/sales/generate-bill', {
+                fetch('/sales/generate', {
                     method: 'POST',
                     body: formData
                 })
@@ -1075,6 +1257,40 @@
             }
 
             // Print bill
+            // function printBill() {
+            //     if (selectedProducts.length === 0) {
+            //         alert('Please add at least one product to the bill.');
+            //         return;
+            //     }
+
+            //     // Prepare form data
+            //     const formData = new FormData(document.getElementById('billingForm'));
+            //     formData.append('products', JSON.stringify(selectedProducts));
+
+            //     // Send data to server to generate PDF
+            //     fetch('/sales/generate', {
+            //         method: 'POST',
+            //         body: formData
+            //     })
+            //         .then(response => {
+            //             if (!response.ok) {
+            //                 throw new Error('Failed to generate bill');
+            //             }
+            //             return response.blob();
+            //         })
+            //         .then(blob => {
+            //             const pdfUrl = URL.createObjectURL(blob);
+            //             const printWindow = window.open(pdfUrl);
+            //             printWindow.onload = function () {
+            //                 printWindow.print();
+            //             };
+            //         })
+            //         .catch(error => {
+            //             console.error('Error:', error);
+            //             alert('Failed to print bill. Please try again.');
+            //         });
+            // }
+
             function printBill() {
                 if (selectedProducts.length === 0) {
                     alert('Please add at least one product to the bill.');
@@ -1086,7 +1302,7 @@
                 formData.append('products', JSON.stringify(selectedProducts));
 
                 // Send data to server to generate PDF
-                fetch('/sales/generate-bill', {
+                fetch('/sales/generate', {
                     method: 'POST',
                     body: formData
                 })
@@ -1094,14 +1310,34 @@
                         if (!response.ok) {
                             throw new Error('Failed to generate bill');
                         }
-                        return response.blob();
+                        return response.blob(); // PDF blob
                     })
                     .then(blob => {
-                        const pdfUrl = URL.createObjectURL(blob);
-                        const printWindow = window.open(pdfUrl);
-                        printWindow.onload = function () {
-                            printWindow.print();
-                        };
+                        // // Create object URL for PDF
+                        // const pdfUrl = URL.createObjectURL(blob);
+
+                        // // Open print preview window
+                        // const printWindow = window.open(pdfUrl);
+                        // printWindow.onload = function () {
+                        //     printWindow.print();
+                        // };
+
+                        // Attempt native sharing if supported
+                        const pdfFile = new File([blob], 'bill.pdf', { type: 'application/pdf' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                            navigator.share({
+                                title: 'Bill PDF',
+                                text: 'Here is your bill.',
+                                files: [pdfFile]
+                            }).then(() => {
+                                console.log('Share successful');
+                            }).catch(error => {
+                                console.warn('Share failed or cancelled:', error);
+                            });
+                        } else {
+                            console.log('Native sharing not supported on this device/browser.');
+                        }
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -1109,41 +1345,7 @@
                     });
             }
 
-            // Bill number validation
-            const billNoInput = document.getElementById('billNo');
-            const billNoError = document.getElementById('billNoError');
-            let billNoTimeout;
 
-            billNoInput.addEventListener('input', function () {
-                clearTimeout(billNoTimeout);
-                const billNo = this.value.trim();
-
-                if (billNo === '') {
-                    this.classList.remove('is-valid', 'is-invalid');
-                    billNoError.style.display = 'none';
-                    return;
-                }
-
-                // Add debounce to prevent too many requests
-                billNoTimeout = setTimeout(() => {
-                    fetch(`/sales/check-bill-number/${billNo}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.exists) {
-                                this.classList.add('is-invalid');
-                                this.classList.remove('is-valid');
-                                billNoError.style.display = 'block';
-                            } else {
-                                this.classList.add('is-valid');
-                                this.classList.remove('is-invalid');
-                                billNoError.style.display = 'none';
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error checking bill number:', error);
-                        });
-                }, 500); // 500ms debounce
-            });
         });
 
         // Clear form function

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session, send_file
-from utils import get_db_connection, login_required, encrypt_password,decrypt_password
+from utils import get_db_connection, login_required, encrypt_password, decrypt_password
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -10,21 +10,17 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.units import inch
 from io import BytesIO
-from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from io import BytesIO
 import json
-
 
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
 formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
-
 
 
 # Create a Blueprint for manager routes
@@ -38,10 +34,12 @@ sales_bp = Blueprint('sales', __name__)
 def sales_dashboard():
     return render_template('dashboards/sales/main.html')
 
+
 @sales_bp.route('/sales/sell')
 @login_required('Sales')
 def sales():
     return render_template('dashboards/sales/sell.html')
+
 
 @sales_bp.route('/sales/customers', methods=['GET'])
 def get_customers():
@@ -66,6 +64,44 @@ def get_customers():
         cursor.close()
         conn.close()
 
+
+@sales_bp.route('/sales/add-customer', methods=['POST'])
+def add_new_customer():
+    try:
+        data = request.get_json()
+
+        required_fields = ['name', 'address', 'pincode', 'mobile']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        name = data['name']
+        state = data['state']
+        address = data['address']
+        pincode = data['pincode']
+        mobile = data['mobile']
+
+        conn = get_db_connection()
+        
+        if not conn:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = conn.cursor()
+
+        # Insert new product into database
+        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile) VALUES (%s, %s, %s, %s, %s)",
+                       (name, address, state, pincode, mobile))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # print(f"New customer added with ID: {customer_id}")
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @sales_bp.route('/sales/products')
 def get_products():
     conn = get_db_connection()
@@ -81,14 +117,15 @@ def get_products():
             'name': p['name'],
             'price': float(p['selling_price'])
         } for p in products])
-    
+
     except Exception as e:
         print(f"Error fetching customers: {e}")
         return jsonify({'error': 'Failed to fetch customers'}), 500
-    
+
     finally:
         cursor.close()
         conn.close()
+
 
 @sales_bp.route('/sales/check-bill-number/<bill_no>')
 @login_required('Sales')
@@ -100,9 +137,10 @@ def check_bill_number(bill_no):
     cursor = conn.cursor(dictionary=True)
     try:
         # Check if bill number exists in the sales table
-        cursor.execute("SELECT COUNT(*) as count FROM sales WHERE bill_no = %s", (bill_no,))
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM sales WHERE bill_no = %s", (bill_no,))
         result = cursor.fetchone()
-        
+
         return jsonify({
             'exists': result['count'] > 0
         })
@@ -123,29 +161,36 @@ def add_new_product():
         hsn_code = request.form.get('hsn_code')
         gst_rate = request.form.get('gst_rate')
         description = request.form.get('description')
-        
+
         # Connect to database
         conn = get_db_connection()
         if not conn:
             return jsonify({'error': 'Database connection failed'}), 500
-        
+
         cursor = conn.cursor()
-        
-        # Insert new product into database  
-        cursor.execute("INSERT INTO products (name, price, hsn_code, gst_rate, description) VALUES (%s, %s, %s, %s, %s)", (name, price, hsn_code, gst_rate, description))
+
+        # Insert new product into database
+        cursor.execute("INSERT INTO products (name, price, hsn_code, gst_rate, description) VALUES (%s, %s, %s, %s, %s)",
+                       (name, price, hsn_code, gst_rate, description))
         conn.commit()
         cursor.close()
         conn.close()
-        
-        return jsonify({'message': 'Product added successfully'}), 200  
-    
+
+        return jsonify({'message': 'Product added successfully'}), 200
+
     except Exception as e:
         print(f"Error adding product: {e}")
-        return jsonify({'error': str(e)}), 500  
-
-
+        return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/sales/generate-bill', methods=['POST'])
+def generate():
+    
+    print(request.form)
+
+    return jsonify({'error': 'Internal server error'}), 500
+
+
+@sales_bp.route('/sales/generate', methods=['POST'])
 def generate_bill():
     try:
         # Import necessary modules
@@ -156,22 +201,33 @@ def generate_bill():
         from io import BytesIO
         import json
         import datetime
+
+        print(request.form)
         
         # Get form data
         customer_id = request.form.get('customer_id')
-        bill_no = request.form.get('bill_no')
+        # bill_no = request.form.get('bill_no')
+        bill_no = 123
         delivery_mode = request.form.get('delivery_mode')
-        transport_company = request.form.get('transport_company') # if
+        transport_company = request.form.get('transport_company')  # if
         payment_mode = request.form.get('payment_mode')
         payment_type = request.form.get('payment_type')
         paid_amount = float(request.form.get('paid_amount', 0))
         grand_total = float(request.form.get('grand_total', 0))
         sales_note = request.form.get('sales_note', '')
-        
+        IncludeGST = request.form.get('IncludeGST', '')
+
+
+        if paid_amount == 0:
+            payment_mode = "not_paid"
+
+        tax_rate = 0
+        if IncludeGST == 'on':
+            tax_rate = 18  # Assuming 18% as in your example
 
         # Format current time
         formatted_time = datetime.datetime.now().strftime("%d/%m/%Y %I:%M %p")
-        
+
         # Get products from form data
         products = request.form.get('products')
         if products:
@@ -183,7 +239,7 @@ def generate_bill():
         conn = get_db_connection()
         if not conn:
             return jsonify({'error': 'Database connection failed'}), 500
-            
+
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM buddy WHERE id = %s", (customer_id,))
         customer = cursor.fetchone()
@@ -192,7 +248,7 @@ def generate_bill():
 
         if not customer:
             return jsonify({'error': 'Customer not found'}), 404
-        
+
         # Prepare bill data
         bill_data = {
             'bill_no': bill_no,
@@ -210,9 +266,9 @@ def generate_bill():
 
         # Generate PDF
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                               leftMargin=30, rightMargin=30, 
-                               topMargin=10, bottomMargin=30)
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                                leftMargin=30, rightMargin=30,
+                                topMargin=10, bottomMargin=30)
         elements = []
 
         # Define styles
@@ -225,7 +281,7 @@ def generate_bill():
             alignment=1,  # Center alignment
             spaceAfter=0
         )
-        
+
         subtitle_style = ParagraphStyle(
             'CompanyInfo',
             parent=styles['Normal'],
@@ -233,7 +289,7 @@ def generate_bill():
             alignment=1,  # Center alignment
             spaceAfter=0
         )
-        
+
         heading_style = ParagraphStyle(
             'CustomHeading',
             parent=styles['Heading2'],
@@ -241,73 +297,122 @@ def generate_bill():
             fontName='Helvetica-Bold',
             spaceAfter=2
         )
-        
+
         normal_style = styles['Normal']
-        
+
         # Add company header - match exactly with sample
         elements.append(Paragraph("SMART TRADERS", title_style))
-        elements.append(Paragraph("Ahmedabad, Gujarat, 382330, Ahmedabad, Gujarat, 382330", subtitle_style))
-        elements.append(Paragraph("GSTIN: 24DCFPS1329A1Z1 Mobile: 9316876474", subtitle_style))
+        elements.append(Paragraph(
+            "Ahmedabad, Gujarat, 382330, Ahmedabad, Gujarat, 382330", subtitle_style))
+        elements.append(
+            Paragraph("GSTIN: 24DCFPS1329A1Z1 Mobile: 9316876474", subtitle_style))
         elements.append(Spacer(1, 10))
 
-        # Add invoice details with table - match exactly with sample
-        invoice_data = [
-            [Paragraph(f"<b>Invoice No : {bill_no}</b>", normal_style), Paragraph(f"<b>Invoice Date : {formatted_time}</b>", normal_style)],
-            [f"BILL TO:\n\n{customer['name']}\n\nMobile:{customer['mobile']}",f"SHIP TO:\n\n{customer['name']}\n\n"]
+        from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+
+
+        styles = getSampleStyleSheet()
+        normal_style = styles["Normal"]
+
+        # Prepare BILL TO and SHIP TO as Paragraphs for wrapping
+        bill_to = Paragraph(
+            f"<b>BILL TO:</b><br/><br/>{customer['name']}<br/><br/>Mobile: {customer['mobile']}",
+            normal_style
+        )
+
+        ship_to = Paragraph(
+            f"<b>SHIP TO: </b>{customer['name']}<br/>Address: {customer['address']}<br/>Pincode: {customer['pincode']}<br/>State: {customer['state']}",
+            normal_style
+        )
+
+        # Invoice header row
+        invoice_header = [
+            Paragraph(f"<b>Invoice No : {bill_no}</b>", normal_style),
+            Paragraph(f"<b>Invoice Date : {formatted_time}</b>", normal_style)
         ]
-        invoice_table = Table(invoice_data, colWidths=[4*inch, 4*inch])
+
+        # Final table data
+        invoice_data = [
+            invoice_header,
+            [bill_to, ship_to],
+        ]
+
+        # Create the table with fixed column widths (adjust if needed)
+        invoice_table = Table(invoice_data, colWidths=[4 * inch, 4 * inch])
         invoice_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (1, 0), 'LEFT'),
             ('ALIGN', (0, 1), (1, 1), 'LEFT'),
             ('GRID', (0, 0), (1, 1), 0.5, colors.black),
             ('BACKGROUND', (0, 0), (1, 0), colors.lightgrey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
+
+        # Add to elements
         elements.append(invoice_table)
         elements.append(Spacer(1, 10))
 
+
         # Product table - match exactly with sample
-        headers = ["S.NO.", "ITEMS","QTY.", "RATE", "TAX", "AMOUNT"]
-        col_widths = [0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch]
-        
+        headers = ["S.NO.", "ITEMS", "QTY.", "RATE", f"TAX ({tax_rate}%)", "AMOUNT"]
+        col_widths = [0.5*inch, 3.8*inch, 0.9 *
+                      inch, 0.8*inch, 1*inch, 1*inch, 1*inch]
+
         product_data = [headers]
-        
+
         total_tax_amount = 0
         hsn_tax_summary = {}
         
+
         for idx, product in enumerate(products, 1):
             # Calculate values
             qty = product['quantity']
             unit = product.get('unit', 'PCS')
-            rate = float(product['basePrice'])
-            tax_rate = 18  # Assuming 18% as in your example
-            tax_amount = float(product['gstAmount'])
+            rate = float(product['finalPrice'])
+
+            # Calculate the original amount (before GST)
+            original_amount = rate / (1 + tax_rate / 100)
+
+            # Calculate the GST amount
+            gst_amount = rate - original_amount
+
+            # Calculate tax amount and total amount
+
+            tax_amount = float(f"{gst_amount:.2f}")
             total_amount = float(product['total'])
-            hsn_code = product.get('hsn_code', '95059090')  # Default HSN if not provided
             
+            # Default HSN if not provided
+            hsn_code = product.get('hsn_code', '95059090')
+
             # Add to tax summary
             if hsn_code not in hsn_tax_summary:
                 hsn_tax_summary[hsn_code] = {
                     'taxable': 0,
                     'tax': 0
                 }
-            
+
             taxable_value = total_amount - tax_amount
             hsn_tax_summary[hsn_code]['taxable'] += taxable_value
             hsn_tax_summary[hsn_code]['tax'] += tax_amount
-            
+
             # Add product row - formatted exactly like sample
             product_data.append([
                 str(idx),
                 product['name'],
                 f"{qty} {unit}",
-                f"{rate:.1f}",
-                f"{tax_amount:.2f}\n({tax_rate}%)",
+                f"{original_amount:.2f}",
+                f"{tax_amount:.2f}",
                 f"{total_amount:.0f}"
             ])
-            
+
             total_tax_amount += tax_amount
-        
+
         # Add extra row for additional payment if any - match sample format
         if paid_amount > grand_total:
             extra_paid = paid_amount - grand_total
@@ -320,7 +425,7 @@ def generate_bill():
                 "0\n(0%)",
                 f"Rs {extra_paid:.0f}"
             ])
-        
+
         # Create product table with exact formatting as sample
         product_table = Table(product_data, colWidths=col_widths)
         product_table.setStyle(TableStyle([
@@ -337,29 +442,32 @@ def generate_bill():
             ('ALIGN', (3, 1), (6, -1), 'RIGHT'),   # Numbers right-aligned
         ]))
         elements.append(product_table)
-        
-        
-        # TOTAL row - separate from product table, exactly like sample
 
+        # TOTAL row - separate from product table, exactly like sample
 
         if payment_type == "half_payment" and payment_mode != "not_paid":
             total_data = [
-                ["","GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
-                ["","RECEIVED AMOUNT", "","","", f"Rs {paid_amount:.0f}"],
-                ["","REMAINING AMOUNT", "","","", f"Rs {(grand_total - paid_amount):.0f}"],
+                ["", "GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}",
+                 "", "", f"Rs {grand_total:.0f}"],
+                ["", "RECEIVED AMOUNT", "", "", "", f"Rs {paid_amount:.0f}"],
+                ["", "REMAINING AMOUNT", "", "", "",
+                    f"Rs {(grand_total - paid_amount):.0f}"],
             ]
         else:
             if payment_mode != "not_paid":
                 total_data = [
-                    ["","GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
+                    ["", "GRAND TOTAL", f"{sum(float(p['quantity']) for p in products)}",
+                     "", "", f"Rs {grand_total:.0f}"],
                 ]
 
         if payment_mode == "not_paid":
             total_data = [
-                    ["","GRAND TOTAL Not Paid", f"{sum(float(p['quantity']) for p in products)}","",f"Rs {total_tax_amount:.2f}", f"Rs {grand_total:.0f}"],
-                ]
+                ["", "GRAND TOTAL Not Paid", f"{sum(float(p['quantity']) for p in products)}",
+                 "", "", f"Rs {grand_total:.0f}"],
+            ]
 
-        total_table = Table(total_data, colWidths=[0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
+        total_table = Table(total_data, colWidths=[
+                            0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
         total_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
@@ -368,47 +476,50 @@ def generate_bill():
         ]))
         elements.append(total_table)
         elements.append(Spacer(1, 10))
-        
-        # Tax summary table - match exactly with sample
-        tax_headers = ["HSN/SAC", "Taxable Value", "CGST\nRate Amount", "SGST\nRate Amount", "Total Tax Amount"]
-        tax_widths = [2*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch]
-        
-        tax_data = [tax_headers]
-        
-        for hsn, values in hsn_tax_summary.items():
-            taxable = values['taxable']
-            tax = values['tax']
-            half_tax = tax / 2  # Split between CGST and SGST
-            
-            tax_data.append([
-                hsn,
-                f"{taxable:.2f}",
-                f"9% {half_tax:.2f}",
-                f"9% {half_tax:.2f}",
-                f"Rs {tax:.2f}"
-            ])
-        
-        tax_summary_table = Table(tax_data, colWidths=tax_widths)
-        tax_summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
-        elements.append(tax_summary_table)
-        elements.append(Spacer(1, 10))
-        
+
+        if IncludeGST == 'on':
+            # Tax summary table - match exactly with sample
+            tax_headers = ["HSN/SAC", "Taxable Value",
+                        "CGST\nRate Amount", "SGST\nRate Amount", "Total Tax Amount"]
+            tax_widths = [2*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch]
+
+            tax_data = [tax_headers]
+
+            for hsn, values in hsn_tax_summary.items():
+                taxable = values['taxable']
+                tax = values['tax']
+                half_tax = tax / 2  # Split between CGST and SGST
+
+                tax_data.append([
+                    hsn,
+                    f"{taxable:.2f}",
+                    f"9% {half_tax:.2f}",
+                    f"9% {half_tax:.2f}",
+                    f"Rs {tax:.2f}"
+                ])
+
+            tax_summary_table = Table(tax_data, colWidths=tax_widths)
+            tax_summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            elements.append(tax_summary_table)
+            elements.append(Spacer(1, 10))
+
         # Amount in words - match exactly with sample
-        
+
         def number_to_words(num):
             ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
                     'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
                     'Seventeen', 'Eighteen', 'Nineteen']
-            tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+            tens = ['', '', 'Twenty', 'Thirty', 'Forty',
+                    'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
 
             def two_digits(n):
                 if n < 20:
@@ -424,32 +535,35 @@ def generate_bill():
             if num >= 10000000:
                 result += number_to_words(num // 10000000) + ' Crore'
                 num %= 10000000
-                if num: result += ' '
+                if num:
+                    result += ' '
             if num >= 100000:
                 result += number_to_words(num // 100000) + ' Lakh'
                 num %= 100000
-                if num: result += ' '
+                if num:
+                    result += ' '
             if num >= 1000:
                 result += number_to_words(num // 1000) + ' Thousand'
                 num %= 1000
-                if num: result += ' '
+                if num:
+                    result += ' '
             if num > 0:
                 result += three_digits(num)
 
             return result or 'Zero'
-        
+
         # Convert amount to words - match exactly with sample
         amount_words = number_to_words(int(grand_total)) + " Rupees"
         if grand_total % 1:
             paise = int((grand_total % 1) * 100)
             if paise:
                 amount_words += f" and {number_to_words(paise)} Paise"
-        
+
         words_data = [
             [f"Total Amount (in words):"],
             [amount_words]
         ]
-        
+
         words_table = Table(words_data, colWidths=[8*inch])
         words_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
@@ -460,25 +574,25 @@ def generate_bill():
         ]))
         elements.append(words_table)
         elements.append(Spacer(1, 10))
-        
-        # Notes - match exactly with sample
-        if sales_note:
-            notes_data = [
-                ["Notes"],
-                [sales_note]
-            ]
-            
-            notes_table = Table(notes_data, colWidths=[8*inch])
-            notes_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (0, 0), colors.black),
-                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('GRID', (0, 0), (0, -1), 0.5, colors.black),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ]))
-            elements.append(notes_table)
-            elements.append(Spacer(1, 10))
-        
+
+        # # Notes - match exactly with sample
+        # if sales_note:
+        #     notes_data = [
+        #         ["Notes"],
+        #         [sales_note]
+        #     ]
+
+        #     notes_table = Table(notes_data, colWidths=[8*inch])
+        #     notes_table.setStyle(TableStyle([
+        #         ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
+        #         ('TEXTCOLOR', (0, 0), (0, 0), colors.black),
+        #         ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        #         ('GRID', (0, 0), (0, -1), 0.5, colors.black),
+        #         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        #     ]))
+        #     elements.append(notes_table)
+        #     elements.append(Spacer(1, 10))
+
         # Terms and conditions - match exactly with sample
         terms_conditions = [
             "1. Goods once sold will not be taken back or exchanged",
@@ -490,12 +604,12 @@ def generate_bill():
             "7. Your complaint is only valid for 2 days after you receive .",
             "8. Our Complain Number - 9638095151 ( Do message us on WhatsApp only )"
         ]
-        
+
         terms_data = [
             ["Terms and Conditions"],
             ["\n".join(terms_conditions)]
         ]
-        
+
         terms_table = Table(terms_data, colWidths=[8*inch])
         terms_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
@@ -506,13 +620,13 @@ def generate_bill():
         ]))
         elements.append(terms_table)
         elements.append(Spacer(1, 10))
-        
+
         # Footer - match exactly with sample
-        elements.append(Paragraph("TAX INVOICE ORIGINAL FOR RECIPIENT", 
-                                 ParagraphStyle('Footer', 
-                                               parent=normal_style, 
-                                               alignment=1, 
-                                               fontName='Helvetica-Bold')))
+        elements.append(Paragraph("TAX INVOICE ORIGINAL FOR RECIPIENT",
+                                  ParagraphStyle('Footer',
+                                                 parent=normal_style,
+                                                 alignment=1,
+                                                 fontName='Helvetica-Bold')))
 
         # Build PDF
         doc.build(elements)
@@ -531,6 +645,4 @@ def generate_bill():
         return jsonify({'error': str(e)}), 500
 
 
-
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)
-
