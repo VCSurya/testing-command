@@ -16,7 +16,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import json
-
+import random
+import string
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -26,9 +27,120 @@ formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 # Create a Blueprint for manager routes
 sales_bp = Blueprint('sales', __name__)
 
+
+# Class ralated sales routes
+class Sales:
+
+    def data_base_connection_check(self):
+        # Establish database connection using the utility function
+        self.conn = get_db_connection()
+        if self.conn:
+            self.cursor = self.conn.cursor()
+            return True
+        else:
+            return False
+
+    def generate_unique_invoice_number(self,cursor):
+        """Generate a unique alphanumeric invoice number."""
+        while True:
+            invoice_number = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            cursor.execute("SELECT COUNT(*) FROM invoices WHERE invoice_number = %s", (invoice_number,))
+            (count,) = cursor.fetchone()
+            if count == 0:
+                return invoice_number
+
+    def add_invoice_detail(self, invoice_data):
+
+
+        if not self.conn:
+            return "Database connection is not available."
+
+        try:
+            cursor = self.conn.cursor()
+
+            # Step 1: Generate unique invoice number
+            invoice_number = self.generate_unique_invoice_number(cursor)
+
+            # Step 2: Prepare invoice data
+            gst_included = 1 if invoice_data.get('gst_included') == 'on' else 0
+            left_to_paid = invoice_data['grand_total'] - invoice_data['paid_amount']
+
+            insert_invoice_query = """
+                INSERT INTO invoices (
+                    customer_id, delivery_mode, grand_total, gst_included,
+                    invoice_created_by_user_id, left_to_paid, paid_amount,
+                    payment_mode, payment_note, sales_note, transport_company_name,
+                    invoice_number, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+
+            invoice_values = (
+                int(invoice_data['customer_id']),
+                invoice_data['delivery_mode'],
+                float(invoice_data['grand_total']),
+                gst_included,
+                int(invoice_data['invoice_created_by_user_id']),
+                left_to_paid,
+                float(invoice_data['paid_amount']),
+                invoice_data['payment_mode'],
+                invoice_data['payment_note'],
+                invoice_data['sales_note'],
+                invoice_data['transport_company_name'],
+                invoice_number
+            )
+
+            cursor.execute(insert_invoice_query, invoice_values)
+            invoice_id = cursor.lastrowid
+
+            # Step 3: Insert invoice_items
+            insert_item_query = """
+                INSERT INTO invoice_items (
+                    invoice_id, product_id, quantity, price, total_amount,
+                    gst_tax_amount, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            """
+
+            for product in invoice_data['products']:
+                product_id = int(product[0])
+                quantity = int(product[1])  # You may want to extract actual quantity from product[2] if needed
+                price = float(product[2])
+                gst_tax_amount = float(product[3])
+                total_amount = float(product[4])
+
+                item_values = (
+                    invoice_id,
+                    product_id,
+                    quantity,
+                    price,
+                    total_amount,
+                    gst_tax_amount
+                )
+
+                cursor.execute(insert_item_query, item_values)
+
+            self.conn.commit()
+            return {"invoice_id": invoice_id, "invoice_number": invoice_number}
+
+        except mysql.connector.Error as e:
+            self.conn.rollback()
+            return f"Error: {str(e)}"
+
+        
+    def close_connection(self):
+        # Close the database connection if it exists
+        if self.conn:
+            self.conn.close()
+
+
+# # Example usage:
+# if __name__ == "__main__":
+#     sales = Sales()
+#     result = sales.add_invoice_detail('John Doe', 250.75, '2025-05-26')
+#     print(result)  # This will print the success message with the invoice ID
+#     sales.close_connection()  # Ensure to close the connection when done
+
+
 # Manager Dashboard
-
-
 @sales_bp.route('/sales/dashboard')
 @login_required('Sales')
 def sales_dashboard():
@@ -190,6 +302,9 @@ def generate():
     return jsonify({'error': 'Internal server error'}), 500
 
 
+
+# ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
+
 @sales_bp.route('/sales/generate', methods=['POST'])
 def generate_bill():
     try:
@@ -202,7 +317,6 @@ def generate_bill():
         import json
         import datetime
 
-        print(request.form)
         
         # Get form data
         customer_id = request.form.get('customer_id')
@@ -215,7 +329,7 @@ def generate_bill():
         paid_amount = float(request.form.get('paid_amount', 0))
         grand_total = float(request.form.get('grand_total', 0))
         sales_note = request.form.get('sales_note', '')
-        IncludeGST = request.form.get('IncludeGST', '')
+        IncludeGST = request.form.get('IncludeGST', 'off')
 
 
         if paid_amount == 0:
@@ -230,11 +344,16 @@ def generate_bill():
 
         # Get products from form data
         products = request.form.get('products')
-        if products:
+        if products or customer_id:
             products = json.loads(products)
         else:
-            return jsonify({'error': 'No products in the bill'}), 400
+            return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
+        #need transport_company name
+        if delivery_mode == 'transport':
+            if not transport_company:
+                return jsonify({'error': 'Some data is Missing in the bill'}), 400
+            
         # Get customer details
         conn = get_db_connection()
         if not conn:
@@ -248,21 +367,6 @@ def generate_bill():
 
         if not customer:
             return jsonify({'error': 'Customer not found'}), 404
-
-        # Prepare bill data
-        bill_data = {
-            'bill_no': bill_no,
-            'customer': customer,
-            'delivery_mode': delivery_mode,
-            'transport_company': transport_company,
-            'payment_mode': payment_mode,
-            'payment_type': payment_type,
-            'paid_amount': paid_amount,
-            'grand_total': grand_total,
-            'sales_note': sales_note,
-            'products': products,
-            'date': formatted_time
-        }
 
         # Generate PDF
         buffer = BytesIO()
@@ -300,14 +404,7 @@ def generate_bill():
 
         normal_style = styles['Normal']
 
-        # Add company header - match exactly with sample
-        elements.append(Paragraph("SMART TRADERS", title_style))
-        elements.append(Paragraph(
-            "Ahmedabad, Gujarat, 382330, Ahmedabad, Gujarat, 382330", subtitle_style))
-        elements.append(
-            Paragraph("GSTIN: 24DCFPS1329A1Z1 Mobile: 9316876474", subtitle_style))
-        elements.append(Spacer(1, 10))
-
+        
         from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.lib import colors
@@ -354,9 +451,6 @@ def generate_bill():
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
 
-        # Add to elements
-        elements.append(invoice_table)
-        elements.append(Spacer(1, 10))
 
 
         # Product table - match exactly with sample
@@ -365,6 +459,7 @@ def generate_bill():
                       inch, 0.8*inch, 1*inch, 1*inch, 1*inch]
 
         product_data = [headers]
+        product_data_for_sql_table = []
 
         total_tax_amount = 0
         hsn_tax_summary = {}
@@ -411,20 +506,28 @@ def generate_bill():
                 f"{total_amount:.0f}"
             ])
 
+            product_data_for_sql_table.append([
+                product['id'],
+                f"{qty}",
+                f"{original_amount:.2f}",
+                f"{tax_amount:.2f}",
+                f"{total_amount:.0f}"
+            ])
+
             total_tax_amount += tax_amount
 
-        # Add extra row for additional payment if any - match sample format
-        if paid_amount > grand_total:
-            extra_paid = paid_amount - grand_total
-            product_data.append([
-                "-",
-                "Extra Paid",
-                "-",
-                "-",
-                f"{extra_paid:.0f}",
-                "0\n(0%)",
-                f"Rs {extra_paid:.0f}"
-            ])
+        # # Add extra row for additional payment if any - match sample format
+        # if paid_amount > grand_total:
+        #     extra_paid = paid_amount - grand_total
+        #     product_data.append([
+        #         "-",
+        #         "Extra Paid",
+        #         "-",
+        #         "-",
+        #         f"{extra_paid:.0f}",
+        #         "0\n(0%)",
+        #         f"Rs {extra_paid:.0f}"
+        #     ])
 
         # Create product table with exact formatting as sample
         product_table = Table(product_data, colWidths=col_widths)
@@ -441,7 +544,6 @@ def generate_bill():
             ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # HSN centered
             ('ALIGN', (3, 1), (6, -1), 'RIGHT'),   # Numbers right-aligned
         ]))
-        elements.append(product_table)
 
         # TOTAL row - separate from product table, exactly like sample
 
@@ -474,8 +576,8 @@ def generate_bill():
             ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
             ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
         ]))
-        elements.append(total_table)
-        elements.append(Spacer(1, 10))
+
+        tax_summary_table = None
 
         if IncludeGST == 'on':
             # Tax summary table - match exactly with sample
@@ -509,8 +611,7 @@ def generate_bill():
                 ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
-            elements.append(tax_summary_table)
-            elements.append(Spacer(1, 10))
+
 
         # Amount in words - match exactly with sample
 
@@ -572,8 +673,7 @@ def generate_bill():
             ('GRID', (0, 0), (0, -1), 0.5, colors.black),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ]))
-        elements.append(words_table)
-        elements.append(Spacer(1, 10))
+
 
         # # Notes - match exactly with sample
         # if sales_note:
@@ -594,6 +694,7 @@ def generate_bill():
         #     elements.append(Spacer(1, 10))
 
         # Terms and conditions - match exactly with sample
+
         terms_conditions = [
             "1. Goods once sold will not be taken back or exchanged",
             "2. No cancellation & No changes after confirm booking",
@@ -618,6 +719,31 @@ def generate_bill():
             ('GRID', (0, 0), (0, -1), 0.5, colors.black),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ]))
+
+
+
+        # Add company header - match exactly with sample
+        elements.append(Paragraph("SMART TRADERS", title_style))
+        elements.append(Paragraph(
+            "Ahmedabad, Gujarat, 382330, Ahmedabad, Gujarat, 382330", subtitle_style))
+        elements.append(
+            Paragraph("GSTIN: 24DCFPS1329A1Z1 Mobile: 9316876474", subtitle_style))
+        elements.append(Spacer(1, 10))
+        # Add to elements
+        elements.append(invoice_table)
+        elements.append(Spacer(1, 10))
+
+        elements.append(product_table)
+
+        elements.append(total_table)
+        elements.append(Spacer(1, 10))
+
+        elements.append(tax_summary_table)
+        elements.append(Spacer(1, 10))
+
+        elements.append(words_table)
+        elements.append(Spacer(1, 10))
+
         elements.append(terms_table)
         elements.append(Spacer(1, 10))
 
@@ -627,6 +753,36 @@ def generate_bill():
                                                  parent=normal_style,
                                                  alignment=1,
                                                  fontName='Helvetica-Bold')))
+        
+        
+        # Prepare bill data
+        bill_data = {
+            'customer_id': customer_id,
+            'delivery_mode':delivery_mode,
+            'grand_total': grand_total,
+            'payment_mode':payment_mode,
+            'paid_amount':paid_amount,
+            # 'left_to_paid':left_to_paid,
+            'transport_company_name': transport_company,
+            'sales_note':sales_note,
+            'invoice_created_by_user_id': session.get('user_id'),
+            'payment_note': request.form.get('payment_note', ''),
+            'gst_included': IncludeGST,
+            'products': product_data_for_sql_table,
+        }
+
+
+        sales = Sales()
+
+        if sales.data_base_connection_check():
+            
+            result = sales.add_invoice_detail(bill_data)
+            print(result)
+            
+        else:
+            e = 'Database Error!'
+            return jsonify({'error': str(e)}), 500
+
 
         # Build PDF
         doc.build(elements)
