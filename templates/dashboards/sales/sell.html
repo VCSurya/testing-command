@@ -10,6 +10,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
     <style>
         :root {
             --primary: #4361ee;
@@ -770,11 +772,93 @@
             }
         }
     </style>
+    <style>
+        /* Loading dots animation for print popup */
+        #printLoadingDots .dot {
+            height: 12px;
+            width: 12px;
+            margin: 0 4px;
+            background-color: #4361ee;
+            border-radius: 50%;
+            display: inline-block;
+            animation: print-dot-bounce 1.4s infinite both;
+        }
+
+        #printLoadingDots .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        #printLoadingDots .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes print-dot-bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.7);
+            }
+
+            40% {
+                transform: scale(1.2);
+            }
+        }
+
+        @media (max-width: 576px) {
+            #printPopupModal .modal-dialog {
+                max-width: 95vw;
+                margin: 1rem auto;
+            }
+        }
+    </style>
+    <style>
+        
+        .button-container {
+            text-align: center;
+        }
+
+        #copyBtn {
+            background: #ffffff;
+            color: #0072ff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 50px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        #copyBtn i {
+            font-size: 1.2rem;
+        }
+
+        #copyBtn:hover {
+            background-color: #0072ff;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        #copyBtn:active {
+            transform: scale(0.98);
+        }
+
+        @media (max-width: 600px) {
+            #copyBtn {
+                font-size: 0.9rem;
+                padding: 12px 20px;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <!-- Mobile sidebar overlay -->
-    <div class="overlay" id="sidebarOverlay"></div>
+    <!-- <div class="overlay" id="sidebarOverlay"></div> -->
 
     <div class="container-fluid p-0">
         <div class="row g-0">
@@ -785,7 +869,8 @@
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/sales/dashboard"><i
+                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
@@ -813,10 +898,10 @@
 
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
-                
-                
+
+
                 <div class="header-container d-flex justify-content-between align-items-center">
-                    
+
                     <div class="d-flex align-items-center">
                         <button class="btn mobile-toggle me-3" id="sidebarToggle">
                             <i class="bi bi-list fs-4"></i>
@@ -970,13 +1055,44 @@
                         </form>
                         <!-- Print button at the very bottom of billing-container -->
                         <button type="button" class="btn btn-secondary w-100 mt-3" id="printBtn"
-                            style="display:none;">Print
+                            style="display:none;">Save
                             Bill</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Print Popup Modal -->
+    <div class="modal fade" id="printPopupModal" tabindex="-1" aria-labelledby="printPopupModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="printPopupModalLabel">Print Bill</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        onclick="location.reload();"></button>
+                </div>
+                <div class="modal-body text-center" id="printPopupBody">
+                    <!-- Loading animation or response will be injected here -->
+                    <div id="printLoadingDots"
+                        style="display: flex; justify-content: center; align-items: center; height: 60px;">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                    <div id="printResponseContent" style="display: none;"></div>
+                </div>
+                <div class="modal-footer" id="printPopupFooter" style="display: none;">
+                    <input type="hidden" id="invoiceNumber_for_sharing" name="invoiceNumber_value_for_sharing" value="">
+                    <button type="button" class="btn btn-primary" id="shareBtn"><i class="bi bi-share"></i>
+                        Share</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Print Popup Modal -->
 
     <!-- Add Customer Modal -->
 
@@ -1063,6 +1179,12 @@
     <div id="loadingOverlay">
         <div class="spinner"></div>
     </div>
+
+    <div id="loadingSpinner" style="display: none;">
+        <p id="loadingMessage">Saving Invoice...</p>
+    </div>
+
+
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -1162,6 +1284,7 @@
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
             document.getElementById('billingForm').addEventListener('submit', handleSubmit);
             document.getElementById('printBtn').addEventListener('click', printBill);
+            document.getElementById('shareBtn').addEventListener('click', shareBill);
 
             // Modal event listeners
             document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
@@ -1730,6 +1853,166 @@
             //         });
             // }
 
+            // function printBill() {
+            //     if (selectedProducts.length === 0) {
+            //         alert('Please add at least one product to the bill.');
+            //         return;
+            //     }
+
+            //     // Prepare form data
+            //     const formData = new FormData(document.getElementById('billingForm'));
+            //     formData.append('products', JSON.stringify(selectedProducts));
+
+            //     // Send data to server to generate PDF
+            //     fetch('/sales/save_invoice', {
+            //         method: 'POST',
+            //         body: formData
+            //     })
+            //         .then(response => {
+            //             if (!response.ok) {
+            //                 throw new Error('Failed to generate bill');
+            //             }
+            //             return response.blob(); // PDF blob
+            //         })
+            //         .catch(error => {
+            //             console.error('Error:', error);
+            //             alert('Failed to print bill. Please try again.');
+            //         });
+            // }
+
+
+            // function shareBill() {
+            //     const invoiceInput = document.getElementById('invoiceNumber_for_sharing');
+            //     const invoiceNumber = invoiceInput.value.trim();
+
+            //     if (!invoiceNumber) {
+            //         alert('Error: Invoice number is missing. Please generate the invoice before proceeding.');
+            //         return;
+            //     }
+
+            //     // Direct download URL approach
+            //     const downloadUrl = `/sales/download_invoice_pdf/${invoiceNumber}`;
+            //     const shareUrl = `${window.location.origin}${downloadUrl}`;
+
+            //     if (navigator.share) {
+            //         navigator.share({
+            //             title: 'Sales Bill',
+            //             text: `Here is your bill #${invoiceNumber} from SalesPro!`,
+            //             url: shareUrl
+            //         }).catch(err => {
+            //             alert('Sharing failed: ' + err.message);
+            //         });
+            //     } else {
+            //         // Fallback - copy to clipboard
+            //         navigator.clipboard.writeText(shareUrl).then(() => {
+            //             alert(`Invoice #${invoiceNumber} link copied to clipboard!\nURL: ${shareUrl}`);
+            //         }).catch(() => {
+            //             alert(`Invoice #${invoiceNumber} download link:\n${shareUrl}`);
+            //         });
+            //     }
+            // }
+
+            function shareBill() {
+                const invoiceInput = document.getElementById('invoiceNumber_for_sharing');
+                const invoiceNumber = invoiceInput.value.trim();
+                const selectedText = document.querySelector('#select2-customerSelect-container').textContent;
+
+                if (!invoiceNumber) {
+                    alert('Error: Invoice number is missing. Please generate the invoice before proceeding.');
+                    return;
+                }
+
+
+                fetch(`/sales/share_invoice_pdf/${invoiceNumber}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ invoice_id: invoiceNumber })
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        // Get the PDF as blob instead of JSON
+                        return response.blob();
+                    })
+                    .then(pdfBlob => {
+                        // Create a File object from the blob for sharing
+                        const pdfFile = new File([pdfBlob], `${selectedText}_${invoiceNumber}.pdf`, {
+                            type: 'application/pdf'
+                        });
+
+                        // Check if Web Share API supports files
+                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                            navigator.share({
+                                title: 'Sales Bill',
+                                text: `Here is your invoice #${invoiceNumber} from SalesPro!`,
+                                files: [pdfFile]
+                            }).then(() => {
+                                console.log('PDF shared successfully');
+                            }).catch(err => {
+                                console.error('Sharing failed:', err);
+
+                                // Fallback to download
+                                downloadPDF(pdfBlob, `${selectedText}_${invoiceNumber}.pdf`);
+                            });
+                        } else {
+                            // Fallback: Download the PDF
+                            downloadPDF(pdfBlob, `${selectedText}_${invoiceNumber}.pdf`);
+                        }
+                    })
+                    .catch(err => {
+                        alert('Error while sharing invoice: ' + err.message);
+                    })
+
+            }
+
+            window.copyLink = function () {
+                const invoiceNumberElement = document.getElementById('invoiceNumber_for_sharing');
+
+                if (!invoiceNumberElement || !invoiceNumberElement.value.trim()) {
+                    alert("Error: Invoice number not found. Please generate the invoice first.");
+                    return;
+                }
+
+                const invoiceNumber = invoiceNumberElement.value.trim();
+
+                // For direct download link (more common for PDF sharing)
+                const downloadLink = `${window.location.origin}/sales/download_invoice_pdf/${invoiceNumber}`;
+
+                navigator.clipboard.writeText(downloadLink).then(() => {
+                    // Change button text to "Copied!"
+                    document.getElementById('copyText').innerText = 'Copied!';
+
+                    // Optionally change back to "Copy Link" after 2 seconds
+                    setTimeout(() => {
+                        document.getElementById('copyText').innerText = 'Copy Link';
+                    }, 2000);
+                }).catch(err => {
+                    console.error("Failed to copy: ", err);
+
+                    // Fallback method
+                    const textArea = document.createElement('textarea');
+                    textArea.value = downloadLink;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+
+                    try {
+                        document.execCommand('copy');
+
+
+
+                    } catch (fallbackErr) {
+                        alert("Copy failed. Please copy manually: " + downloadLink);
+                    }
+
+                    document.body.removeChild(textArea);
+                });
+            };
+
             function printBill() {
                 if (selectedProducts.length === 0) {
                     alert('Please add at least one product to the bill.');
@@ -1740,49 +2023,247 @@
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
 
-                // Send data to server to generate PDF
-                fetch('/sales/generate', {
+                // Show the modal with loading animation
+                const loadingDots = document.getElementById('printLoadingDots');
+                const responseContent = document.getElementById('printResponseContent');
+                const modalFooter = document.getElementById('printPopupFooter');
+
+                // Reset modal states before showing
+                loadingDots.style.display = 'flex';
+                responseContent.style.display = 'none';
+                modalFooter.style.display = 'none';
+                responseContent.innerHTML = '';
+
+                // Show the modal
+                const printModal = new bootstrap.Modal(document.getElementById('printPopupModal'), {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                printModal.show();
+
+                // Step 1: Save invoice to database
+                fetch('/sales/save_invoice', {
                     method: 'POST',
                     body: formData
                 })
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error('Failed to generate bill');
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        return response.blob(); // PDF blob
+                        return response.json(); // Expecting JSON response with invoice_id
                     })
-                    .then(blob => {
-                        // // Create object URL for PDF
-                        // const pdfUrl = URL.createObjectURL(blob);
+                    .then(data => {
+                        if (data.success && data.invoice_number && data.invoice_id) {
 
-                        // // Open print preview window
-                        // const printWindow = window.open(pdfUrl);
-                        // printWindow.onload = function () {
-                        //     printWindow.print();
-                        // };
+                            // Show success message and share button
+                            setTimeout(() => {
 
-                        // Attempt native sharing if supported
-                        const pdfFile = new File([blob], 'bill.pdf', { type: 'application/pdf' });
+                                loadingDots.style.display = 'none';
+                                responseContent.style.display = 'block';
+                                modalFooter.style.display = 'flex';
 
-                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-                            navigator.share({
-                                title: 'Bill PDF',
-                                text: 'Here is your bill.',
-                                files: [pdfFile]
-                            }).then(() => {
-                                console.log('Share successful');
-                            }).catch(error => {
-                                console.warn('Share failed or cancelled:', error);
-                            });
+                                responseContent.innerHTML = `
+                                    <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-file-pdf text-danger"></i>
+                                            <strong>${data.invoice_number}${data.invoice_id}</strong>
+                                        </div>
+                                        <button type="button" id="copyBtn" onclick="copyLink();">
+                                            <i class="fas fa-copy"></i> <span id="copyText">Copy Link</span>
+                                        </button>
+                                    </div>
+                                `;
+
+                                document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number + data.invoice_id;
+
+
+
+                            }, 1000); // Optional delay for smooth transition
+
                         } else {
-                            console.log('Native sharing not supported on this device/browser.');
+                            throw new Error(data.error || 'Failed to save invoice');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Failed to print bill. Please try again.');
+                        loadingDots.style.display = 'none';
+                        responseContent.style.display = 'block';
+                        modalFooter.style.display = 'none';
+                        responseContent.innerHTML = `
+                <div class="alert alert-danger">
+                    Failed to process invoice: ${error.message}
+                </div>`;
                     });
             }
+
+
+            // Alternative function if you want to show PDF in new tab instead of download
+            function printBillInNewTab() {
+                if (selectedProducts.length === 0) {
+                    alert('Please add at least one product to the bill.');
+                    return;
+                }
+
+                // Show loading state
+                const printButton = document.getElementById('printButton');
+                const originalText = printButton ? printButton.textContent : '';
+                if (printButton) {
+                    printButton.disabled = true;
+                    printButton.textContent = 'Processing...';
+                }
+
+                // Prepare form data
+                const formData = new FormData(document.getElementById('billingForm'));
+                formData.append('products', JSON.stringify(selectedProducts));
+
+                // Step 1: Save invoice
+                fetch('/sales/save_invoice', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.invoice_id) {
+                            // Step 2: Open PDF in new tab
+                            window.open(`/sales/generate_pdf/${data.invoice_id}`, '_blank');
+                            alert('Invoice saved successfully!');
+                        } else {
+                            throw new Error(data.error || 'Failed to save invoice');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert(`Failed to process invoice: ${error.message}`);
+                    })
+                    .finally(() => {
+                        // Restore button state
+                        if (printButton) {
+                            printButton.disabled = false;
+                            printButton.textContent = originalText;
+                        }
+                    });
+            }
+
+            // Function to regenerate PDF for existing invoice (useful for invoice management page)
+            function regeneratePDF(invoiceId) {
+                window.open(`/sales/generate_pdf/${invoiceId}`, '_blank');
+            }
+
+            // Enhanced version with better error handling and user feedback
+            function printBillEnhanced() {
+                if (selectedProducts.length === 0) {
+                    alert('Please add at least one product to the bill.');
+                    return;
+                }
+
+                // Validate required fields
+                const form = document.getElementById('billingForm');
+                const requiredFields = form.querySelectorAll('[required]');
+                let isValid = true;
+
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.classList.add('error'); // Add error styling
+                        isValid = false;
+                    } else {
+                        field.classList.remove('error');
+                    }
+                });
+
+                if (!isValid) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+
+                // Show loading overlay or spinner
+                showLoadingSpinner();
+
+                const formData = new FormData(form);
+                formData.append('products', JSON.stringify(selectedProducts));
+
+                // Step 1: Save invoice
+                fetch('/sales/save_invoice', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.invoice_id) {
+                            updateLoadingMessage('Generating PDF...');
+
+                            // Step 2: Generate PDF
+                            return fetch(`/sales/generate_pdf/${data.invoice_id}`);
+                        } else {
+                            throw new Error(data.error || 'Failed to save invoice');
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to generate PDF');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // Download PDF
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `invoice_${Date.now()}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+
+                        showSuccessMessage('Invoice saved and PDF generated successfully!');
+
+                        // Optional: Reset form
+                        // resetForm();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showErrorMessage(error.message || 'Failed to process invoice');
+                    })
+                    .finally(() => {
+                        hideLoadingSpinner();
+                    });
+            }
+
+            // Helper functions for UI feedback
+            function showLoadingSpinner() {
+                // Create or show your loading spinner
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) {
+                    spinner.style.display = 'block';
+                }
+            }
+
+            function hideLoadingSpinner() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) {
+                    spinner.style.display = 'none';
+                }
+            }
+
+            function updateLoadingMessage(message) {
+                const messageEl = document.getElementById('loadingMessage');
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+            }
+
+            function showSuccessMessage(message) {
+                alert(message); // Replace with better toast notification
+            }
+
+            function showErrorMessage(message) {
+                alert(`Error: ${message}`); // Replace with better error notification
+            }
+
 
         });
 
