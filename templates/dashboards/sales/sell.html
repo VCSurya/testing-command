@@ -813,7 +813,6 @@
         }
     </style>
     <style>
-        
         .button-container {
             text-align: center;
         }
@@ -1070,8 +1069,9 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="printPopupModalLabel">Print Bill</h5>
+                    <input type="hidden" id="popupCloseBtnRelode" value="false">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
-                        onclick="location.reload();"></button>
+                        id="popupCloseBtn"></button>
                 </div>
                 <div class="modal-body text-center" id="printPopupBody">
                     <!-- Loading animation or response will be injected here -->
@@ -1087,6 +1087,7 @@
                     <input type="hidden" id="invoiceNumber_for_sharing" name="invoiceNumber_value_for_sharing" value="">
                     <button type="button" class="btn btn-primary" id="shareBtn"><i class="bi bi-share"></i>
                         Share</button>
+
                 </div>
             </div>
         </div>
@@ -1282,9 +1283,9 @@
 
             document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
-            document.getElementById('billingForm').addEventListener('submit', handleSubmit);
             document.getElementById('printBtn').addEventListener('click', printBill);
             document.getElementById('shareBtn').addEventListener('click', shareBill);
+            document.getElementById('popupCloseBtn').addEventListener('click', popupClose);
 
             // Modal event listeners
             document.getElementById('modalBasePrice').addEventListener('input', updateModalFinalPrice);
@@ -1339,6 +1340,18 @@
                 }
                 updateLeftToPay();
             });
+
+
+            function popupClose() {
+
+                const shouldReloadValue = document.getElementById('popupCloseBtnRelode').value;
+                const shouldReload = shouldReloadValue === "true";
+
+                if (shouldReload) {
+                    location.reload();
+                }
+            }
+
 
             // Update totals
             function updateTotals() {
@@ -1419,7 +1432,7 @@
                         data.forEach(customer => {
                             const option = document.createElement('option');
                             option.value = customer.id;
-                            option.textContent = `${customer.name}`;
+                            option.textContent = `${customer.name} - ${customer.mobile} - ${customer.address}`;
                             customerSelect.appendChild(option);
                         });
                         $('#customerSelect').trigger('change');
@@ -1769,149 +1782,8 @@
                 }
             };
 
+
             // Handle form submission
-            function handleSubmit(event) {
-                event.preventDefault();
-
-                if (selectedProducts.length === 0) {
-                    alert('Please add at least one product to the bill.');
-                    return;
-                }
-
-                // Show loading spinner
-                document.getElementById('loadingOverlay').style.display = 'flex';
-
-                // Prepare form data
-                const formData = new FormData(event.target);
-
-                // Add product data
-                formData.append('products', JSON.stringify(selectedProducts));
-
-                // Send data to server
-                fetch('/sales/generate', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(data => {
-                                throw new Error(data.error || 'Failed to generate bill');
-                            });
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        // Hide loading spinner
-                        document.getElementById('loadingOverlay').style.display = 'none';
-
-                        // Create URL for the PDF blob
-                        const pdfUrl = URL.createObjectURL(blob);
-
-                        // Open PDF in new tab
-                        window.open(pdfUrl, '_blank');
-                    })
-                    .catch(error => {
-                        // Hide loading spinner
-                        document.getElementById('loadingOverlay').style.display = 'none';
-                        console.error('Error:', error);
-                        alert(`Failed to generate bill: ${error.message}`);
-                    });
-            }
-
-            // Print bill
-            // function printBill() {
-            //     if (selectedProducts.length === 0) {
-            //         alert('Please add at least one product to the bill.');
-            //         return;
-            //     }
-
-            //     // Prepare form data
-            //     const formData = new FormData(document.getElementById('billingForm'));
-            //     formData.append('products', JSON.stringify(selectedProducts));
-
-            //     // Send data to server to generate PDF
-            //     fetch('/sales/generate', {
-            //         method: 'POST',
-            //         body: formData
-            //     })
-            //         .then(response => {
-            //             if (!response.ok) {
-            //                 throw new Error('Failed to generate bill');
-            //             }
-            //             return response.blob();
-            //         })
-            //         .then(blob => {
-            //             const pdfUrl = URL.createObjectURL(blob);
-            //             const printWindow = window.open(pdfUrl);
-            //             printWindow.onload = function () {
-            //                 printWindow.print();
-            //             };
-            //         })
-            //         .catch(error => {
-            //             console.error('Error:', error);
-            //             alert('Failed to print bill. Please try again.');
-            //         });
-            // }
-
-            // function printBill() {
-            //     if (selectedProducts.length === 0) {
-            //         alert('Please add at least one product to the bill.');
-            //         return;
-            //     }
-
-            //     // Prepare form data
-            //     const formData = new FormData(document.getElementById('billingForm'));
-            //     formData.append('products', JSON.stringify(selectedProducts));
-
-            //     // Send data to server to generate PDF
-            //     fetch('/sales/save_invoice', {
-            //         method: 'POST',
-            //         body: formData
-            //     })
-            //         .then(response => {
-            //             if (!response.ok) {
-            //                 throw new Error('Failed to generate bill');
-            //             }
-            //             return response.blob(); // PDF blob
-            //         })
-            //         .catch(error => {
-            //             console.error('Error:', error);
-            //             alert('Failed to print bill. Please try again.');
-            //         });
-            // }
-
-
-            // function shareBill() {
-            //     const invoiceInput = document.getElementById('invoiceNumber_for_sharing');
-            //     const invoiceNumber = invoiceInput.value.trim();
-
-            //     if (!invoiceNumber) {
-            //         alert('Error: Invoice number is missing. Please generate the invoice before proceeding.');
-            //         return;
-            //     }
-
-            //     // Direct download URL approach
-            //     const downloadUrl = `/sales/download_invoice_pdf/${invoiceNumber}`;
-            //     const shareUrl = `${window.location.origin}${downloadUrl}`;
-
-            //     if (navigator.share) {
-            //         navigator.share({
-            //             title: 'Sales Bill',
-            //             text: `Here is your bill #${invoiceNumber} from SalesPro!`,
-            //             url: shareUrl
-            //         }).catch(err => {
-            //             alert('Sharing failed: ' + err.message);
-            //         });
-            //     } else {
-            //         // Fallback - copy to clipboard
-            //         navigator.clipboard.writeText(shareUrl).then(() => {
-            //             alert(`Invoice #${invoiceNumber} link copied to clipboard!\nURL: ${shareUrl}`);
-            //         }).catch(() => {
-            //             alert(`Invoice #${invoiceNumber} download link:\n${shareUrl}`);
-            //         });
-            //     }
-            // }
-
             function shareBill() {
                 const invoiceInput = document.getElementById('invoiceNumber_for_sharing');
                 const invoiceNumber = invoiceInput.value.trim();
@@ -2014,10 +1886,25 @@
             };
 
             function printBill() {
+
                 if (selectedProducts.length === 0) {
                     alert('Please add at least one product to the bill.');
                     return;
                 }
+
+                var customerId = $('#customerSelect').val();
+
+                if (!customerId) {
+                    alert('Please Select a Customer.');
+                    return;
+                }
+
+                // if (customers.length === 0) {
+                //     alert('Please Select The Customer!.');
+                //     return;
+                // }
+
+                // console.log(customers);
 
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
@@ -2055,6 +1942,7 @@
                     .then(data => {
                         if (data.success && data.invoice_number && data.invoice_id) {
 
+                            document.getElementById('popupCloseBtnRelode').value = "true"; // Explicitly as a string
                             // Show success message and share button
                             setTimeout(() => {
 
@@ -2097,141 +1985,12 @@
             }
 
 
-            // Alternative function if you want to show PDF in new tab instead of download
-            function printBillInNewTab() {
-                if (selectedProducts.length === 0) {
-                    alert('Please add at least one product to the bill.');
-                    return;
-                }
-
-                // Show loading state
-                const printButton = document.getElementById('printButton');
-                const originalText = printButton ? printButton.textContent : '';
-                if (printButton) {
-                    printButton.disabled = true;
-                    printButton.textContent = 'Processing...';
-                }
-
-                // Prepare form data
-                const formData = new FormData(document.getElementById('billingForm'));
-                formData.append('products', JSON.stringify(selectedProducts));
-
-                // Step 1: Save invoice
-                fetch('/sales/save_invoice', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.invoice_id) {
-                            // Step 2: Open PDF in new tab
-                            window.open(`/sales/generate_pdf/${data.invoice_id}`, '_blank');
-                            alert('Invoice saved successfully!');
-                        } else {
-                            throw new Error(data.error || 'Failed to save invoice');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert(`Failed to process invoice: ${error.message}`);
-                    })
-                    .finally(() => {
-                        // Restore button state
-                        if (printButton) {
-                            printButton.disabled = false;
-                            printButton.textContent = originalText;
-                        }
-                    });
-            }
 
             // Function to regenerate PDF for existing invoice (useful for invoice management page)
             function regeneratePDF(invoiceId) {
                 window.open(`/sales/generate_pdf/${invoiceId}`, '_blank');
             }
 
-            // Enhanced version with better error handling and user feedback
-            function printBillEnhanced() {
-                if (selectedProducts.length === 0) {
-                    alert('Please add at least one product to the bill.');
-                    return;
-                }
-
-                // Validate required fields
-                const form = document.getElementById('billingForm');
-                const requiredFields = form.querySelectorAll('[required]');
-                let isValid = true;
-
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        field.classList.add('error'); // Add error styling
-                        isValid = false;
-                    } else {
-                        field.classList.remove('error');
-                    }
-                });
-
-                if (!isValid) {
-                    alert('Please fill in all required fields.');
-                    return;
-                }
-
-                // Show loading overlay or spinner
-                showLoadingSpinner();
-
-                const formData = new FormData(form);
-                formData.append('products', JSON.stringify(selectedProducts));
-
-                // Step 1: Save invoice
-                fetch('/sales/save_invoice', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => Promise.reject(err));
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success && data.invoice_id) {
-                            updateLoadingMessage('Generating PDF...');
-
-                            // Step 2: Generate PDF
-                            return fetch(`/sales/generate_pdf/${data.invoice_id}`);
-                        } else {
-                            throw new Error(data.error || 'Failed to save invoice');
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to generate PDF');
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        // Download PDF
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `invoice_${Date.now()}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-
-                        showSuccessMessage('Invoice saved and PDF generated successfully!');
-
-                        // Optional: Reset form
-                        // resetForm();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showErrorMessage(error.message || 'Failed to process invoice');
-                    })
-                    .finally(() => {
-                        hideLoadingSpinner();
-                    });
-            }
 
             // Helper functions for UI feedback
             function showLoadingSpinner() {
