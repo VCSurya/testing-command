@@ -18,6 +18,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import random
 import string
 
+
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
 formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
@@ -49,6 +50,40 @@ class Sales:
             (count,) = cursor.fetchone()
             if count == 0:
                 return invoice_number
+
+    def insert_live_order_track(self, invoice_id):
+        """
+        Insert a saved invoice into the database live order track table.
+        """
+        if not self.data_base_connection_check():
+            return {'error': 'Database Error!'}
+
+        cursor = self.conn.cursor()
+
+        try:
+            # Prepare the SQL query to insert the invoice data
+            insert_query = """
+                INSERT INTO live_order_track (invoice_id)
+                VALUES (%s)
+            """
+
+            # Extract values from the invoice_data dictionary
+            values = (
+                invoice_id,
+            )
+
+            # Execute the query
+            cursor.execute(insert_query, values)
+            self.conn.commit()
+
+            return {'success': True}
+
+        except mysql.connector.Error as e:
+            self.conn.rollback()
+            return {'error': str(e)}
+
+        finally:
+            cursor.close()
 
     def add_invoice_detail(self, invoice_data):
 
@@ -133,15 +168,7 @@ class Sales:
             self.conn.close()
 
 
-# # Example usage:
-# if __name__ == "__main__":
-#     sales = Sales()
-#     result = sales.add_invoice_detail('John Doe', 250.75, '2025-05-26')
-#     print(result)  # This will print the success message with the invoice ID
-#     sales.close_connection()  # Ensure to close the connection when done
-
-
-# Manager Dashboard
+# Sales Dashboard
 @sales_bp.route('/sales/dashboard')
 @login_required('Sales')
 def sales_dashboard():
@@ -151,7 +178,7 @@ def sales_dashboard():
 @sales_bp.route('/sales/sell')
 @login_required('Sales')
 def sales():
-    return render_template('dashboards/sales/sell.html')
+    return render_template('dashboards/sales/sell.html', active_page='sell')
 
 
 @sales_bp.route('/sales/customers', methods=['GET'])
@@ -295,9 +322,8 @@ def add_new_product():
         print(f"Error adding product: {e}")
         return jsonify({'error': str(e)}), 500
 
-
-
 # ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
+
 
 @sales_bp.route('/sales/save_invoice', methods=['POST'])
 def save_invoice_into_database():
@@ -389,6 +415,27 @@ def save_invoice_into_database():
         if sales.data_base_connection_check():
             result = sales.add_invoice_detail(bill_data)
             print(result)
+
+            if result['invoice_id']:
+
+                # Insert into live order track
+                response = sales.insert_live_order_track(result['invoice_id'])
+
+                if response['success']:
+                    # Successfully inserted into live order track
+                    print(
+                        f"Live order track inserted for invoice ID: {result['invoice_id']}")
+                else:
+                    # If there was an error inserting into live order track
+                    print(
+                        f"Error inserting live order track: {response['error']}")
+                    sales.close_connection()
+                    return jsonify({'error': response['error']}), 500
+
+            else:
+                return jsonify({'error': result}), 500
+
+            sales.close_connection()
 
             # Return success with invoice ID
             return jsonify({
@@ -584,7 +631,7 @@ def generate_bill_pdf(invoice_id):
         hsn_tax_summary = {}
 
         for idx, product in enumerate(products_formatted, 1):
-        
+
             product_data.append([
                 str(idx),
                 product['name'],
@@ -681,20 +728,22 @@ def generate_bill_pdf(invoice_id):
                 capitalized_parts = [part.capitalize() for part in parts]
                 result_words.append(' '.join(capitalized_parts))
             return ' '.join(result_words)
-        
+
         info_data = [
             ["Payment Mode", capitalize_each_word(payment_mode)],
             ["Delivery Mode", capitalize_each_word(delivery_mode)]
         ]
 
         if delivery_mode == "transport":
-            info_data.append(["Transport Company",transport_company])     
+            info_data.append(["Transport Company", transport_company])
 
         info_table = Table(info_data, colWidths=[2*inch, 6*inch])
         info_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),  # Bold only the tag names column
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),       # Normal font for values
+            # Bold only the tag names column
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            # Normal font for values
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -801,7 +850,7 @@ def generate_bill_pdf(invoice_id):
         elements.append(total_table)
         elements.append(Spacer(1, 10))
         elements.append(info_table)
-        elements.append(Spacer(1, 10))        
+        elements.append(Spacer(1, 10))
 
         if tax_summary_table:
             elements.append(tax_summary_table)
@@ -834,6 +883,187 @@ def generate_bill_pdf(invoice_id):
     except Exception as e:
         print(f"Error generating PDF: {e}")
         return jsonify({'error': 'Invoice Not Found!'}), 500
+
+
+# --------------------------------------------------------------------------------------- My Orders -----------------------------------------------------------------------------------------------
+
+
+class MyOrders:
+    def __init__(self):
+        self.conn = get_db_connection()
+        if not self.conn:
+            raise Exception("Database connection failed")
+        self.cursor = self.conn.cursor(dictionary=True)
+
+
+    def merge_orders_products(self,data):
+        merged = {}
+
+        for item in data:
+            order_id = item["id"]
+
+            print(item['sales_proceed_for_packing'])
+            print(item['packing_proceed_for_transport'])
+            print(item['transport_proceed_for_builty'])
+            print(item['builty_received'])
+            print(item['payment_confirm_status'])
+            print(item['verify_by_manager'])
+
+            product_info = {
+                "name": item["name"],
+                "qty": item["quantity"],
+                "price": float(item["price"]),
+                "tax_amount": float(item["gst_tax_amount"]),
+                "total": float(item["total_amount"]),
+            }
+
+            if order_id not in merged:
+                # Create a new entry if the id doesn't exist yet
+                merged[order_id] = {
+                    **{k: v for k, v in item.items() if k not in ["name", "quantity", "price", "gst_tax_amount", "total_amount", "invoices_items_id", "product_id", "products_id"]},
+                    "products": [product_info],
+                }
+            else:
+                # If it already exists, just append the product info
+                merged[order_id]["products"].append(product_info)
+
+        return list(merged.values())
+
+
+    def fetch_my_orders(self, user_id):
+        query = """
+            SELECT 
+                -- invoices columns as is
+                inv.id,
+                inv.invoice_number,
+                inv.customer_id,
+                inv.grand_total,
+                inv.payment_mode,
+                inv.paid_amount,
+                inv.left_to_paid,
+                inv.transport_company_name,
+                inv.sales_note,
+                inv.invoice_created_by_user_id,
+                inv.payment_note,
+                inv.gst_included,
+                inv.created_at,
+                inv.delivery_mode,
+                
+                -- buddy columns (all except id) + renamed id column
+                b.id AS buddy_id, -- since customer_id is primary key here
+                b.name AS customer,
+                b.address,
+                b.state,
+                b.pincode,
+                b.mobile,
+                -- add other buddy columns here
+                
+                -- users columns, only rename id column
+                u.id AS users_id,
+                u.username,
+                -- add other user columns
+                
+                -- invoices_items columns, rename id only
+                ii.id AS invoices_items_id,
+                ii.product_id,
+                ii.quantity,
+                ii.price,
+                ii.gst_tax_amount,
+                ii.total_amount,
+                ii.created_at,
+                
+                -- add other invoices_items columns
+                
+                -- products columns, rename id only
+                p.id AS products_id,
+                p.name,
+                -- add other products columns
+                
+                -- live_order_track columns, rename id only
+                lot.id AS live_order_track_id,
+                lot.sales_proceed_for_packing,
+                lot.sales_date_time,
+                lot.packing_proceed_for_transport,
+                lot.packing_date_time,
+                lot.packing_proceed_by,
+                lot.transport_proceed_for_builty,
+                lot.transport_date_time,
+                lot.transport_proceed_by,
+                lot.transport_date_time,
+                lot.transport_proceed_by,
+                lot.builty_proceed_by,
+                lot.builty_received,
+                lot.builty_date_time,
+                lot.payment_confirm_status,
+                lot.cancel_order_status,
+                lot.verify_by_manager,
+                lot.verify_by_manager_id,
+                lot.verify_manager_date_time
+                -- add other live_order_track columns
+                
+            FROM invoices inv
+            LEFT JOIN buddy b ON inv.customer_id = b.id
+            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
+            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
+            LEFT JOIN products p ON ii.product_id = p.id
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            WHERE inv.invoice_created_by_user_id = %s
+            ORDER BY inv.created_at DESC
+        """
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+
+        
+        # Merge products into orders
+        merged_orders = self.merge_orders_products(all_order_data)
+
+        return merged_orders
+
+    def close(self):
+        self.cursor.close()
+        self.conn.close()
+
+
+
+@sales_bp.route('/sales/my-orders')
+@login_required('Sales')
+def sales_my_orders():
+    return render_template('dashboards/sales/my_orders.html')
+
+
+@sales_bp.route('/sales/my-orders-list', methods=['GET'])
+def sales_my_orders_list():
+    """
+    Fetch the list of orders for the logged-in sales user.
+    """
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = MyOrders()
+        orders = my_orders.fetch_my_orders(user_id)
+        my_orders.close()
+        if not orders:
+            return jsonify([]), 200
+        # Format the orders for JSON response
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)

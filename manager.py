@@ -133,8 +133,8 @@ def update_user(user_id):
     
 
     # Validate required fields
-    if not all([name, username, role,password]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    # if not all([name, username, role,password]):
+    #     return jsonify({'success': False, 'message': 'Required fields are missing'})
     
     # Get database connection
     conn = get_db_connection()
@@ -146,8 +146,10 @@ def update_user(user_id):
         # Get current timestamp for updated_at
         formatted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         password = encrypt_password(password) if password else None
-        
+
         # Update user in database
+        if not password:
+            return jsonify({'success': False, 'message': 'Sommething went wrong'})
         cursor.execute("""
             UPDATE users
             SET name = %s, username = %s, role = %s, updated_by = %s, updated_at = %s,password = %s
