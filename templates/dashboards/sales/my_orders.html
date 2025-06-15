@@ -262,104 +262,6 @@
             }
         }
 
-        .tracking-stepper {
-            margin: 12px 0 18px 0;
-            padding: 12px 10px 10px 10px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.22);
-            box-shadow: 0 2px 12px 0 rgba(67, 97, 238, 0.05);
-            backdrop-filter: blur(7px);
-            -webkit-backdrop-filter: blur(7px);
-            animation: glassFadeIn 0.7s cubic-bezier(.4, 2, .6, 1);
-        }
-
-        .tracking-title {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 1.08em;
-            margin-bottom: 6px;
-        }
-
-        .tracking-steps {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0;
-        }
-
-        .tracking-step {
-            display: flex;
-            align-items: center;
-            position: relative;
-            flex: 1 1 0;
-            min-width: 0;
-            z-index: 1;
-        }
-
-        .tracking-step .circle {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.7);
-            border: 2.2px solid #c7d2fe;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1.1em;
-            transition: border 0.3s, background 0.3s, color 0.3s;
-            box-shadow: 0 1px 8px 0 rgba(67, 97, 238, 0.07);
-            z-index: 2;
-        }
-
-        .tracking-step.active .circle {
-            border: 2.2px solid var(--primary);
-            background: #e0e7ff;
-            color: var(--primary);
-            animation: stepPulse 0.7s;
-        }
-
-        .tracking-step.done .circle {
-            border: 2.2px solid var(--success-green);
-            background: #c7f9cc;
-            color: var(--success-green);
-        }
-
-        .tracking-step .label {
-            margin-left: 8px;
-            margin-right: 8px;
-            font-size: 0.97em;
-            white-space: nowrap;
-            color: #64748b;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .tracking-step.active .label {
-            color: var(--primary);
-        }
-
-        .tracking-step.done .label {
-            color: var(--success-green);
-        }
-
-        .tracking-step .bar {
-            flex: 1 1 0;
-            height: 4px;
-            background: #c7d2fe;
-            border-radius: 2px;
-            margin-right: -14px;
-            margin-left: -6px;
-            z-index: 0;
-            position: relative;
-            transition: background 0.3s;
-        }
-
-        .tracking-step.done .bar {
-            background: linear-gradient(90deg, #c7f9cc 60%, #e0e7ff 100%);
-        }
-
         @keyframes stepPulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.15);
@@ -449,22 +351,6 @@
                 padding: 6px 8px;
                 font-size: 0.9em;
             }
-
-            .tracking-stepper {
-                padding: 10px 8px;
-            }
-
-            .tracking-step .circle {
-                width: 24px;
-                height: 24px;
-                font-size: 0.9em;
-            }
-
-            .tracking-step .label {
-                font-size: 0.85em;
-                margin-left: 6px;
-                margin-right: 6px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -497,21 +383,6 @@
                 font-size: 0.85em;
             }
 
-            .tracking-stepper {
-                padding: 8px 6px;
-            }
-
-            .tracking-step .circle {
-                width: 20px;
-                height: 20px;
-                font-size: 0.8em;
-            }
-
-            .tracking-step .label {
-                font-size: 0.8em;
-                margin-left: 4px;
-                margin-right: 4px;
-            }
         }
 
         .invoice-details table {
@@ -651,135 +522,280 @@
             margin: 0px;
         }
     </style>
-    <style>
-    </style>
-    
-        <!-- Modern Stepper CSS 
-        -->
-        
-    <style>
-        .modern-stepper {
-            margin: 18px 0 18px 0;
-            padding: 14px 6px 8px 6px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.25);
-            box-shadow: 0 2px 16px 0 rgba(67, 97, 238, 0.04);
-            animation: glassFadeIn 0.7s cubic-bezier(.4, 2, .6, 1);
-            overflow-x: auto;
-        }
 
-        .modern-steps {
+    <!-- styele for invoice progress bar like stages packing , transport etc -->
+
+    <style>
+        /* Flexible wrapper */
+        .tracking-wrapper {
+            width: 100%;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0;
-            min-width: 410px;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #f9f9f9;
         }
 
-        .modern-step {
+        /* Stepper container */
+        .tracking-stepper {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* Step group layout */
+        .tracking-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Each step */
+        .tracking-step {
             display: flex;
             flex-direction: column;
             align-items: center;
+            flex: 1;
             position: relative;
-            flex: 1 1 0;
-            min-width: 64px;
+            text-align: center;
+            min-width: 70px;
+            box-sizing: border-box;
+        }
+
+        /* Circle number or check */
+        .tracking-step .circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #ccc;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        /* Active step */
+        .tracking-step.active .circle {
+            background-color: #007bff;
+        }
+
+        /* Completed step */
+        .tracking-step.done .circle {
+            background-color: #28a745;
+        }
+
+        /* Step label and date */
+        .tracking-step .label-group {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Step name */
+        .tracking-step .label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Date */
+        .tracking-step .date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Connector line */
+        .tracking-step .bar {
+            position: absolute;
+            top: 18px;
+            right: -50%;
+            width: 100%;
+            height: 4px;
+            background-color: #ccc;
             z-index: 1;
         }
 
-        .modern-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: #e9f0ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3em;
-            box-shadow: 0 1px 6px rgba(67, 97, 238, 0.07);
-            border: 2px solid #c7d2fe;
-            transition: background 0.3s, border-color 0.3s;
-            margin-bottom: 4px;
+        .tracking-step.done .bar {
+            background-color: #28a745;
         }
 
-        .modern-step.active .modern-circle {
-            background: linear-gradient(135deg, #4361ee 60%, #4cc9f0 100%);
-            color: #fff;
-            border-color: #4361ee;
-            animation: stepPulse 1.2s infinite;
+        .tracking-step:last-child .bar {
+            display: none;
         }
 
-        .modern-step.done .modern-circle {
-            background: linear-gradient(135deg, #4cc9f0 60%, #c7f9cc 100%);
-            color: #fff;
-            border-color: #4cc9f0;
-        }
-
-        .modern-label {
-            font-size: 0.95em;
-            color: #2d2d2d;
-            font-weight: 500;
-            margin-bottom: 2px;
-            text-align: center;
-            margin-top: 2px;
-            min-width: 60px;
-        }
-
-        .modern-bar {
-            position: absolute;
-            top: 19px;
-            left: 100%;
-            width: 100%;
-            height: 5px;
-            background: #c7d2fe;
-            border-radius: 2px;
-            z-index: 0;
-            margin-left: -12px;
-            margin-right: -12px;
-            transition: background 0.3s;
-        }
-
-        .modern-step.done .modern-bar {
-            background: linear-gradient(90deg, #4cc9f0 60%, #c7f9cc 100%);
-        }
-
-        @media (max-width: 768px) {
-            .modern-stepper {
-                padding: 10px 2px 6px 2px;
+        /* Responsive view (mobile) */
+        @media (max-width: 600px) {
+            .tracking-steps {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
             }
 
-            .modern-steps {
-                min-width: 350px;
+            .tracking-step {
+                flex-direction: row;
+                align-items: center;
+                width: 100%;
             }
 
-            .modern-label {
-                font-size: 0.85em;
-                min-width: 48px;
+            .tracking-step .label-group {
+                margin-left: 12px;
+                align-items: flex-start;
             }
 
-            .modern-circle {
-                width: 32px;
-                height: 32px;
-                font-size: 1em;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .modern-steps {
-                min-width: 300px;
-            }
-
-            .modern-label {
-                font-size: 0.78em;
-                min-width: 34px;
-            }
-
-            .modern-circle {
-                width: 26px;
-                height: 26px;
-                font-size: 0.85em;
+            .tracking-step .bar {
+                display: none;
             }
         }
     </style>
+
+    <style>
+        /* Custom Modal Overlay */
+        .modal-overlay-custom {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.15), rgba(247, 37, 133, 0.15));
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .modal-overlay-custom.show {
+            display: flex;
+        }
+
+        /* Modal Content Box */
+        .modal-content-custom {
+            background: rgb(255, 255, 255);
+            border-radius: 22px;
+            box-shadow:
+                0 12px 36px rgba(67, 97, 238, 0.22),
+                0 4px 24px rgba(247, 37, 133, 0.10);
+            padding: 2em;
+            width: 30%;
+            text-align: center;
+            border: 2px solid var(--primary, #4361ee);
+            position: relative;
+            animation: fadeInUp 0.25s ease;
+            overflow: hidden;
+        }
+
+        /* Modal Message Text */
+        .modal-content-custom p {
+            font-size: 1.18em;
+            color: #000;
+            font-weight: 600;
+            margin: 0 0 1.8em 0;
+            letter-spacing: 0.01em;
+            z-index: 1;
+            position: relative;
+        }
+
+        /* Buttons Container */
+        .modal-buttons-custom {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.2em;
+            flex-wrap: wrap;
+            z-index: 1;
+            position: relative;
+        }
+
+        .modal-buttons-custom button {
+            display: flex;
+            /* Flexbox for centering */
+            justify-content: center;
+            /* Horizontal centering */
+            align-items: center;
+            /* Vertical centering */
+            min-width: 110px;
+            font-weight: 600;
+            padding: 0.65em 1.2em;
+            border-radius: 12px;
+            border: 1px solid black;
+            font-size: 1.07em;
+            box-shadow: 0 2px 12px rgba(67, 97, 238, 0.08);
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            text-align: center;
+            line-height: 1.2;
+            /* Ensures no text overflow or height issues */
+        }
+
+
+        /* Delete Button Styles */
+        #deleteConfirmOk {
+            background-color: #e53935;
+            color: white;
+        }
+
+        #deleteConfirmOk:hover {
+            background-color: #c62828;
+        }
+
+        #deleteConfirmOk:active {
+            background-color: #b71c1c;
+        }
+
+        /* Cancel Button (inherits glass-btn style or defaults) */
+        #deleteConfirmCancel {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+
+        #deleteConfirmCancel:hover {
+            background-color: #e0e0e0;
+        }
+
+        #deleteConfirmCancel:active {
+            background-color: #ccc;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 500px) {
+            .modal-content-custom {
+                min-width: 90vw;
+                padding: 1.2em 1em;
+            }
+
+            .modal-buttons-custom {
+                flex-direction: column;
+                gap: 0.8em;
+            }
+
+            .modal-buttons-custom button {
+                width: 100%;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+
 </head>
 
 <body>
@@ -866,28 +882,153 @@
         </div>
     </div>
 
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal-overlay-custom">
+        <div class="modal-content-custom">
+            <p id="deleteConfirmMessage">Are you sure you want to delete this invoice?</p>
+            <div class="modal-buttons-custom">
+                <button id="deleteConfirmOk" class="glass-btn danger">Delete</button>
+                <button id="deleteConfirmCancel" class="glass-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Order Modal -->
+    <div id="cancelOrderModal" class="modal-overlay-custom">
+        <div class="modal-content-custom" id="cancelOrderModalContent" style="max-width:420px;min-width:300px;width:95vw;">
+            <form id="cancelOrderForm" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0.5em;">
+                <div style="width:100%;">
+                    <p style="font-size:1.12em;color:#e53935;font-weight:600;">Are You Sure You Want To Cancel This Order?</p>
+                </div>
+                <div style="width:100%;margin-bottom:1em;">
+                    <textarea id="cancelReasonInput" name="cancelReason" required maxlength="200" placeholder="Enter cancellation reason..." style="width:100%;padding:0.6em 0.8em;border-radius:8px;border:1.5px solid #ccc;font-size:1em;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#f72585'" onblur="this.style.borderColor='#ccc'">
+                    </textarea>
+                </div>
+                <div class="modal-buttons-custom" style="width:100%;justify-content:space-between;gap:1em;margin-top:0.2em;">
+                    <button id="cancelOrderCancelBtn" type="button" style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Back</button>
+                    <button id="cancelOrderConfirmBtn" type="submit" style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Modal logic
+        let deleteInvoiceNumber = null;
+        let deleteTargetButton = null;
+        let deleteTargetLi = null;
+        // Cancel Order Modal State
+        let cancelOrderInvoiceNumber = null;
+        let cancelOrderTargetLi = null;
+        function openDeleteModal(invoiceNumber, btn) {
+            deleteInvoiceNumber = invoiceNumber;
+            deleteTargetButton = btn;
+            deleteTargetLi = btn.closest('.invoice-item');
+            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to delete invoice ${invoiceNumber}?`;
+            document.getElementById('deleteConfirmModal').classList.add('show');
+        }
+        function closeDeleteModal() {
+            document.getElementById('deleteConfirmModal').classList.remove('show');
+            deleteInvoiceNumber = null;
+            deleteTargetButton = null;
+            deleteTargetLi = null;
+        }
+        document.getElementById('deleteConfirmCancel').onclick = closeDeleteModal;
+        document.getElementById('deleteConfirmModal').onclick = function (e) {
+            if (e.target === this) closeDeleteModal();
+        };
+        document.getElementById('deleteConfirmOk').onclick = async function () {
+            if (!deleteInvoiceNumber || !deleteTargetLi) return closeDeleteModal();
+            // Call backend endpoint to delete invoice
+            try {
+                const resp = await deleteInvoice(deleteInvoiceNumber);
+                if (resp && resp.success) {
+                    deleteTargetLi.remove();
+                } else {
+                    alert(resp && resp.message ? resp.message : 'Failed to delete invoice.');
+                }
+            } catch (err) {
+                alert('Error deleting invoice.');
+            }
+            closeDeleteModal();
+        };
 
-        function formatDate(dateString) {
-            const date = new Date(dateString);
+        async function deleteInvoice(invoiceNumber) {
+            try {
+                const response = await fetch(`/sales/delete_invoice/${invoiceNumber}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);  // Show success message from server
+                } else {
+                    alert('Deletion failed: ' + result.message);
+                }
+                
+                return result;
+                
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+                return { success: false, message: e.message };
+            }
+        }
 
-            const pad = num => String(num).padStart(2, '0');
-
-            let hours = date.getHours();
-            const minutes = pad(date.getMinutes());
-            const seconds = pad(date.getSeconds());
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-
-            hours = hours % 12;
-            hours = hours ? hours : 12; // convert '0' to '12'
-            hours = pad(hours);
-
-            const day = pad(date.getDate());
-            const month = pad(date.getMonth() + 1); // Months are 0-based
-            const year = date.getFullYear();
-
-            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+        
+        // Cancel Order Modal Logic
+        function openCancelOrderModal(invoiceNumber, btn) {
+            cancelOrderInvoiceNumber = invoiceNumber;
+            cancelOrderTargetLi = btn.closest('.invoice-item');
+            document.getElementById('cancelReasonInput').value = '';
+            document.getElementById('cancelOrderModal').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('cancelReasonInput').focus();
+            }, 120);
+        }
+        function closeCancelOrderModal() {
+            document.getElementById('cancelOrderModal').classList.remove('show');
+            cancelOrderInvoiceNumber = null;
+            cancelOrderTargetLi = null;
+        }
+        document.getElementById('cancelOrderCancelBtn').onclick = closeCancelOrderModal;
+        document.getElementById('cancelOrderModal').onclick = function(e) {
+            if (e.target === this) closeCancelOrderModal();
+        };
+        document.getElementById('cancelOrderForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const reason = document.getElementById('cancelReasonInput').value.trim();
+            if (!reason) {
+                document.getElementById('cancelReasonInput').focus();
+                return;
+            }
+            if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
+            try {
+                const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
+                if (resp && resp.success) {
+                    if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
+                } else {
+                    alert(resp && resp.message ? resp.message : 'Failed to cancel order.');
+                }
+            } catch (err) {
+                alert('Error cancelling order.');
+            }
+            closeCancelOrderModal();
+        };
+        
+        async function cancelOrder(invoiceNumber, reason) {
+            try {
+                const response = await fetch('/sales/cancel_order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track_order_id: invoiceNumber, reason: reason })
+                });
+                if (!response.ok) throw new Error('Failed to cancel');
+                return await response.json();
+            } catch (e) {
+                return { success: false, message: e.message };
+            }
         }
 
 
@@ -928,7 +1069,7 @@
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
                     number: inv.invoice_number + inv.id,
-                    date: formatDate(inv.created_at),
+                    date: inv.created_at,
                     customer: inv.customer + ', ' + inv.state + ', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
@@ -942,7 +1083,9 @@
                     left_to_paid: inv.left_to_paid,
                     payment_mode: inv.payment_mode,
                     payment_note: inv.payment_note,
-                    sales_note: inv.sales_note
+                    sales_note: inv.sales_note,
+                    trackingDates: inv.trackingDates,
+                    live_order_track_id : inv.live_order_track_id
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -953,12 +1096,28 @@
                         <span style="font-size:0.9em;color:#666;">${invoiceObj.date}</span>
 
                             <div class="invoice-actions">
-                                <button class="glass-btn" title="Download PDF" onclick="event.stopPropagation();alert('Download PDF for ${invoiceObj.number}')">
-                                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 20 20"><path d="M6 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 0v4h8V2m-4 7v5m0 0l-2-2m2 2l2-2"/></svg>
+                                <button class="glass-btn" title="Download PDF" onclick="
+                                    event.stopPropagation();
+                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
+                                ">
+                                    <!-- PDF File Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
+                                    </svg>
                                 </button>
-                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation();if(confirm('Delete invoice ${invoiceObj.number}?')) this.closest('.invoice-item').remove();">
+
+                                ${invoiceObj.trackingStatus == 0 ? `
+                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.number}', this)">
                                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 20 20"><path d="M6 8v6a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8M9 11v2m2-2v2M5 6h10M9 2h2a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2z"/></svg>
                                 </button>
+                                ` : `
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}', this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>   
+                                `}
+
                                 <button class="glass-btn success" title="Send for Packaging" onclick="event.stopPropagation();alert('Sent invoice ${invoiceObj.number} for packaging!')">
                                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 20 20"><path d="M2.5 13.5l5.5 2 7.5-7.5-2-2L6 13l-2.5.5zm0 0l2.5-.5 7.5-7.5"/></svg>
                                 </button>
@@ -979,28 +1138,25 @@
                             <span> (${invoiceObj.payment_mode}) </span>
                         </div>
                         <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
+                        
+                        <div class="tracking-wrapper">
                         <div class="tracking-stepper">
-                            <div class="modern-stepper">
-  <div class="modern-steps">
-    ${[
-                        { label: 'Packing', icon: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="14" height="8" rx="2"/><path d="M3 6l7 5 7-5"/></svg>', dateKey: 'packing' },
-                        { label: 'Transport', icon: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13l2-2h10l2 2"/><circle cx="7" cy="16" r="2"/><circle cx="13" cy="16" r="2"/></svg>', dateKey: 'transport' },
-                        { label: 'Builty', icon: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="12" height="12" rx="2"/><path d="M8 8h4v4H8z"/></svg>', dateKey: 'builty' },
-                        { label: 'Delivery', icon: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12l5 5L18 6"/></svg>', dateKey: 'delivery' },
-                        { label: 'Completed', icon: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="8"/><path d="M7 10l2 2 4-4"/></svg>', dateKey: 'completed' }
-                    ].map((step, i) => {
-                        let stageDate = inv.stageDates && inv.stageDates[step.dateKey] ? formatDate(inv.stageDates[step.dateKey]) : '';
-                        return `
-        <div class="modern-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-          <div class="modern-circle">${step.icon}</div>
-          <div class="modern-label">${step.label}</div>
-          <div class="modern-date">${stageDate}</div>
-          ${i < 4 ? '<div class="modern-bar"></div>' : ''}
-        </div>
-      `;
-                    }).join('')}
-  </div>
-</div>
+                            <div class="tracking-steps">
+                            ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                                <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
+                                <div class="label-group">
+                                    <div class="label">${step}</div>
+                                    <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                </div>
+                                ${i < 4 ? '<div class="bar"></div>' : ''}
+                                </div>
+                            `).join('')}
+                            </div>
+                        </div>
+                        </div>
+
+                        
                         <table>
                             <thead>
                                 <tr>
@@ -1012,15 +1168,15 @@
                             </thead>
                             <tbody>
                                 ${invoiceObj.products.map(p => {
-                        const name = p && typeof p.name === 'string' ? p.name : '';
-                        const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                    const name = p && typeof p.name === 'string' ? p.name : '';
+                    const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                        const base_price = p && typeof p.price === 'number' ? p.price : '';
-                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                        const total_price = base_price + tax_price;
+                    const base_price = p && typeof p.price === 'number' ? p.price : '';
+                    const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                    const total_price = base_price + tax_price;
 
-                        return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                    }).join('')}
+                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                }).join('')}
                             </tbody>
                         </table>
 
@@ -1063,13 +1219,8 @@
                                 </div>
                             ` : ''}
 
-                        </div>
+                        </div
 
-                        
-
-
-
-                    
                     </div>
 
                 `;

@@ -228,11 +228,12 @@ def add_new_customer():
         cursor = conn.cursor()
 
         # Insert new product into database
-        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile) VALUES (%s, %s, %s, %s, %s)",
-                       (name, address, state, pincode, mobile))
+        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
+                       (name, address, state, pincode, mobile,session.get('user_id')))
         conn.commit()
         cursor.close()
         conn.close()
+
 
         # print(f"New customer added with ID: {customer_id}")
 
@@ -885,7 +886,7 @@ def generate_bill_pdf(invoice_id):
         return jsonify({'error': 'Invoice Not Found!'}), 500
 
 
-# --------------------------------------------------------------------------------------- My Orders -----------------------------------------------------------------------------------------------
+# -------------------------------------------------------------- My Orders -----------------------------------------------------------------------------------------------
 
 
 class MyOrders:
@@ -895,20 +896,66 @@ class MyOrders:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
-
     def merge_orders_products(self,data):
+
         merged = {}
 
         for item in data:
+
+            # change created_at date formate 
+            item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
+
+            # passed tracking status with date            
+            trackingStatus = 0
+            trackingDates = []
+
+            if item['sales_proceed_for_packing']:
+
+                if item['sales_date_time']:
+                    trackingDates.append(item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                else:
+                    trackingDates.append('')
+                trackingStatus = 1                
+            
+                if item['packing_proceed_for_transport']:
+                    
+                    if item['packing_proceed_for_transport']:
+                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    else:
+                        trackingDates.append('')
+                    trackingStatus = 2                
+                
+                    if item['transport_proceed_for_builty']:
+                        
+                        if item['transport_proceed_for_builty']:
+                            trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        else:
+                            trackingDates.append('')
+                        trackingStatus = 3
+            
+                        if item['builty_received']:
+
+                            if item['builty_received']:
+                                trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            else:
+                                trackingDates.append('')
+                            trackingStatus = 4
+            
+                            if item['verify_by_manager']:
+                                
+                                if item['verify_by_manager']:
+                                    trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                else:
+                                    trackingDates.append('')
+                                trackingStatus = 5
+
+
+            item['trackingStatus'] = trackingStatus
+            item['trackingDates'] = trackingDates
+
+
+            # merge products
             order_id = item["id"]
-
-            print(item['sales_proceed_for_packing'])
-            print(item['packing_proceed_for_transport'])
-            print(item['transport_proceed_for_builty'])
-            print(item['builty_received'])
-            print(item['payment_confirm_status'])
-            print(item['verify_by_manager'])
-
             product_info = {
                 "name": item["name"],
                 "qty": item["quantity"],
@@ -928,7 +975,6 @@ class MyOrders:
                 merged[order_id]["products"].append(product_info)
 
         return list(merged.values())
-
 
     def fetch_my_orders(self, user_id):
         query = """
@@ -1007,7 +1053,7 @@ class MyOrders:
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
             LEFT JOIN products p ON ii.product_id = p.id
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
-            WHERE inv.invoice_created_by_user_id = %s
+            WHERE inv.invoice_created_by_user_id = %s AND lot.cancel_order_status = 0
             ORDER BY inv.created_at DESC
         """
         self.cursor.execute(query, (user_id,))
@@ -1016,23 +1062,135 @@ class MyOrders:
         if not all_order_data:
             return []
 
-        
+    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
         return merged_orders
 
+    def delete_invoice(self, invoice_id):
+        try:
+            query = """
+                DELETE FROM invoices
+                WHERE id = %s;
+            """
+            self.cursor.execute(query, (invoice_id,))
+            self.conn.commit()  # commit on connection, not cursor
+            if self.cursor.rowcount == 0:
+                return {"success": False, "message": f"No invoice found with ID"}
+            else:
+                return {"success": True, "message": f"Invoice successfully deleted"}
+        except Exception as e:
+            self.conn.rollback()  # rollback on connection, not cursor
+            return {"success": False, "message": f"Error deleting invoice {invoice_id}: {e}"}
+
+    def cancel_order(self, invoice_id,data):
+        try:
+            update_query = """
+
+            UPDATE live_order_track
+            SET cancel_order_status = 1
+            WHERE id = %s;
+            """
+            self.cursor.execute(update_query, (data.get('track_order_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+            insert_query = """
+                
+                INSERT INTO cancelled_orders (
+                    invoice_id,cancelled_by, reason,live_order_track_id 
+                ) VALUES (%s, %s, %s,%s)
+            """
+
+            self.cursor.execute(insert_query, (invoice_id,session.get('user_id'),data.get('reason'),data.get('track_order_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+            return {"success": True, "message": f"Order successfully Cancel"}
+            
+        except Exception as e:
+            self.conn.rollback()  # rollback on connection, not cursor
+            return {"success": False, "message": f"Somthing went wrong to cancel order"}
+
+
     def close(self):
         self.cursor.close()
         self.conn.close()
 
+@sales_bp.route('/sales/cancel_order' ,methods=['POST'])     
+@login_required('Sales')
+def cancel_order():
+    try:
+        data = request.get_json()
+        track_order_id = data.get('track_order_id')
 
+        if not track_order_id or not str(track_order_id).isdigit():
+            return jsonify({"success": False, "message": "Invalid track_order_id"}), 400
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({"success": False, "message": 'Database connection failed'}), 500
+
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT invoice_id
+            FROM live_order_track
+            WHERE id = %s;
+        """, (track_order_id,))
+        invoice_data = cursor.fetchone()
+        
+        if invoice_data is None:
+            return jsonify({"success": False, "message": "Order not found"}), 404
+
+        for_cancel_order = MyOrders()
+        response = for_cancel_order.cancel_order(invoice_data['invoice_id'],data)
+
+        if response.get('success'):
+            return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
+        
+        return {"success": False, "message": f"Somthing went wrong to cancel order"},500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": "Internal server error"}), 500
+
+
+@sales_bp.route('/sales/delete_invoice/<string:invoice_id>' ,methods=['DELETE'])     
+@login_required('Sales')
+def delete_invoice(invoice_id):
+    try:
+        invoice_number = invoice_id[:10]
+        invoice_id = int(invoice_id[10:])
+
+        # Get invoice data from database
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({"success": False, "message": 'Database connection failed'}), 500
+
+        cursor = conn.cursor(dictionary=True)
+
+        # Check invoice_number and invoice_id details
+        cursor.execute("""
+            SELECT invoice_number
+            FROM invoices
+            WHERE id = %s;
+        """, (invoice_id,))
+        invoice_data = cursor.fetchone()
+
+        if invoice_data['invoice_number'] != invoice_number:
+            return jsonify({"success": False, "message":"Sorry, there was an issue. We are looking into it."}), 404
+        
+        for_delete_invoice = MyOrders()
+        response = for_delete_invoice.delete_invoice(invoice_id)
+        
+        if response['success']:
+            return jsonify({"success": True, "message": 'Invoice successfully deleted!'}),200
+
+    except Exception as e:   
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @sales_bp.route('/sales/my-orders')
 @login_required('Sales')
 def sales_my_orders():
     return render_template('dashboards/sales/my_orders.html')
-
 
 @sales_bp.route('/sales/my-orders-list', methods=['GET'])
 def sales_my_orders_list():

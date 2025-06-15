@@ -11,7 +11,6 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/sell.css">
 
     <style>
         :root {
@@ -78,7 +77,7 @@
         /* Header */
         .header-container {
             background-color: white;
-            /* border-radius: 0px 0px 12px 12px; */
+            border-radius: 0px 0px 12px 12px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
             padding: 1rem;
 
@@ -229,7 +228,7 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin: 0 0 1.5rem 0;
+            margin: 1.5rem 0;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
@@ -775,33 +774,10 @@
             }
         }
 
-
         @media (min-width: 768px) {
             .product-card-container {
                 display: none;
             }
-        }
-
-        .quantity-btn {
-            min-width: 28px !important;
-            min-height: 28px !important;
-        }
-
-        button:disabled {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        /* Firefox */
-        input[type=number] {
-            -moz-appearance: textfield;
-            max-width: fit-content;
         }
     </style>
     <style>
@@ -842,11 +818,6 @@
                 max-width: 95vw;
                 margin: 1rem auto;
             }
-        }
-
-        .quantity-bth {
-            max-width: 32px;
-            max-height: 32px;
         }
     </style>
     <style>
@@ -912,8 +883,7 @@
                         <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My
-                            Orders</a>
+                        <a class="nav-link" href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#"><i class="bi bi-cart add"></i>Add</a>
@@ -972,10 +942,7 @@
                                         <option value="">Select Customer</option>
                                     </select>
                                     <button type="button" style="border-radius: 5px;padding: 0px 10px;"
-                                        id="addCustomerBtn" class="btn btn-outline-dark"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill-add" viewBox="0 0 20 20">
-  <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-  <path d="M2 13c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
-</svg>  </button>
+                                        id="addCustomerBtn" class="bi bi-people-fill"></button>
                                 </div>
                             </div>
 
@@ -988,6 +955,8 @@
                                         <option value="transport">Transport</option>
                                         <option value="post">Post</option>
                                     </select>
+                                    <i class="bi bi-plus-circle-fill" id="addProductBtn"
+                                        style="font-size: 35px;color: #45a049;padding: 0px 3px;"></i>
                                 </div>
                             </div>
 
@@ -996,13 +965,6 @@
                                 <input type="text" class="form-control" id="transportCompany" name="transport_company">
                             </div>
 
-                            <div class="d-flex justify-content-between">
-                                <h3>Products</h3>
-                                <button type="button" class="btn text-primary w-auto" id="addProductBtn"><i
-                                        class="bi bi-plus-circle"></i> Add Item</button>
-
-                            </div>
-                            <hr>
                             <div class="table-responsive">
                                 <div class="table-responsive" id="productTableResponsive" style="display: none;">
                                     <table id="productTable" class="table product-table">
@@ -1010,15 +972,12 @@
                                             <tr>
                                                 <th>Product Name</th>
                                                 <th>Price</th>
-                                                <th>Total</th>
                                                 <th>Quantity</th>
+                                                <th>Total</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="productTableBody">
-                                            <tr>
-                                                <td colspan="5">No products to display</td>
-                                            </tr>
                                         </tbody>
                                     </table>
                                     <!-- Card container for mobile view -->
@@ -1324,7 +1283,6 @@
             // Load customers and products from the server
             fetchCustomers();
             fetchProducts();
-            updateProductTable();
 
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
@@ -1670,15 +1628,10 @@
                         // includeGST: includeGST
                     });
                     console.log(selectedProducts);
-                    
                 }
 
                 updateProductTable();
                 updateTotals();
-                document.getElementById(`quantity-input-${selectedProducts.length-1}`).addEventListener("change", function () {
-    updatePrice(selectedProducts.length - 1);
-  });
-
 
                 // Reset modal form
                 $('#modalProductSelect').val('').trigger('change');
@@ -1695,12 +1648,12 @@
             // Update product table
             function updateProductTable() {
                 const tableBody = document.getElementById('productTableBody');
+                tableBody.innerHTML = '';
 
                 // Show or hide the product table/card container based on product count
                 const tableResponsive = document.getElementById('productTableResponsive');
                 if (tableResponsive) {
-                    console.log(selectedProducts.length, "product in table");
-                    if (selectedProducts.length >= 0) {
+                    if (selectedProducts.length > 0) {
                         tableResponsive.style.display = '';
                     } else {
                         tableResponsive.style.display = 'none';
@@ -1722,8 +1675,6 @@
                 if (printBtn) {
                     if (selectedProducts.length > 0) {
                         printBtn.style.display = '';
-                        tableBody.innerHTML = '';
-
                     } else {
                         printBtn.style.display = 'none';
                     }
@@ -1735,30 +1686,21 @@
                     row.innerHTML = `
                         <td>${product.name}</td>
                         <td>₹${product.finalPrice.toFixed(2)}</td>
-                
+                        <td>${product.quantity}</td>
                         <td>₹${product.total.toFixed(2)}</td>
                         <td>
                             <div class="d-flex gap-1">
-                                <div class="input-group input-group-sm flex-nowrap" style="max-width: 120px; max-height: 32px;">
-                                    <button type="button" id="quantity-decrease" class="btn btn-outline-secondary quantity-btn" onclick="decreaseQuantity(${index})" title="Decrease Quantity" ${product.quantity <= 1 ? 'disabled' : ''}>
-                                        <i class="bi bi-dash"></i>
-                                    </button>
-                                    <input type="number" id="quantity-input-${index}" class="form-control text-center  no-spinner" value="${product.quantity}" style="width: 40px; max-width: fit-content; padding: 0 5px; font-size: 1rem;">
-                                    <button type="button" id="quantity-increase" class="btn btn-outline-secondary quantity-btn" onclick="increaseQuantity(${index})" title="Increase Quantity">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQuantity(${index})" title="Decrease Quantity">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQuantity(${index})" title="Increase Quantity">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeProduct(${index})">Remove</button>
                             </div>
-                        </td>
-                        <td>
-                                <div  class=" text-danger pointer text-center" onclick="removeProduct(${index})"><i class="fa-solid fa-trash"></i></div>
                         </td>
                     `;
                     tableBody.appendChild(row);
-document.getElementById(`quantity-input-${selectedProducts.length-1}`).addEventListener("change", function () {
-    updatePrice(selectedProducts.length - 1);
-  });
-                    
                 });
 
                 // Render product cards for mobile view
@@ -1834,25 +1776,10 @@ document.getElementById(`quantity-input-${selectedProducts.length-1}`).addEventL
                     updateTotals();
                 }
             };
-            function updatePrice(index) {
-                let  quantity = parseInt(document.getElementById(`quantity-input-${index}`).value) || 0;
-                if(quantity === 0){
-                    document.getElementById(`quantity-input-${index}`).value = 1;
-                    quantity = 1;
-                }
-
-                // const total = quantity * unitPrice;
-                selectedProducts[index].quantity = quantity;
-                selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
-                updateProductTable();
-                updateTotals();
-                // document.getElementById("total-price").textContent = total.toFixed(2);
-            }
             // Decrease product quantity
             window.decreaseQuantity = function (index) {
-                if (selectedProducts[index] && selectedProducts[index].quantity > 1) {
+                if (selectedProducts[index] && selectedProducts[index].quantity > 0) {
                     selectedProducts[index].quantity -= 1;
-                    console.log(selectedProducts[index].quantity, "updated Quantity");
                     selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
                     // Optionally, remove the product if quantity reaches 0
                     // if (selectedProducts[index].quantity === 0) {
