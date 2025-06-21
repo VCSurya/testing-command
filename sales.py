@@ -1111,6 +1111,23 @@ class MyOrders:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
+    def start_shipment(self, live_order_track_id):
+        try:
+            update_query = """
+            UPDATE live_order_track
+            SET sales_proceed_for_packing = 1,
+                sales_date_time = NOW()
+            WHERE id = %s;
+            """
+            self.cursor.execute(update_query, (live_order_track_id,))
+            self.conn.commit()
+
+            return {"success": True, "message": "Order successfully shipped"}
+
+        except Exception as e:
+            self.conn.rollback()
+            return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
+
 
     def close(self):
         self.cursor.close()
@@ -1223,5 +1240,26 @@ def sales_my_orders_list():
         cursor.close()
         conn.close()
 
+@sales_bp.route('/start-shipment', methods=['POST'])
+def start_shipment():
+    
+    try:
+        data = request.get_json()
+        live_order_track_id = data.get('live_order_track_id')
+
+        if not live_order_track_id:
+            return jsonify({'error': 'Missing Order ID'}), 400
+
+        shipment_start = MyOrders()
+        response = shipment_start.start_shipment(live_order_track_id)
+
+        if response['success']:
+            return jsonify({"success": True, "message": 'Order Successfully Shiped!'}),200
+
+        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'}),500
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'})
+    
 
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)

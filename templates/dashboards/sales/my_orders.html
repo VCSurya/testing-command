@@ -862,11 +862,19 @@
                 </div>
 
                 <div class="main-content-wrapper">
-                    <!-- Search Bar for Invoice ID -->
+                    <!-- Search Bar for Invoice ID and Tracking Status -->
                     <div class="row mb-3">
-                        <div class="col-md-6 offset-md-3">
-                            <input type="text" id="invoiceSearchInput" class="form-control"
-                                placeholder="Search by Invoice ID...">
+                        <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
+                            <input type="text" id="invoiceSearchInput" class="form-control" placeholder="Search by Invoice ID...">
+                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
+                                <option value="all" selected>All</option>
+                                <option value="0">Ready to Go</option>
+                                <option value="1">Packing</option>
+                                <option value="2">Transport</option>
+                                <option value="3">Builty</option>
+                                <option value="4">Verified</option>
+                                <option value="5">Delivered</option>
+                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -1031,6 +1039,29 @@
             }
         }
 
+        async function confirmAndStart(live_order_track_id) {
+            if (confirm("Are you sure you want to start this shipment?")) {
+                fetch('/start-shipment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ live_order_track_id })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error("Request failed");
+                    return response.json();
+                })
+                .then(data => {
+                    alert("Shipment started successfully!");
+                    location.reload(); // Refresh to update UI
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    alert("Something went wrong.");
+                });
+            }
+        }
 
         // Fetch invoices from backend and render
         async function fetchInvoices() {
@@ -1117,10 +1148,6 @@
                                     </svg>
                                 </button>   
                                 `}
-
-                                <button class="glass-btn success" title="Send for Packaging" onclick="event.stopPropagation();alert('Sent invoice ${invoiceObj.number} for packaging!')">
-                                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 20 20"><path d="M2.5 13.5l5.5 2 7.5-7.5-2-2L6 13l-2.5.5zm0 0l2.5-.5 7.5-7.5"/></svg>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1142,16 +1169,22 @@
                         <div class="tracking-wrapper">
                         <div class="tracking-stepper">
                             <div class="tracking-steps">
+                            
                             ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
-                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                            <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                 <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                 <div class="label-group">
-                                    <div class="label">${step}</div>
+                                    <div class="label">
+                                        ${i === 0 && invoiceObj.trackingStatus === 0 
+                                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Ready to Go</button>`
+                                            : step}
+                                    </div>
                                     <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                 </div>
                                 ${i < 4 ? '<div class="bar"></div>' : ''}
-                                </div>
+                            </div>
                             `).join('')}
+
                             </div>
                         </div>
                         </div>
@@ -1220,7 +1253,6 @@
                             ` : ''}
 
                         </div
-
                     </div>
 
                 `;
@@ -1238,21 +1270,35 @@
             // Fetch and render invoices from backend
             fetchInvoices();
 
-            // Search functionality
+            // Filtering logic for both invoice ID and trackingStatus
             const searchInput = document.getElementById('invoiceSearchInput');
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+
+            function filterAndRenderInvoices() {
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
+    let filtered = allInvoices;
+    if (query !== "") {
+        filtered = filtered.filter(inv => {
+            const invoiceId = (inv.invoice_number + inv.id).toLowerCase();
+            return invoiceId.includes(query);
+        });
+    }
+    if (trackingStatusFilter && selectedTracking !== 'all') {
+        filtered = filtered.filter(inv => {
+            // Use inv.trackingStatus, fallback to 1 if undefined
+            const status = typeof inv.trackingStatus !== 'undefined' ? parseInt(inv.trackingStatus) : 1;
+            return status === parseInt(selectedTracking);
+        });
+    }
+    renderInvoices(filtered);
+}
+
             if (searchInput) {
-                searchInput.addEventListener('input', function () {
-                    const query = this.value.trim().toLowerCase();
-                    if (query === "") { // If input is empty, show all invoices
-                        renderInvoices(allInvoices);
-                        return;
-                    }
-                    const filtered = allInvoices.filter(inv => {
-                        const invoiceId = (inv.invoice_number + inv.id).toLowerCase();
-                        return invoiceId.includes(query);
-                    });
-                    renderInvoices(filtered);
-                });
+                searchInput.addEventListener('input', filterAndRenderInvoices);
+            }
+            if (trackingStatusFilter) {
+                trackingStatusFilter.addEventListener('change', filterAndRenderInvoices);
             }
 
             // Sidebar toggle functionality
