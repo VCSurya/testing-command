@@ -51,7 +51,7 @@ class Sales:
             if count == 0:
                 return invoice_number
 
-    def insert_live_order_track(self, invoice_id):
+    def insert_live_order_track(self, invoice_id,payment_confirm_status):
         """
         Insert a saved invoice into the database live order track table.
         """
@@ -63,13 +63,14 @@ class Sales:
         try:
             # Prepare the SQL query to insert the invoice data
             insert_query = """
-                INSERT INTO live_order_track (invoice_id)
-                VALUES (%s)
+                INSERT INTO live_order_track (invoice_id,payment_confirm_status)
+                VALUES (%s,%s)
             """
 
             # Extract values from the invoice_data dictionary
             values = (
                 invoice_id,
+                payment_confirm_status,
             )
 
             # Execute the query
@@ -174,11 +175,20 @@ class Sales:
 def sales_dashboard():
     return render_template('dashboards/sales/main.html')
 
-
 @sales_bp.route('/sales/sell')
 @login_required('Sales')
 def sales():
     return render_template('dashboards/sales/sell.html', active_page='sell')
+
+@sales_bp.route('/sales/my-orders')
+@login_required('Sales')
+def sales_cancel_orders():
+    return render_template('dashboards/sales/my_orders.html')
+
+@sales_bp.route('/sales/cancel-orders')
+@login_required('Sales')
+def sales_my_orders():
+    return render_template('dashboards/sales/cancel_orders.html')
 
 
 @sales_bp.route('/sales/customers', methods=['GET'])
@@ -419,8 +429,14 @@ def save_invoice_into_database():
 
             if result['invoice_id']:
 
+                payment_confirm_status = 0
+                
+                if grand_total == paid_amount:
+                    payment_confirm_status = 1
+
+
                 # Insert into live order track
-                response = sales.insert_live_order_track(result['invoice_id'])
+                response = sales.insert_live_order_track(result['invoice_id'],payment_confirm_status)
 
                 if response['success']:
                     # Successfully inserted into live order track
@@ -1053,8 +1069,18 @@ class MyOrders:
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
             LEFT JOIN products p ON ii.product_id = p.id
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
-            WHERE inv.invoice_created_by_user_id = %s AND lot.cancel_order_status = 0
+            WHERE inv.invoice_created_by_user_id = %s
+            AND lot.cancel_order_status = 0
+            AND (
+                lot.sales_proceed_for_packing = 0 
+                OR lot.packing_proceed_for_transport = 0 
+                OR lot.transport_proceed_for_builty = 0 
+                OR lot.builty_received = 0 
+                OR lot.payment_confirm_status = 0 
+                OR lot.verify_by_manager = 0
+            )
             ORDER BY inv.created_at DESC
+
         """
         self.cursor.execute(query, (user_id,))
         all_order_data = self.cursor.fetchall()
@@ -1169,7 +1195,6 @@ def cancel_order():
     except Exception as e:
         return jsonify({"success": False, "message": "Internal server error"}), 500
 
-
 @sales_bp.route('/sales/delete_invoice/<string:invoice_id>' ,methods=['DELETE'])     
 @login_required('Sales')
 def delete_invoice(invoice_id):
@@ -1204,11 +1229,6 @@ def delete_invoice(invoice_id):
     except Exception as e:   
         return jsonify({"success": False, "message": str(e)}), 500
 
-@sales_bp.route('/sales/my-orders')
-@login_required('Sales')
-def sales_my_orders():
-    return render_template('dashboards/sales/my_orders.html')
-
 @sales_bp.route('/sales/my-orders-list', methods=['GET'])
 def sales_my_orders_list():
     """
@@ -1241,6 +1261,7 @@ def sales_my_orders_list():
         conn.close()
 
 @sales_bp.route('/start-shipment', methods=['POST'])
+@login_required('Sales')
 def start_shipment():
     
     try:
@@ -1261,5 +1282,324 @@ def start_shipment():
     except Exception as e:
         return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'})
     
+
+
+
+# -------------------------------------------------------------- Canceled Orders -----------------------------------------------------------------------------------------------
+
+class Canceled_Orders:
+    
+    def __init__(self):
+        self.conn = get_db_connection()
+        if not self.conn:
+            raise Exception("Database connection failed")
+        self.cursor = self.conn.cursor(dictionary=True)
+
+    def merge_orders_products(self,data):
+
+        merged = {}
+
+        for item in data:
+
+            # change created_at date formate 
+            item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
+
+            # passed tracking status with date            
+            trackingStatus = 0
+            trackingDates = []
+
+            if item['sales_proceed_for_packing']:
+
+                if item['sales_date_time']:
+                    trackingDates.append(item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                else:
+                    trackingDates.append('')
+                trackingStatus = 1                
+            
+                if item['packing_proceed_for_transport']:
+                    
+                    if item['packing_proceed_for_transport']:
+                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    else:
+                        trackingDates.append('')
+                    trackingStatus = 2                
+                
+                    if item['transport_proceed_for_builty']:
+                        
+                        if item['transport_proceed_for_builty']:
+                            trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        else:
+                            trackingDates.append('')
+                        trackingStatus = 3
+            
+                        if item['builty_received']:
+
+                            if item['builty_received']:
+                                trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            else:
+                                trackingDates.append('')
+                            trackingStatus = 4
+            
+                            if item['verify_by_manager']:
+                                
+                                if item['verify_by_manager']:
+                                    trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                else:
+                                    trackingDates.append('')
+                                trackingStatus = 5
+
+
+            item['trackingStatus'] = trackingStatus
+            item['trackingDates'] = trackingDates
+            item['cancelled_at'] = item['cancelled_at'].strftime("%d/%m/%Y %I:%M %p")
+
+
+            # merge products
+            order_id = item["id"]
+            product_info = {
+                "name": item["name"],
+                "qty": item["quantity"],
+                "price": float(item["price"]),
+                "tax_amount": float(item["gst_tax_amount"]),
+                "total": float(item["total_amount"]),
+            }
+
+            if order_id not in merged:
+                # Create a new entry if the id doesn't exist yet
+                merged[order_id] = {
+                    **{k: v for k, v in item.items() if k not in ["name", "quantity", "price", "gst_tax_amount", "total_amount", "invoices_items_id", "product_id", "products_id"]},
+                    "products": [product_info],
+                }
+            else:
+                # If it already exists, just append the product info
+                merged[order_id]["products"].append(product_info)
+
+        return list(merged.values())
+
+    def find_all_canceled_orders(self, user_id):
+        query = """
+            SELECT 
+                -- invoices columns as is
+                inv.id,
+                inv.invoice_number,
+                inv.customer_id,
+                inv.grand_total,
+                inv.payment_mode,
+                inv.paid_amount,
+                inv.left_to_paid,
+                inv.transport_company_name,
+                inv.sales_note,
+                inv.invoice_created_by_user_id,
+                inv.payment_note,
+                inv.gst_included,
+                inv.created_at,
+                inv.delivery_mode,
+                
+                -- buddy columns (all except id) + renamed id column
+                b.id AS buddy_id, -- since customer_id is primary key here
+                b.name AS customer,
+                b.address,
+                b.state,
+                b.pincode,
+                b.mobile,
+                -- add other buddy columns here
+                
+                -- users columns, only rename id column
+                u.id AS users_id,
+                u.username,
+                u.role,
+                -- add other user columns
+                
+                -- invoices_items columns, rename id only
+                ii.id AS invoices_items_id,
+                ii.product_id,
+                ii.quantity,
+                ii.price,
+                ii.gst_tax_amount,
+                ii.total_amount,
+                ii.created_at,
+                
+                -- add other invoices_items columns
+                
+                -- products columns, rename id only
+                p.id AS products_id,
+                p.name,
+                -- add other products columns
+                
+                -- live_order_track columns, rename id only
+                lot.id AS live_order_track_id,
+                lot.sales_proceed_for_packing,
+                lot.sales_date_time,
+                lot.packing_proceed_for_transport,
+                lot.packing_date_time,
+                lot.packing_proceed_by,
+                lot.transport_proceed_for_builty,
+                lot.transport_date_time,
+                lot.transport_proceed_by,
+                lot.transport_date_time,
+                lot.transport_proceed_by,
+                lot.builty_proceed_by,
+                lot.builty_received,
+                lot.builty_date_time,
+                lot.payment_confirm_status,
+                lot.cancel_order_status,
+                lot.verify_by_manager,
+                lot.verify_by_manager_id,
+                lot.verify_manager_date_time,
+
+                -- cancelled_orders columns
+                c.id AS cancelled_orders_id,
+                c.cancelled_at,
+                c.reason AS cancelled_reason,
+                c.confirm_at
+
+
+            FROM invoices inv
+            LEFT JOIN buddy b ON inv.customer_id = b.id
+            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
+            LEFT JOIN products p ON ii.product_id = p.id
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            LEFT JOIN cancelled_orders c ON inv.id = c.invoice_id
+            LEFT JOIN users u ON c.cancelled_by = u.id
+            WHERE inv.invoice_created_by_user_id = %s
+            AND c.confirm_by_saler = 0
+            AND lot.cancel_order_status = 1
+            AND (
+                lot.sales_proceed_for_packing = 0 
+                OR lot.packing_proceed_for_transport = 0 
+                OR lot.transport_proceed_for_builty = 0 
+                OR lot.builty_received = 0 
+                OR lot.payment_confirm_status = 0 
+                OR lot.verify_by_manager = 0
+            )
+            ORDER BY inv.created_at DESC
+
+        """
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+
+    
+        # Merge products into orders
+        merged_orders = self.merge_orders_products(all_order_data)
+
+        return merged_orders
+
+    def confirm_canceled_order(self,id):
+
+        query = """
+                UPDATE cancelled_orders
+                SET confirm_by_saler = 1,confirm_at = NOW()
+                WHERE id = %s;
+        """
+        try:
+            
+            self.cursor.execute(query,(id,))
+            self.conn.commit()
+
+            return {"success": True}
+
+        except Exception as e:
+            self.conn.rollback()
+            return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
+        
+    
+    def reject_canceled_order(self,id):
+        
+        update_query = """
+                UPDATE live_order_track
+                SET cancel_order_status = 0
+                WHERE id IN (
+                    SELECT live_order_track_id FROM cancelled_orders WHERE cancelled_orders.id = %s
+                );
+        """
+
+        delete_query = """
+                DELETE FROM cancelled_orders WHERE id = %s;
+        """
+
+        try:
+            self.cursor.execute(update_query,(id,))
+            self.cursor.execute(delete_query,(id,))
+            self.conn.commit()
+            return {"success": True}
+
+        except Exception as e:
+            self.conn.rollback()
+            return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
+
+            
+    def close(self):
+        self.cursor.close()
+        self.conn.close()
+
+@sales_bp.route('/sales/canceld-orders-list', methods=['GET'])
+def sales_cancled_orders_list():
+    """
+    Fetch the list of canceled orders for the logged-in sales user.
+    """
+
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = Canceled_Orders()
+        orders = my_orders.find_all_canceled_orders(user_id)
+        my_orders.close()
+        
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_orders.close()
+
+@sales_bp.route('/sales/canceled-orders-status', methods=['PUT'])
+@login_required('Sales')
+def update_canceled_orders_status():
+
+    try:
+
+        data = request.get_json()
+        id = data.get('invoiceNumber')
+        cancel_order_status = data.get('deleteStatus')
+        my_obj = Canceled_Orders()
+
+        if cancel_order_status == 1 and id:
+            
+            response = my_obj.confirm_canceled_order(id)
+
+            if response['success']:
+                my_obj.close()
+                return jsonify({'success':True,'message':'Done!'}),200
+
+            else:
+                return jsonify({'success':False,'message':f'Somthing went wrong!{response['message']}'}),500
+
+        if cancel_order_status == 0 and id:
+
+            response = my_obj.reject_canceled_order(id)
+
+            if response['success']:
+                my_obj.close()
+                return jsonify({'success':True,'message':'Done!'}),200
+            else:
+                return jsonify({'success':False,'message':f'Somthing went wrong!{response['message']}'}),500
+
+    
+        return jsonify({'success':False,'message':f'Somthing went wrong!'}),500
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'success':False,'message':f'Somthing went wrong! {e}'}),500
+
+
 
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)
