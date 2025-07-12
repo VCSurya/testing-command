@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Orders</title>
+    <title>Ready for Packing</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -317,10 +317,10 @@
                 left: 0;
                 width: 100%;
             }
-        }
 
-        @media (min-width: 769px) {
-            #invoice_date_2 {
+        }
+        @media (min-width: 769px){
+             #invoice_date_2{
                 display: none;
             }
         }
@@ -360,6 +360,8 @@
             #invoice_date_1{
                 display: none;
             }
+           
+            
         }
 
         @media (max-width: 480px) {
@@ -391,6 +393,7 @@
                 padding: 5px 6px;
                 font-size: 0.85em;
             }
+            
 
         }
 
@@ -804,6 +807,52 @@
         }
     </style>
 
+    <style>
+        /* Container Styling */
+        .next-to-pack-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Button Styling */
+        .next-to-pack-btn {
+            background: linear-gradient(to right, #874caf, #6845a0);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* Hover & Active States */
+        .next-to-pack-btn:hover {
+            background: linear-gradient(to right, #6845a0, #874caf);
+            transform: translateY(-2px);
+        }
+
+        .next-to-pack-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .next-to-pack-btn {
+                width: 100%;
+                font-size: 1rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
 
 </head>
 
@@ -826,7 +875,11 @@
                         <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My
+                        <a class="nav-link active" href="/sales/ready-to-go-orders"><i
+                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My
                             Orders</a>
                     </li>
                     <li class="nav-item">
@@ -854,7 +907,7 @@
                         <button class="btn mobile-toggle me-3" id="sidebarToggle">
                             <i class="bi bi-list fs-4"></i>
                         </button>
-                        <h4 class="mb-0">My Orders</h4>
+                        <h4 class="mb-0">Ready for Packing</h4>
                     </div>
                     <div class="dropdown profile-menu" style="border: 1px solid rgb(90, 90, 90); border-radius: 10px;">
                         <button class="btn dropdown-toggle d-flex align-items-center" type="button"
@@ -876,14 +929,6 @@
                         <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                             <input type="text" id="invoiceSearchInput" class="form-control"
                                 placeholder="Search by Invoice ID...">
-                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
-                                <option value="all" selected>All</option>
-                                <option value="1">Packing</option>
-                                <option value="2">Transport</option>
-                                <option value="3">Builty</option>
-                                <option value="4">Verified</option>
-                                <!-- <option value="5">Delivered</option> -->
-                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -918,7 +963,7 @@
             <form id="cancelOrderForm"
                 style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0.5em;">
                 <div style="width:100%;">
-                    <p style="font-size:1.12em;color:#e53935;font-weight:600;" id = "cancelOrderMessage">Are You Sure You Want To Cancel This
+                    <p style="font-size:1.12em;color:#e53935;font-weight:600;">Are You Sure You Want To Cancel This
                         Order?</p>
                 </div>
                 <div style="width:100%;margin-bottom:1em;">
@@ -943,8 +988,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
 
-    <script>
+
+
         // Modal logic
         let deleteInvoiceNumber = null;
         let deleteTargetButton = null;
@@ -983,8 +1030,6 @@
                 alert('Error deleting invoice.');
             }
             closeDeleteModal();
-            filterAndRenderInvoices();
-
         };
 
         async function deleteInvoice(invoiceNumber) {
@@ -1010,11 +1055,10 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber,oginvoiceNumber,btn) {
+        function openCancelOrderModal(invoiceNumber, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderMessage').textContent = 'Are You Sure You Want To Cancel This Order ? <' + oginvoiceNumber + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1048,8 +1092,6 @@
                 alert('Error cancelling order.');
             }
             closeCancelOrderModal();
-            filterAndRenderInvoices();
-
         };
 
         async function cancelOrder(invoiceNumber, reason) {
@@ -1093,7 +1135,7 @@
         // Fetch invoices from backend and render
         async function fetchInvoices() {
             try {
-                const response = await fetch('/sales/my-orders-list');
+                const response = await fetch('/sales/my-ready-to-go-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1159,15 +1201,11 @@
 
                                 ${invoiceObj.trackingStatus == 0 ? `
                                 <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.number}', this)">
-                                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 20 20"><path d="M6 8v6a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8M9 11v2m2-2v2M5 6h10M9 2h2a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2z"/></svg>
-                                </button>
-                                ` : `
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.number}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
-                                </button>   
-                                `}
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -1176,6 +1214,7 @@
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
+                            
                             <strong>Customer:</strong> ${invoiceObj.customer}
                              ${invoiceObj.gst_included == 1 ? `
                                 <div class="gst-label">
@@ -1189,31 +1228,7 @@
                         </div>
                         <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
                         
-                        <div class="tracking-wrapper">
-                        <div class="tracking-stepper">
-                            <div class="tracking-steps">
-                            
-                            ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
-                            <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                <div class="label-group">
-                                    <div class="label">
-                                        ${i === 0 && invoiceObj.trackingStatus === 0
-                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Ready to Go</button>`
-                        : step}
-                                    </div>
-                                    <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
-                                </div>
-                                ${i < 4 ? '<div class="bar"></div>' : ''}
-                            </div>
-                            `).join('')}
-
-                            </div>
-                        </div>
-                        </div>
-
-                        
-                        <table>
+                        <table style="margin-top:10px;">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -1224,15 +1239,15 @@
                             </thead>
                             <tbody>
                                 ${invoiceObj.products.map(p => {
-                            const name = p && typeof p.name === 'string' ? p.name : '';
-                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                    const name = p && typeof p.name === 'string' ? p.name : '';
+                    const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                            const base_price = p && typeof p.price === 'number' ? p.price : '';
-                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                            const total_price = base_price + tax_price;
+                    const base_price = p && typeof p.price === 'number' ? p.price : '';
+                    const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                    const total_price = base_price + tax_price;
 
-                            return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                        }).join('')}
+                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                }).join('')}
                             </tbody>
                         </table>
 
@@ -1276,6 +1291,12 @@
                             ` : ''}
 
                         </div
+
+                        <div class="next-to-pack-container">
+                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">
+                                Prepare for Packing
+                            </button>
+                        </div>
                     </div>
 
                 `;
@@ -1322,7 +1343,7 @@
 
             if (trackingStatusFilter) {
                 // Ignore saved value on reload — always set to default '0'
-                trackingStatusFilter.value = 'all';
+                trackingStatusFilter.value = '0';
 
                 trackingStatusFilter.addEventListener('change', () => {
                     // Save current selection for session use if you want
@@ -1333,20 +1354,12 @@
 
             function filterAndRenderInvoices() {
                 const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
                 let filtered = [...allInvoices];
 
                 if (query !== '') {
                     filtered = filtered.filter(inv => {
                         const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
                         return invoiceId.includes(query);
-                    });
-                }
-
-                if (trackingStatusFilter && selectedTracking !== 'all') {
-                    filtered = filtered.filter(inv => {
-                        const status = typeof inv.trackingStatus !== 'undefined' ? Number(inv.trackingStatus) : 0;
-                        return status === Number(selectedTracking);
                     });
                 }
 

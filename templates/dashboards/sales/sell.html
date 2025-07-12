@@ -474,7 +474,7 @@
                 width: 100%;
             }
 
-            #quantityController input{
+            #quantityController input {
                 margin-bottom: 8px;
             }
 
@@ -883,22 +883,11 @@
     <style>
         .empty-state {
             text-align: center;
-            padding: 80px 40px;
-            background: linear-gradient(135deg, var(--light) 0%, #e8ecf4 100%);
+            padding: 10px 10px;
+            background: transparent;
             position: relative;
             overflow: hidden;
             border-radius: 12px;
-        }
-
-        .empty-state::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(67, 97, 238, 0.08) 0%, transparent 70%);
-            animation: float 6s ease-in-out infinite;
         }
 
         .floating-elements {
@@ -957,7 +946,7 @@
             margin: 0;
             position: relative;
             z-index: 2;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, rgb(224, 118, 118), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -1235,6 +1224,55 @@
                                 <label for="transportCompany">Transport Company Name:</label>
                                 <input type="text" class="form-control" id="transportCompany" name="transport_company">
                             </div>
+
+                            <div class="form-group" id="eventSelectionGroup" style="display: none;">
+                                <div style="display: flex; gap: 20px;">
+                                    <select class="form-select" id="eventSelect" name="event_id">
+                                        <option value="">Select Event</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    function fetchEvents() {
+                                        fetch('/sales/all_events_details')
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                const eventSelectGroup = document.getElementById('eventSelectionGroup');
+                                                const eventSelect = document.getElementById('eventSelect');
+
+                                                if (!data.success || data.data.length === 0) {
+                                                    // Hide the selection group if no events are available
+                                                    eventSelectGroup.style.display = 'none';
+                                                    return;
+                                                }
+
+                                                // Clear existing options
+                                                eventSelect.innerHTML = '<option value="">Select Event</option>';
+
+                                                // Populate dropdown
+                                                data.data.forEach(event => {
+                                                    const option = document.createElement('option');
+                                                    option.value = event.id;
+                                                    option.textContent = event.name;
+                                                    eventSelect.appendChild(option);
+                                                });
+
+                                                // Show the selection group
+                                                eventSelectGroup.style.display = 'block';
+                                            })
+                                            .catch(error => {
+                                                console.error('Error fetching events:', error);
+                                                alert('Failed to load events. Please try again.');
+                                            });
+                                    }
+
+                                    fetchEvents();
+                                    document.getElementById('refreshEventsBtn').addEventListener('click', fetchEvents);
+                                });
+
+                            </script>
 
                             <div class="table-responsive">
                                 <div class="table-responsive" id="productTableResponsive">
@@ -1713,7 +1751,7 @@
                         data.forEach(customer => {
                             const option = document.createElement('option');
                             option.value = customer.id;
-                            option.textContent = `${customer.name} - ${customer.mobile} - ${customer.address}`;
+                            option.textContent = `${customer.name} - ${customer.address}`;
                             customerSelect.appendChild(option);
                         });
                         $('#customerSelect').trigger('change');
@@ -1960,16 +1998,9 @@
                     
                     <tr>
                     <td colspan="5">
-                        <div class="empty-state">
-                            <div class="floating-elements">
-                                <div class="floating-dot"></div>
-                                <div class="floating-dot"></div>
-                                <div class="floating-dot"></div>
+                            <div class="empty-state">
+                                <h4>No Product Selected</h4>
                             </div>
-                            
-                            <h4>Product Not Selected</h4>
-
-                        </div>
                     </td>
                 </tr>
 

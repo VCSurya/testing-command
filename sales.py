@@ -107,8 +107,8 @@ class Sales:
                     customer_id, delivery_mode, grand_total, gst_included,
                     invoice_created_by_user_id, left_to_paid, paid_amount,
                     payment_mode, payment_note, sales_note, transport_company_name,
-                    invoice_number, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    invoice_number, event_id ,completed,created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,NOW())
             """
 
             invoice_values = (
@@ -123,7 +123,9 @@ class Sales:
                 invoice_data['payment_note'],
                 invoice_data['sales_note'],
                 invoice_data['transport_company_name'],
-                invoice_number
+                invoice_number,
+                invoice_data['event_id'] if invoice_data.get('event_id') else None,
+                invoice_data.get('completed', 0)  # Default to 0 if not provided
             )
 
             cursor.execute(insert_invoice_query, invoice_values)
@@ -190,6 +192,41 @@ def sales_cancel_orders():
 def sales_my_orders():
     return render_template('dashboards/sales/cancel_orders.html')
 
+@sales_bp.route('/sales/ready-to-go-orders')
+@login_required('Sales')
+def sales_ready_to_go_orders():
+    return render_template('dashboards/sales/ready_to_go.html')
+
+@sales_bp.route('/sales/all_events_details', methods=['GET'])
+@login_required('Sales')
+def all_market_events():
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT 
+                    id, 
+                    name, 
+                    location
+                FROM market_events
+                WHERE active = 1
+                ORDER BY start_date ASC;
+            """)
+            events = cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+        if len(events) == 0 or not events:
+            return jsonify({'success': True, 'data': []})
+        
+        return jsonify({'success': True, 'data': events})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @sales_bp.route('/sales/customers', methods=['GET'])
 def get_customers():
@@ -335,7 +372,6 @@ def add_new_product():
 
 # ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
 
-
 @sales_bp.route('/sales/save_invoice', methods=['POST'])
 def save_invoice_into_database():
     """ Save invoice data to database """
@@ -351,6 +387,9 @@ def save_invoice_into_database():
         grand_total = float(request.form.get('grand_total', 0))
         sales_note = request.form.get('sales_note', '')
         IncludeGST = request.form.get('IncludeGST', 'off')
+        event_id = request.form.get('event_id', None)
+
+        print(event_id)
 
         if paid_amount == 0:
             payment_mode = "not_paid"
@@ -419,6 +458,8 @@ def save_invoice_into_database():
             'payment_note': request.form.get('payment_note', ''),
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
+            'event_id': event_id,
+            'completed' : 1 if delivery_mode == "at_store" or delivery_mode == "porter" else 0,
         }
 
         # Save to database
@@ -565,9 +606,7 @@ def generate_bill_pdf(invoice_id):
                 'hsn_code': '95059090'
             })
 
-        tax_rate = 0
-        if IncludeGST == 'on':
-            tax_rate = 18
+        
 
         # Get invoice creation date
         formatted_time = invoice_data['created_at'].strftime("%d/%m/%Y %I:%M %p") if invoice_data.get(
@@ -636,10 +675,10 @@ def generate_bill_pdf(invoice_id):
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
-
+        
         # Product table
         headers = ["S.NO.", "ITEMS", "QTY.",
-                   "RATE", f"TAX ({tax_rate}%)", "AMOUNT"]
+                   "RATE", f"TAX ({18 if IncludeGST == 1 else 0}%)", "AMOUNT"]
         col_widths = [0.5*inch, 3.8*inch, 0.9 *
                       inch, 0.8*inch, 1*inch, 1*inch, 1*inch]
 
@@ -866,8 +905,8 @@ def generate_bill_pdf(invoice_id):
         elements.append(product_table)
         elements.append(total_table)
         elements.append(Spacer(1, 10))
-        elements.append(info_table)
-        elements.append(Spacer(1, 10))
+        # elements.append(info_table)
+        # elements.append(Spacer(1, 10))
 
         if tax_summary_table:
             elements.append(tax_summary_table)
@@ -992,8 +1031,8 @@ class MyOrders:
 
         return list(merged.values())
 
-    def fetch_my_orders(self, user_id):
-        query = """
+    def fetch_my_orders(self, user_id,start_shipment):
+        query = f"""
             SELECT 
                 -- invoices columns as is
                 inv.id,
@@ -1071,9 +1110,10 @@ class MyOrders:
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
             WHERE inv.invoice_created_by_user_id = %s
             AND lot.cancel_order_status = 0
-            AND (
-                lot.sales_proceed_for_packing = 0 
-                OR lot.packing_proceed_for_transport = 0 
+            AND inv.completed = 0
+            AND lot.sales_proceed_for_packing = {start_shipment}
+            AND ( 
+                lot.packing_proceed_for_transport = 0 
                 OR lot.transport_proceed_for_builty = 0 
                 OR lot.builty_received = 0 
                 OR lot.payment_confirm_status = 0 
@@ -1082,6 +1122,8 @@ class MyOrders:
             ORDER BY inv.created_at DESC
 
         """
+
+        
         self.cursor.execute(query, (user_id,))
         all_order_data = self.cursor.fetchall()
         
@@ -1154,7 +1196,6 @@ class MyOrders:
             self.conn.rollback()
             return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
 
-
     def close(self):
         self.cursor.close()
         self.conn.close()
@@ -1226,6 +1267,9 @@ def delete_invoice(invoice_id):
         if response['success']:
             return jsonify({"success": True, "message": 'Invoice successfully deleted!'}),200
 
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
     except Exception as e:   
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -1244,7 +1288,7 @@ def sales_my_orders_list():
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = MyOrders()
-        orders = my_orders.fetch_my_orders(user_id)
+        orders = my_orders.fetch_my_orders(user_id,1)
         my_orders.close()
         if not orders:
             return jsonify([]), 200
@@ -1282,6 +1326,35 @@ def start_shipment():
     except Exception as e:
         return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'})
     
+@sales_bp.route('/sales/my-ready-to-go-orders-list', methods=['GET'])
+@login_required('Sales')
+def sales_my_ready_to_go_orders_list():
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = MyOrders()
+        orders = my_orders.fetch_my_orders(user_id,0)  # 0 for ready to go orders
+        my_orders.close()
+        if not orders:
+            return jsonify([]), 200
+        # Format the orders for JSON response
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
@@ -1504,8 +1577,7 @@ class Canceled_Orders:
         except Exception as e:
             self.conn.rollback()
             return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
-        
-    
+            
     def reject_canceled_order(self,id):
         
         update_query = """

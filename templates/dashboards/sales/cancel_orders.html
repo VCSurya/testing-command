@@ -313,6 +313,12 @@
             }
         }
 
+        @media (min-width: 769px){
+             #invoice_date_2{
+                display: none;
+            }
+        }
+
         @media (max-width: 768px) {
             .invoice-container {
                 padding: 16px 8px;
@@ -344,6 +350,9 @@
             .glass-btn {
                 padding: 6px 8px;
                 font-size: 0.9em;
+            }
+            #invoice_date_1{
+                display: none;
             }
         }
 
@@ -1270,7 +1279,6 @@
                                 placeholder="Search by Invoice ID...">
                             <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
                                 <option value="all" selected>All</option>
-                                <option value="0">Ready to Go</option>
                                 <option value="1">Packing</option>
                                 <option value="2">Transport</option>
                                 <option value="3">Builty</option>
@@ -1567,7 +1575,8 @@
                     <div class="invoice-header">
                         <span>❑ ${invoiceObj.number}</span>
                         <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;">${invoiceObj.date}</span>
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
+
 
                             <div class="invoice-actions">
                                 <button class="glass-btn" title="Download PDF" onclick="
@@ -1584,9 +1593,9 @@
                         </div>
                     </div>
                     <div class="invoice-details">
-
-                        
-                        
+                        <div id="invoice_date_2" ><strong> Date:</strong> 
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
+                        </div>
                         
                         <div title=${invoiceObj.customer_address}>
                             <strong>Customer:</strong> ${invoiceObj.customer}

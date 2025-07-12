@@ -23,7 +23,6 @@ def manager_dashboard():
 
 # User Management Routes
 
-
 @manager_bp.route('/manager/users')
 @login_required('Manager')
 def manager_users():
@@ -187,3 +186,108 @@ def delete_user(user_id):
     finally:
         cursor.close()
         conn.close()
+
+
+# Market Events Management Routes
+
+@manager_bp.route('/manager/events')
+@login_required('Manager')
+def manager_events_page():
+    return render_template('dashboards/manager/events.html')
+
+@manager_bp.route('/manager/all_events_details', methods=['GET','POST'])
+@login_required('Manager')
+def manager_events():
+
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT 
+                    id, 
+                    name, 
+                    location, 
+                    DATE_FORMAT(start_date, '%d/%m/%Y') AS formatted_start_date, 
+                    DATE_FORMAT(end_date, '%d/%m/%Y') AS formatted_end_date
+                FROM market_events
+                WHERE active = 1
+                ORDER BY start_date ASC;
+            """)
+            events = cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+        if not events:
+            return jsonify({'success': False, 'message': 'No events found'}) if not events else jsonify(events)
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+    return jsonify({'success': False, 'message': 'No events found'}) if not events else jsonify(events)
+
+
+@manager_bp.route('/delete-event', methods=['DELETE'])
+@login_required('Manager')
+def delete_event():
+    event_id = request.json.get('id') # Get event ID from request data
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE market_events
+                SET active = 0
+                WHERE id = %s AND active = 1
+            """, (event_id,))
+            conn.commit()
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'message': 'Event not found or already deleted'})
+        finally:
+            cursor.close()
+            conn.close()
+
+        return jsonify({'success': True, 'message': 'Event deleted successfully'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+    
+@manager_bp.route('/add-event', methods=['POST'])
+@login_required('Manager')
+def add_event():
+    event_data = request.json
+    print(event_data)
+    if not all([event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date')]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'}), 500
+        
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO market_events (name, location, start_date, end_date, active)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date'), 1))
+            conn.commit()
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'message': 'Failed to add event'}), 500
+
+        except Exception as e:
+            conn.rollback()
+            return jsonify({'success': False, 'message': "Something went wrong, please try again later"}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+        return jsonify({'success': True, 'message': 'Event added successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"}), 500
