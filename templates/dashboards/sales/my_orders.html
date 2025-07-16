@@ -34,8 +34,8 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
             background-attachment: fixed;
             min-height: 100vh;
         }
@@ -357,7 +357,8 @@
                 padding: 6px 8px;
                 font-size: 0.9em;
             }
-            #invoice_date_1{
+
+            #invoice_date_1 {
                 display: none;
             }
         }
@@ -820,29 +821,23 @@
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/sales/dashboard"><i
+                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My
-                            Orders</a>
+                        <a class="nav-link" href="/sales/ready-to-go-orders"><i
+                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-cart me-2"></i>Add</a>
+                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-calendar-event me-2"></i>Calendar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-chat-left-text me-2"></i>Messages</a>
-                    </li>
-                    <li class="nav-item mt-3">
-                        <a class="nav-link" href="#"><i class="bi bi-gear me-2"></i>Settings</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-question-circle me-2"></i>Help</a>
+                        <a class="nav-link " href="/sales/cancel-orders">
+                            <i class="bi bi-x-circle me-2"></i>Canceled
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -918,7 +913,8 @@
             <form id="cancelOrderForm"
                 style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0.5em;">
                 <div style="width:100%;">
-                    <p style="font-size:1.12em;color:#e53935;font-weight:600;" id = "cancelOrderMessage">Are You Sure You Want To Cancel This
+                    <p style="font-size:1.12em;color:#e53935;font-weight:600;" id="cancelOrderMessage">Are You Sure You
+                        Want To Cancel This
                         Order?</p>
                 </div>
                 <div style="width:100%;margin-bottom:1em;">
@@ -1010,7 +1006,7 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber,oginvoiceNumber,btn) {
+        function openCancelOrderModal(invoiceNumber, oginvoiceNumber, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
@@ -1157,17 +1153,12 @@
                                     </svg>
                                 </button>
 
-                                ${invoiceObj.trackingStatus == 0 ? `
-                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.number}', this)">
-                                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 20 20"><path d="M6 8v6a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8M9 11v2m2-2v2M5 6h10M9 2h2a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2z"/></svg>
-                                </button>
-                                ` : `
                                 <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.number}', this)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>   
-                                `}
+                                
                             </div>
                         </div>
                     </div>
@@ -1189,29 +1180,33 @@
                         </div>
                         <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
                         
-                        <div class="tracking-wrapper">
-                        <div class="tracking-stepper">
-                            <div class="tracking-steps">
-                            
-                            ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
-                            <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                <div class="label-group">
-                                    <div class="label">
-                                        ${i === 0 && invoiceObj.trackingStatus === 0
-                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Ready to Go</button>`
-                        : step}
+
+                       ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
+                        
+                            <div class="tracking-wrapper">
+                            <div class="tracking-stepper">
+                                <div class="tracking-steps">
+                                
+                                ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                                    <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
+                                    <div class="label-group">
+                                        <div class="label">
+                                            ${i === 0 && invoiceObj.trackingStatus === 0
+                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Ready to Go</button>`
+                            : step}
+                                        </div>
+                                        <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                     </div>
-                                    <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                    ${i < 4 ? '<div class="bar"></div>' : ''}
                                 </div>
-                                ${i < 4 ? '<div class="bar"></div>' : ''}
-                            </div>
-                            `).join('')}
+                                `).join('')}
 
+                                </div>
                             </div>
-                        </div>
-                        </div>
+                            </div>
 
+                        ` : ''}
                         
                         <table>
                             <thead>

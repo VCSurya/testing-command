@@ -389,10 +389,9 @@ def save_invoice_into_database():
         IncludeGST = request.form.get('IncludeGST', 'off')
         event_id = request.form.get('event_id', None)
 
-        print(event_id)
 
-        if paid_amount == 0:
-            payment_mode = "not_paid"
+        if payment_mode == "not_paid":
+            paid_amount = 0
 
         # Get products from form data
         products = request.form.get('products')
@@ -459,7 +458,7 @@ def save_invoice_into_database():
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
             'event_id': event_id,
-            'completed' : 1 if delivery_mode == "at_store" or delivery_mode == "porter" else 0,
+            'completed' : 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
         }
 
         # Save to database
@@ -475,20 +474,21 @@ def save_invoice_into_database():
                 if grand_total == paid_amount:
                     payment_confirm_status = 1
 
+                if bill_data['completed'] == 0:
+                    # Insert into live order track
+                    response = sales.insert_live_order_track(result['invoice_id'],payment_confirm_status)
 
-                # Insert into live order track
-                response = sales.insert_live_order_track(result['invoice_id'],payment_confirm_status)
+                    if response['success']:
+                        # Successfully inserted into live order track
+                        print(
+                            f"Live order track inserted for invoice ID: {result['invoice_id']}")
+                    else:
+                        # If there was an error inserting into live order track
+                        print(
+                            f"Error inserting live order track: {response['error']}")
+                        sales.close_connection()
+                        return jsonify({'error': response['error']}), 500
 
-                if response['success']:
-                    # Successfully inserted into live order track
-                    print(
-                        f"Live order track inserted for invoice ID: {result['invoice_id']}")
-                else:
-                    # If there was an error inserting into live order track
-                    print(
-                        f"Error inserting live order track: {response['error']}")
-                    sales.close_connection()
-                    return jsonify({'error': response['error']}), 500
 
             else:
                 return jsonify({'error': result}), 500
@@ -1034,93 +1034,284 @@ class MyOrders:
     def fetch_my_orders(self, user_id,start_shipment):
         query = f"""
             SELECT 
-                -- invoices columns as is
-                inv.id,
-                inv.invoice_number,
-                inv.customer_id,
-                inv.grand_total,
-                inv.payment_mode,
-                inv.paid_amount,
-                inv.left_to_paid,
-                inv.transport_company_name,
-                inv.sales_note,
-                inv.invoice_created_by_user_id,
-                inv.payment_note,
-                inv.gst_included,
-                inv.created_at,
-                inv.delivery_mode,
-                
-                -- buddy columns (all except id) + renamed id column
-                b.id AS buddy_id, -- since customer_id is primary key here
-                b.name AS customer,
-                b.address,
-                b.state,
-                b.pincode,
-                b.mobile,
-                -- add other buddy columns here
-                
-                -- users columns, only rename id column
-                u.id AS users_id,
-                u.username,
-                -- add other user columns
-                
-                -- invoices_items columns, rename id only
-                ii.id AS invoices_items_id,
-                ii.product_id,
-                ii.quantity,
-                ii.price,
-                ii.gst_tax_amount,
-                ii.total_amount,
-                ii.created_at,
-                
-                -- add other invoices_items columns
-                
-                -- products columns, rename id only
-                p.id AS products_id,
-                p.name,
-                -- add other products columns
-                
-                -- live_order_track columns, rename id only
-                lot.id AS live_order_track_id,
-                lot.sales_proceed_for_packing,
-                lot.sales_date_time,
-                lot.packing_proceed_for_transport,
-                lot.packing_date_time,
-                lot.packing_proceed_by,
-                lot.transport_proceed_for_builty,
-                lot.transport_date_time,
-                lot.transport_proceed_by,
-                lot.transport_date_time,
-                lot.transport_proceed_by,
-                lot.builty_proceed_by,
-                lot.builty_received,
-                lot.builty_date_time,
-                lot.payment_confirm_status,
-                lot.cancel_order_status,
-                lot.verify_by_manager,
-                lot.verify_by_manager_id,
-                lot.verify_manager_date_time
-                -- add other live_order_track columns
-                
-            FROM invoices inv
-            LEFT JOIN buddy b ON inv.customer_id = b.id
-            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-            LEFT JOIN products p ON ii.product_id = p.id
-            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
-            WHERE inv.invoice_created_by_user_id = %s
-            AND lot.cancel_order_status = 0
-            AND inv.completed = 0
-            AND lot.sales_proceed_for_packing = {start_shipment}
-            AND ( 
-                lot.packing_proceed_for_transport = 0 
-                OR lot.transport_proceed_for_builty = 0 
-                OR lot.builty_received = 0 
-                OR lot.payment_confirm_status = 0 
-                OR lot.verify_by_manager = 0
-            )
-            ORDER BY inv.created_at DESC
 
+                inv.id,
+
+                inv.invoice_number,
+
+                inv.customer_id,
+
+                inv.grand_total,
+
+                inv.payment_mode,
+
+                inv.paid_amount,
+
+                inv.left_to_paid,
+
+                inv.transport_company_name,
+
+                inv.sales_note,
+
+                inv.invoice_created_by_user_id,
+
+                inv.payment_note,
+
+                inv.gst_included,
+
+                inv.created_at,
+
+                inv.delivery_mode,
+            
+                b.id AS buddy_id, 
+
+                b.name AS customer,
+
+                b.address,
+
+                b.state,
+
+                b.pincode,
+
+                b.mobile,
+            
+                u.id AS users_id,
+
+                u.username,
+            
+                ii.id AS invoices_items_id,
+
+                ii.product_id,
+
+                ii.quantity,
+
+                ii.price,
+
+                ii.gst_tax_amount,
+
+                ii.total_amount,
+
+                ii.created_at,
+            
+                p.id AS products_id,
+
+                p.name,
+            
+                lot.id AS live_order_track_id,
+
+                lot.sales_proceed_for_packing,
+
+                lot.sales_date_time,
+
+                lot.packing_proceed_for_transport,
+
+                lot.packing_date_time,
+
+                lot.packing_proceed_by,
+
+                lot.transport_proceed_for_builty,
+
+                lot.transport_date_time,
+
+                lot.transport_proceed_by,
+
+                lot.builty_proceed_by,
+
+                lot.builty_received,
+
+                lot.builty_date_time,
+
+                lot.payment_confirm_status,
+
+                lot.cancel_order_status,
+
+                lot.verify_by_manager,
+
+                lot.verify_by_manager_id,
+
+                lot.verify_manager_date_time
+            
+            FROM invoices inv
+
+            LEFT JOIN buddy b ON inv.customer_id = b.id
+
+            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
+
+            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
+
+            LEFT JOIN products p ON ii.product_id = p.id
+
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+
+                AND lot.cancel_order_status = 0
+
+                AND lot.sales_proceed_for_packing = {start_shipment}
+
+                AND (
+
+                    lot.packing_proceed_for_transport = 0 
+
+                    OR lot.transport_proceed_for_builty = 0 
+
+                    OR lot.builty_received = 0 
+
+                    OR lot.payment_confirm_status = 0 
+
+                    OR lot.verify_by_manager = 0
+
+                )
+
+            WHERE inv.invoice_created_by_user_id = %s
+
+            AND (
+
+                inv.completed = 1
+
+                OR (inv.completed = 0 AND lot.invoice_id IS NOT NULL)
+
+            )
+
+            ORDER BY inv.created_at DESC;
+
+ 
+        """
+
+        
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+
+    
+        # Merge products into orders
+        merged_orders = self.merge_orders_products(all_order_data)
+
+        return merged_orders
+
+    def fetch_ready_to_go_orders(self, user_id):
+        query = f"""
+            SELECT 
+
+                inv.id,
+
+                inv.invoice_number,
+
+                inv.customer_id,
+
+                inv.grand_total,
+
+                inv.payment_mode,
+
+                inv.paid_amount,
+
+                inv.left_to_paid,
+
+                inv.transport_company_name,
+
+                inv.sales_note,
+
+                inv.invoice_created_by_user_id,
+
+                inv.payment_note,
+
+                inv.gst_included,
+
+                inv.created_at,
+
+                inv.delivery_mode,
+            
+                b.id AS buddy_id, 
+
+                b.name AS customer,
+
+                b.address,
+
+                b.state,
+
+                b.pincode,
+
+                b.mobile,
+            
+                u.id AS users_id,
+
+                u.username,
+            
+                ii.id AS invoices_items_id,
+
+                ii.product_id,
+
+                ii.quantity,
+
+                ii.price,
+
+                ii.gst_tax_amount,
+
+                ii.total_amount,
+
+                ii.created_at,
+            
+                p.id AS products_id,
+
+                p.name,
+            
+                lot.id AS live_order_track_id,
+
+                lot.sales_proceed_for_packing,
+
+                lot.sales_date_time,
+
+                lot.packing_proceed_for_transport,
+
+                lot.packing_date_time,
+
+                lot.packing_proceed_by,
+
+                lot.transport_proceed_for_builty,
+
+                lot.transport_date_time,
+
+                lot.transport_proceed_by,
+
+                lot.builty_proceed_by,
+
+                lot.builty_received,
+
+                lot.builty_date_time,
+
+                lot.payment_confirm_status,
+
+                lot.cancel_order_status,
+
+                lot.verify_by_manager,
+
+                lot.verify_by_manager_id,
+
+                lot.verify_manager_date_time
+            
+            FROM invoices inv
+
+            LEFT JOIN buddy b ON inv.customer_id = b.id
+
+            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
+
+            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
+
+            LEFT JOIN products p ON ii.product_id = p.id
+
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+
+            WHERE inv.invoice_created_by_user_id = %s
+
+            AND inv.completed = 0
+
+            AND lot.cancel_order_status = 0
+
+            AND lot.sales_proceed_for_packing = 0
+
+            
+            ORDER BY inv.created_at DESC;
+ 
         """
 
         
@@ -1340,7 +1531,7 @@ def sales_my_ready_to_go_orders_list():
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = MyOrders()
-        orders = my_orders.fetch_my_orders(user_id,0)  # 0 for ready to go orders
+        orders = my_orders.fetch_ready_to_go_orders(user_id)  # 0 for ready to go orders
         my_orders.close()
         if not orders:
             return jsonify([]), 200

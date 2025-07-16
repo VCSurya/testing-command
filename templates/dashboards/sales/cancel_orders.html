@@ -34,8 +34,8 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
             background-attachment: fixed;
             min-height: 100vh;
         }
@@ -313,8 +313,8 @@
             }
         }
 
-        @media (min-width: 769px){
-             #invoice_date_2{
+        @media (min-width: 769px) {
+            #invoice_date_2 {
                 display: none;
             }
         }
@@ -351,7 +351,8 @@
                 padding: 6px 8px;
                 font-size: 0.9em;
             }
-            #invoice_date_1{
+
+            #invoice_date_1 {
                 display: none;
             }
         }
@@ -1219,31 +1220,23 @@
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/sales/dashboard"><i
+                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/my-orders"><i class="bi bi-clipboard-check me-2"></i>My
-                            Orders</a>
+                        <a class="nav-link" href="/sales/ready-to-go-orders"><i
+                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/sales/cancel-orders">
                             <i class="bi bi-x-circle me-2"></i>Canceled
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-calendar-event me-2"></i>Calendar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-chat-left-text me-2"></i>Messages</a>
-                    </li>
-                    <li class="nav-item mt-3">
-                        <a class="nav-link" href="#"><i class="bi bi-gear me-2"></i>Settings</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-question-circle me-2"></i>Help</a>
                     </li>
                 </ul>
             </div>
@@ -1536,7 +1529,7 @@
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
                 list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
-                
+
                 return;
             }
             invoices.forEach((inv, idx) => {

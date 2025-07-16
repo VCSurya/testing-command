@@ -9,6 +9,7 @@ from Crypto.Util.Padding import pad, unpad
 from dotenv import load_dotenv
 from manager import manager_bp
 from sales import sales_bp
+from packaging import packaging_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 
 # Load environment variables from .env file
@@ -91,6 +92,7 @@ def login_required(required_role=None):
 # Register the manager blueprint
 app.register_blueprint(manager_bp)
 app.register_blueprint(sales_bp)
+app.register_blueprint(packaging_bp)
 
 # Routes
 @app.route('/')
