@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from manager import manager_bp
 from sales import sales_bp
 from packaging import packaging_bp
+from transport import transport_bp
+from builty import builty_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 
 # Load environment variables from .env file
@@ -93,6 +95,8 @@ def login_required(required_role=None):
 app.register_blueprint(manager_bp)
 app.register_blueprint(sales_bp)
 app.register_blueprint(packaging_bp)
+app.register_blueprint(transport_bp)
+app.register_blueprint(builty_bp)
 
 # Routes
 @app.route('/')

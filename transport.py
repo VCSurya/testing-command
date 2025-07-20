@@ -9,15 +9,14 @@ now_ist = datetime.now(ist)
 formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 
 # Create a Blueprint for packaging routes
-packaging_bp = Blueprint('packaging', __name__)
+transport_bp = Blueprint('transport', __name__)
 
+@transport_bp.route('/dashboard')
+@login_required('Transport')
+def transport_dashboard():
+    return render_template('dashboards/transport/transport.html')
 
-@packaging_bp.route('/dashboard')
-@login_required('Packaging')
-def packaging_dashboard():
-    return render_template('dashboards/packaging/packaging.html')
-
-class PackagingModel:
+class TransportModel:
     def __init__(self):
         self.conn = get_db_connection()
         if not self.conn:
@@ -32,7 +31,8 @@ class PackagingModel:
 
             # change created_at date formate 
             item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
-
+            item['sales_date_time'] = item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p")
+            item['packing_date_time'] = item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p")
             # passed tracking status with date            
             trackingStatus = 0
             trackingDates = []
@@ -40,7 +40,7 @@ class PackagingModel:
             if item['sales_proceed_for_packing']:
 
                 if item['sales_date_time']:
-                    trackingDates.append(item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    trackingDates.append(item['sales_date_time'])
                 else:
                     trackingDates.append('')
                 trackingStatus = 1                
@@ -48,7 +48,7 @@ class PackagingModel:
                 if item['packing_proceed_for_transport']:
                     
                     if item['packing_proceed_for_transport']:
-                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        trackingDates.append(item['packing_date_time'])
                     else:
                         trackingDates.append('')
                     trackingStatus = 2                
@@ -104,130 +104,84 @@ class PackagingModel:
 
         return list(merged.values())
 
-    def fetch_packing_orders(self):
+    def fetch_transport_orders(self):
         query = f"""
                     SELECT
-                    
                         inv.id,
-                    
                         inv.invoice_number,
-                    
                         inv.customer_id,
-                    
                         inv.grand_total,
-                    
                         inv.payment_mode,
-                    
                         inv.paid_amount,
-                    
                         inv.left_to_paid,
-                    
                         inv.transport_company_name,
-                    
                         inv.sales_note,
-                    
                         inv.invoice_created_by_user_id,
-                    
                         inv.payment_note,
-                    
                         inv.gst_included,
-                    
                         inv.created_at,
-                    
                         inv.delivery_mode,
 
                         b.id AS buddy_id,
-                    
                         b.name AS customer,
-                    
                         b.address,
-                    
                         b.state,
-                    
                         b.pincode,
-                    
                         b.mobile,
 
                         u.id AS users_id,
-                    
                         u.username,
 
+                        up.username AS pack_by,
+
                         ii.id AS invoices_items_id,
-                    
                         ii.product_id,
-                    
                         ii.quantity,
-                    
                         ii.price,
-                    
                         ii.gst_tax_amount,
-                    
                         ii.total_amount,
-                    
                         ii.created_at,
 
                         p.id AS products_id,
-                    
                         p.name,
 
                         lot.id AS live_order_track_id,
-                    
                         lot.sales_proceed_for_packing,
-                    
                         lot.sales_date_time,
-                    
                         lot.packing_proceed_for_transport,
-                    
                         lot.packing_date_time,
-                    
                         lot.packing_proceed_by,
-                    
                         lot.transport_proceed_for_builty,
-                    
                         lot.transport_date_time,
-                    
                         lot.transport_proceed_by,
-                    
                         lot.builty_proceed_by,
-                    
                         lot.builty_received,
-                    
                         lot.builty_date_time,
-                    
                         lot.payment_confirm_status,
-                    
                         lot.cancel_order_status,
-
                         lot.verify_by_manager,
-
                         lot.verify_by_manager_id,
-
-                        lot.verify_manager_date_time
+                        lot.verify_manager_date_time,
+                        lot.packing_note
 
                     FROM invoices inv
 
                     LEFT JOIN buddy b ON inv.customer_id = b.id
-
                     LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                        AND lot.cancel_order_status = 0
+                        AND lot.sales_proceed_for_packing = 1
+                        AND lot.packing_proceed_for_transport = 1
+                    LEFT JOIN users up ON lot.packing_proceed_by = up.id
                     LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
                     LEFT JOIN products p ON ii.product_id = p.id
 
-                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                    WHERE lot.transport_proceed_for_builty = 0
+                        AND inv.completed = 0
+                        AND inv.delivery_mode = 'transport'
 
-                        AND lot.cancel_order_status = 0
-
-                        AND lot.sales_proceed_for_packing = 1
-
-                    WHERE lot.packing_proceed_for_transport = 0
-
-                    AND inv.completed = 0
-
-                    AND inv.delivery_mode = "transport"
-
-                    ORDER BY inv.created_at DESC;                
-                    
+                    ORDER BY inv.created_at DESC;
+       
                 """
 
         
@@ -243,135 +197,88 @@ class PackagingModel:
 
         return merged_orders
 
-    def fetch_my_packing_orders(self):
+    def fetch_my_transport_orders(self):
         query = f"""
                     SELECT
-                    
                         inv.id,
-                    
                         inv.invoice_number,
-                    
                         inv.customer_id,
-                    
                         inv.grand_total,
-                    
                         inv.payment_mode,
-                    
                         inv.paid_amount,
-                    
                         inv.left_to_paid,
-                    
                         inv.transport_company_name,
-                    
                         inv.sales_note,
-                    
                         inv.invoice_created_by_user_id,
-                    
                         inv.payment_note,
-                    
                         inv.gst_included,
-                    
                         inv.created_at,
-                    
                         inv.delivery_mode,
 
                         b.id AS buddy_id,
-                    
                         b.name AS customer,
-                    
                         b.address,
-                    
                         b.state,
-                    
                         b.pincode,
-                    
                         b.mobile,
 
                         u.id AS users_id,
-                    
                         u.username,
 
+                        up.username AS pack_by,
+
                         ii.id AS invoices_items_id,
-                    
                         ii.product_id,
-                    
                         ii.quantity,
-                    
                         ii.price,
-                    
                         ii.gst_tax_amount,
-                    
                         ii.total_amount,
-                    
                         ii.created_at,
 
                         p.id AS products_id,
-                    
                         p.name,
 
                         lot.id AS live_order_track_id,
-                    
                         lot.sales_proceed_for_packing,
-                    
                         lot.sales_date_time,
-                    
                         lot.packing_proceed_for_transport,
-                    
                         lot.packing_date_time,
-                    
                         lot.packing_proceed_by,
-                    
                         lot.transport_proceed_for_builty,
-                    
                         lot.transport_date_time,
-                    
                         lot.transport_proceed_by,
-                    
                         lot.builty_proceed_by,
-                    
                         lot.builty_received,
-                    
                         lot.builty_date_time,
-                    
                         lot.payment_confirm_status,
-                    
                         lot.cancel_order_status,
-
                         lot.verify_by_manager,
                         lot.verify_by_manager_id,
                         lot.verify_manager_date_time,
-                        lot.packing_note
-
+                        lot.packing_note,
+                        lot.transport_note
 
                     FROM invoices inv
 
                     LEFT JOIN buddy b ON inv.customer_id = b.id
-
                     LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                        AND lot.cancel_order_status = 0
+                        AND lot.sales_proceed_for_packing = 1
+                        AND lot.packing_proceed_for_transport = 1
+                        AND lot.transport_proceed_for_builty = 1
+                    LEFT JOIN users up ON lot.packing_proceed_by = up.id
                     LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
                     LEFT JOIN products p ON ii.product_id = p.id
 
-                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                    WHERE lot.transport_proceed_by = %s
+                        AND inv.completed = 0
+                        AND inv.delivery_mode = 'transport'
 
-                        AND lot.cancel_order_status = 0
-
-                        AND lot.sales_proceed_for_packing = 1
-
-                        AND lot.packing_proceed_for_transport = 1
-
-                    WHERE lot.packing_proceed_by = %s
-                    
-                    AND inv.completed = 0
-
-                    AND inv.delivery_mode = "transport"
-
-                    ORDER BY inv.created_at DESC;                
-                    
+                    ORDER BY inv.created_at DESC;
+       
                 """
 
-        
         self.cursor.execute(query,(session.get('user_id'),))
         all_order_data = self.cursor.fetchall()
         
@@ -411,14 +318,14 @@ class PackagingModel:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
-    def strat_Dispatch(self,data):
+    def done_transportaion(self,data):
         try:
             update_query = """
             UPDATE live_order_track
-            SET packing_proceed_for_transport = 1, packing_note = %s, packing_proceed_by = %s,packing_date_time = NOW()
+            SET transport_proceed_for_builty = 1, transport_note = %s, transport_proceed_by = %s,transport_date_time = NOW()
             WHERE id = %s;
             """
-            self.cursor.execute(update_query, (data.get('packingNote'),session.get('user_id'),data.get('lot_id'),))
+            self.cursor.execute(update_query, (data.get('transportNote'),session.get('user_id'),data.get('lot_id'),))
             self.conn.commit() 
             return {"success": True}
             
@@ -430,20 +337,19 @@ class PackagingModel:
         self.cursor.close()
         self.conn.close() # type: ignore
     
-
-@packaging_bp.route('/packaging/packing-orders-list', methods=['GET'])
-@login_required('Packaging')
-def packaging_my_pack_list():
+@transport_bp.route('/transport/transport-orders-list', methods=['GET'])
+@login_required('Transport')
+def transport_my_pack_list():
     """
-    Fetch the list of orders for the logged-in packaging user.
+    Fetch the list of orders for the logged-in transport user.
     """    
     try:
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         
-        my_pack = PackagingModel()
-        orders = my_pack.fetch_packing_orders()
+        my_pack = TransportModel()
+        orders = my_pack.fetch_transport_orders()
         
         my_pack.close()
 
@@ -459,8 +365,8 @@ def packaging_my_pack_list():
     finally:
         my_pack.close()
 
-@packaging_bp.route('/packing/cancel_order', methods=['POST'])
-@login_required('Packaging')
+@transport_bp.route('/transport/cancel_order', methods=['POST'])
+@login_required('Transport')
 def cancel_order():
     try:
         data = request.get_json()
@@ -468,7 +374,7 @@ def cancel_order():
         if not track_order_id or not str(track_order_id).isdigit() or not data.get('invoice_id'):
             return jsonify({"success": False, "message": "Invalid Order!"}), 400
 
-        for_cancel_order = PackagingModel()
+        for_cancel_order = TransportModel()
         response = for_cancel_order.cancel_order(data)
 
         if response.get('success'):
@@ -480,52 +386,53 @@ def cancel_order():
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
-@packaging_bp.route('/ready-to-go-for-transport')
-@login_required('Packaging')
+@transport_bp.route('/transport/ready-to-go-for-transport')
+@login_required('Transport')
 def send_for_transport():
-    return render_template('dashboards/packaging/ready_packaging.html')
+    return render_template('dashboards/transport/ready_transport.html')
 
-@packaging_bp.route('/packaging/start-shipment', methods=['POST'])
-@login_required('Packaging')
-def start_shipment():
+@transport_bp.route('/transport/done-transportation', methods=['POST'])
+@login_required('Transport')
+def done_transportaion():
     try:
         data = request.get_json()
         if not data.get('lot_id'):
             return jsonify({'error': 'Missing Some IMP Information!'}), 400
 
-        dispatch_obj = PackagingModel()
-        response = dispatch_obj.strat_Dispatch(data)
+        transport_obj = TransportModel()
+        response = transport_obj.done_transportaion(data)
 
         if response.get('success'):
-            return jsonify({"success": True, "message": "Order Dispatch Successfully"}),200
+            return jsonify({"success": True, "message": "Order Transported Successfully"}),200
 
-        dispatch_obj.close()
+        transport_obj.close()
         return jsonify({"success": False, "message": f"Somthing went wrong!"}),500
     
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
 
-@packaging_bp.route('/my-packaging-orders')
-@login_required('Packaging')
+@transport_bp.route('/transport/my-transport-orders')
+@login_required('Transport')
 def my_pack_orders():
-    return render_template('dashboards/packaging/my_pack_orders.html')
+    return render_template('dashboards/transport/my_transport_orders.html')
 
-@packaging_bp.route('/packaging/my-packing-orders', methods=['GET'])
-@login_required('Packaging')
+@transport_bp.route('/my-transport-orders', methods=['GET'])
+@login_required('Transport')
 def my_orders():
     """
-    Fetch the list of orders for the logged-in packaging user.
+    Fetch the list of orders for the logged-in transport user.
     """    
     try:
+
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         
-        my_pack = PackagingModel()
-        orders = my_pack.fetch_my_packing_orders()
+        my_transport = TransportModel()
+        orders = my_transport.fetch_my_transport_orders()
         
-        my_pack.close()
+        my_transport.close()
 
         if not orders:
             return jsonify([]), 200
@@ -536,5 +443,3 @@ def my_orders():
         print(f"Error fetching orders: {e}")
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
-    finally:
-        my_pack.close()
