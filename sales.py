@@ -519,7 +519,6 @@ def generate_bill_pdf(invoice_id):
 
         invoice_number = invoice_id[:10]
         invoice_id = int(invoice_id[10:])
-
         from reportlab.lib.pagesizes import A4, inch
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
         from reportlab.lib import colors
@@ -541,6 +540,9 @@ def generate_bill_pdf(invoice_id):
             WHERE id = %s;
         """, (invoice_id,))
         invoice_data = cursor.fetchone()
+
+
+        print(invoice_data)
 
         if invoice_data['invoice_number'] != invoice_number:
             return jsonify({'error': 'Invoice not found'}), 404
