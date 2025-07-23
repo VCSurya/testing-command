@@ -103,10 +103,10 @@ def merge_orders_products(data):
                                 trackingDates.append('')
                             trackingStatus = 4
             
-                            if item['verify_by_manager']:
+                            if item['payment_confirm_status']:
                                 
-                                if item['verify_by_manager']:
-                                    trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                if item['payment_confirm_status']:
+                                    trackingDates.append(item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
@@ -152,8 +152,7 @@ def verify_order_list():
                 inv.payment_mode, 
                 inv.paid_amount, 
                 inv.left_to_paid, 
-                inv.transport_company_name, 
-                inv.sales_note, 
+                inv.transport_company_name,
                 inv.invoice_created_by_user_id, 
                 inv.payment_note, 
                 inv.gst_included, 
@@ -208,8 +207,7 @@ def verify_order_list():
                 lot.payment_confirm_status,
                 lot.cancel_order_status,
                 lot.verify_by_manager,
-                lot.verify_by_manager_id,
-                lot.verify_manager_date_time
+                lot.payment_date_time
 
 
                 FROM invoices inv 
@@ -220,10 +218,10 @@ def verify_order_list():
                 LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
 
                 LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
-                LEFT JOIN users up ON lot.packing_proceed_by = u.id 
-                LEFT JOIN users ut ON lot.transport_proceed_by = u.id 
-                LEFT JOIN users ub ON lot.builty_proceed_by = u.id 
-                LEFT JOIN users upay ON lot.payment_verify_by = u.id 
+                LEFT JOIN users up ON lot.packing_proceed_by = up.id 
+                LEFT JOIN users ut ON lot.transport_proceed_by = ut.id 
+                LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
+                LEFT JOIN users upay ON lot.payment_verify_by = upay.id 
 
                 where lot.verify_by_manager = 0 
                 AND lot.cancel_order_status = 0 
@@ -252,6 +250,44 @@ def verify_order_list():
             return jsonify(merged_orders)
         
         return jsonify({'success': False, 'message': 'No events found'}),500
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
+
+@manager_bp.route('/manager/order-verify',methods=['POST'])
+@login_required('Manager')
+def confirm_verification():
+    try:
+        
+        data = request.json
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        if not session.get('user_id'):
+            return jsonify({'success': False, 'message': 'User Not Found!'})
+
+        if not data.get('live_order_track_id'):
+            return jsonify({'success': False, 'message': 'Somthing goes wrong!'})
+
+
+        query = """
+        UPDATE live_order_track
+        set verify_by_manager = 1, verify_by_manager_id = %s ,verify_manager_date_time = NOW()
+        WHERE id = %s
+        """
+
+        cursor = conn.cursor(dictionary=True)
+        
+        try:
+            cursor.execute(query,(session.get('user_id'),data.get('live_order_track_id'),))
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+
+        return {"success": True, "message": f"Done"}
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}),500

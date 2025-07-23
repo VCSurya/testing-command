@@ -1196,12 +1196,12 @@
 
         /* Button Styling */
         .next-to-pack-btn {
-            background: linear-gradient(to right, #874caf, #6845a0);
-            color: white;
+            background: rgba(255, 255, 255, 0.61);
+            color: rgb(0, 0, 0);
             padding: 0.5rem 1rem;
             font-size: 1rem;
             font-weight: 600;
-            border: none;
+            border: 1px solid rgb(0, 204, 255);
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -1210,15 +1210,6 @@
             margin-top: 20px;
         }
 
-        /* Hover & Active States */
-        .next-to-pack-btn:hover {
-            background: linear-gradient(to right, #6845a0, #874caf);
-            transform: translateY(-2px);
-        }
-
-        .next-to-pack-btn:active {
-            transform: scale(0.98);
-        }
 
         /* Responsive adjustments */
         @media (max-width: 600px) {
@@ -1230,6 +1221,44 @@
         }
     </style>
 
+    <style>
+        .round-label {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            padding: 2px 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .label-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #2d3748;
+            letter-spacing: 0.5px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+
+        .round-label.warning {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .round-label.warning .label-text {
+            color: white;
+        }
+        #invoiceSearchInput{
+            background-color: #0000006e;
+            color: white;
+        }
+    </style>
 
 </head>
 
@@ -1300,12 +1329,6 @@
                 <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                     <input type="text" id="invoiceSearchInput" class="form-control"
                         placeholder="Search by Invoice ID...">
-                    <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
-                        <option value="all" selected>All</option>
-                        <option value="1">Packing</option>
-                        <option value="2">Transport</option>
-                        <option value="3">Builty</option>
-                    </select>
                 </div>
             </div>
             <div class="invoice-container">
@@ -1344,6 +1367,30 @@
             }
         }
 
+        async function confirmAndStart(live_order_track_id) {
+            if (confirm("Are you sure ?")) {
+                fetch('/manager/order-verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ live_order_track_id })
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error("Request failed");
+                        return response.json();
+                    })
+                    .then(data => {
+                        alert("Shipment started successfully!");
+                        location.reload(); // Refresh to update UI
+                    })
+                    .catch(err => {
+                        console.error("Error:", err);
+                        alert("Something went wrong.");
+                    });
+            }
+        }
+
         // Render invoices from dynamic backend data
         let allInvoices = [];
         function renderInvoices(invoices) {
@@ -1375,7 +1422,13 @@
                     payment_note: inv.payment_note,
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id
+                    live_order_track_id: inv.live_order_track_id,
+                    usale:inv.username,
+                    upack:inv.pu_name,
+                    utrans:inv.tu_name,
+                    ubuilty:inv.bu_name,
+                    upay:inv.payu_name,
+
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -1394,14 +1447,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
                                     </svg>
-                                </button>
-
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.number}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>   
-                                
+                                </button>                                
                             </div>
                         </div>
                     </div>
@@ -1411,15 +1457,6 @@
                         </div>
                         <div title=${invoiceObj.customer_address}>
                             <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
-                        </div>
-                        <div><strong>Payment Status:</strong> <span style="color:${invoiceObj.payment_status === 'Paid' ? 'var(--success-green)' : 'var(--warning)'};font-weight:600;">${invoiceObj.payment_status}</span>
-                            <span> (${invoiceObj.payment_mode}) </span>
                         </div>
                         <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
                         
@@ -1430,7 +1467,7 @@
                             <div class="tracking-stepper">
                                 <div class="tracking-steps">
                                 
-                                ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                                ${['Ready to Go', 'Packing', 'Transport', 'Builty','Payment'].map((step, i) => `
                                 <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                     <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                     <div class="label-group">
@@ -1440,6 +1477,39 @@
                         : step}
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                        
+                                          ${i === 0 
+                                            ? `<div class="round-label warning" style="margin: 2px;">
+                                                <div class="label-text">${invoiceObj.usale}</div>
+                                            </div>` 
+                                            : ''}
+
+                                            ${i === 1 
+                                            ? `<div class="round-label warning" style="margin: 2px;">
+                                                <div class="label-text">${invoiceObj.upack}</div>
+                                            </div>` 
+                                            : ''}
+
+                                            ${i === 2 
+                                            ? `<div class="round-label warning" style="margin: 2px;">
+                                                <div class="label-text">${invoiceObj.utrans}</div>
+                                            </div>` 
+                                            : ''}
+
+                                            ${i === 3 
+                                            ? `<div class="round-label warning" style="margin: 2px;">
+                                                <div class="label-text">${invoiceObj.ubuilty}</div>
+                                            </div>` 
+                                            : ''}
+
+                                            ${i === 4 
+                                            ? `<div class="round-label warning" style="margin: 2px;">
+                                                <div class="label-text">${invoiceObj.upay}</div>
+                                            </div>` 
+                                            : ''}
+                                            
+
+
                                     </div>
                                     ${i < 4 ? '<div class="bar"></div>' : ''}
                                 </div>
@@ -1447,73 +1517,15 @@
 
                                 </div>
                             </div>
+                            
                             </div>
-
+                             <div class="next-to-pack-container">
+                                <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">
+                                    DONE
+                                </button>
+                            </div>
                         ` : ''}
                         
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${invoiceObj.products.map(p => {
-                            const name = p && typeof p.name === 'string' ? p.name : '';
-                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
-
-                            const base_price = p && typeof p.price === 'number' ? p.price : '';
-                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                            const total_price = base_price + tax_price;
-
-                            return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                        }).join('')}
-                            </tbody>
-                        </table>
-
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                <div>
-                                    <strong>Paid:</strong>
-                                    ₹${invoiceObj.amount_paid.toLocaleString()}
-                                </div>
-                            </div>
-
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                <div>
-                                    <strong>Left to Pay:</strong>
-                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div class="amounts-container3">
-                                <div>
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="note-container">
-                            
-                            ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
-                                <div class="note sales-note">
-                                
-                                <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-
-                        </div
                     </div>
 
                 `;
@@ -1527,6 +1539,7 @@
             });
         }
 
+        
 
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
