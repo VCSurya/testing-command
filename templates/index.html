@@ -1,171 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Page</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        
-        .login-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            width: 350px;
-        }
-        
-        h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 25px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-size: 14px;
-        }
-        
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #4d90fe;
-        }
-        
-        button {
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 12px 20px;
-            width: 100%;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #357ae8;
-        }
-        
-        .alert {
-            padding: 10px;
-            background-color: #f44336;
-            color: white;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        
-        .alert.success {
-            background-color: #4CAF50;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <h2>Login</h2>
-        <div id="alert-message" class="alert"></div>
-        <div class="form-group">
-            <input type="text" id="username" name="username" placeholder="Enter your username" required>
-        </div>
-        <div class="form-group">
-            <input type="password" id="password" name="password" placeholder="Enter your password" required>
-        </div>
-        <button type="button" id="login-btn">Login</button>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginBtn = document.getElementById('login-btn');
-            const alertMessage = document.getElementById('alert-message');
-            
-            // Function to show alert messages
-            function showAlert(message, isSuccess = false) {
-                alertMessage.textContent = message;
-                alertMessage.style.display = 'block';
-                
-                if (isSuccess) {
-                    alertMessage.classList.add('success');
-                } else {
-                    alertMessage.classList.remove('success');
-                }
-                
-                // Hide the alert after 3 seconds
-                setTimeout(() => {
-                    alertMessage.style.display = 'none';
-                }, 3000);
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Light It Up</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: #f5f5f5;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #333;
+    }
+
+    .background {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+    }
+
+    #canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .overlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.4);
+      z-index: -1;
+    }
+
+    .login-card {
+      background: rgb(143 82 155);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      border-radius: 20px;
+      padding: 0px 40px 40px 40px;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      text-align: center;
+      transition: transform 0.3s ease;
+      border: 2px solid transparent;
+      animation: glow-border 2s infinite alternate;
+    }
+
+    @keyframes glow-border {
+      from {
+        border-color: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      to {
+        border-color: rgba(28, 0, 105, 0.6);
+        box-shadow: 0 0 20px rgba(35, 0, 99, 0.4);
+      }
+    }
+
+    .login-card h1 {
+      font-size: 30px;
+      color: #ffffff;
+      margin-bottom: 0px;
+    }
+
+    .login-card p {
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 20px;
+    }
+
+    .login-card label {
+      display: block;
+      text-align: left;
+      font-size: 13px;
+      color: #ffffff;
+      margin-bottom: 5px;
+    }
+
+    .login-card input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: rgb(255, 255, 255);
+      color: #000000;
+      outline: none;
+      transition: border 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 0px rgba(255, 102, 0, 0);
+    }
+
+    .login-card input:focus {
+      border: 1px solid #00ffea;
+      box-shadow: 0 0 10px rgba(0, 255, 242, 0.5);
+    }
+
+    .login-card input::placeholder {
+      color: #aaa;
+    }
+
+    .login-card button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #96d0f7, #75ade9);
+      color: #000000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.3s ease, transform 0.2s;
+    }
+
+    .login-card button:hover {
+      background: linear-gradient(135deg, #f1d3a4, #eba39e);
+      transform: scale(1.03);
+    }
+
+    .star {
+      font-size: 1.2em;
+    }
+
+    #username {
+      margin-bottom: 20px;
+    }
+  </style>
+
+  <style>
+    #org_logo {
+      width: 80%;
+      height: 80%;
+      margin-bottom: -30px;
+    }
+
+    /* Popup Alert Styles */
+    .popup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .popup-alert {
+      position: relative;
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 16px 50px 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(16px);
+      transform: translateY(-100px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      pointer-events: auto;
+      display: none;
+    }
+
+    .popup-alert.show {
+      transform: translateY(0);
+      opacity: 1;
+      display: block;
+    }
+
+    .popup-alert.error {
+      background: linear-gradient(135deg, rgba(243, 107, 98, 0.95), rgba(211, 47, 47, 0.95));
+      border: 1px solid rgba(244, 67, 54, 0.8);
+      color: white;
+    }
+
+    .popup-alert.success {
+      background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
+      border: 1px solid rgba(76, 175, 80, 0.8);
+      color: white;
+    }
+
+    .popup-alert.warning {
+      background: linear-gradient(135deg, rgba(255, 193, 7, 0.95), rgba(245, 124, 0, 0.95));
+      border: 1px solid rgba(255, 193, 7, 0.8);
+      color: #ffffff;
+    }
+
+    .popup-alert .alert-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .popup-alert .alert-icon {
+      font-size: 20px;
+      min-width: 20px;
+    }
+
+    .popup-alert .alert-message {
+      flex: 1;
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .popup-alert .close-btn {
+      position: absolute;
+      top: 50%;
+      right: 15px;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .popup-alert .close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .popup-alert.warning .close-btn:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Progress bar for auto-dismiss */
+    .popup-alert .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 0 0 12px 12px;
+      transform-origin: left;
+      transform: scaleX(0);
+    }
+
+    .popup-alert.show .progress-bar {
+      animation: progress 4s linear forwards;
+    }
+
+    @keyframes progress {
+      from {
+        transform: scaleX(0);
+      }
+
+      to {
+        transform: scaleX(1);
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .popup-alert {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+        padding: 14px 45px 14px 16px;
+      }
+
+      .popup-alert .alert-message {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .popup-alert {
+        margin: 10px;
+        padding: 12px 40px 12px 14px;
+      }
+
+      .popup-alert .alert-icon {
+        font-size: 18px;
+      }
+
+      .popup-alert .alert-message {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="popup-container">
+    <div class="popup-alert" id="popup-alert">
+      <div class="alert-content">
+        <span class="alert-icon" id="alert-icon">⚠️</span>
+        <span class="alert-message" id="alert-message">Alert message</span>
+      </div>
+      <button class="close-btn" id="close-alert" aria-label="Close alert">×</button>
+      <div class="progress-bar"></div>
+    </div>
+  </div>
+
+  <div class="background">
+    <canvas id="canvas"></canvas>
+    <div class="overlay"></div>
+  </div>
+
+  <div class="login-card">
+    <img src="{{ url_for('static', filename='js/logo.jpg') }}" alt="Logo" id="org_logo">
+    <!-- <h1>Login </h1> -->
+    <!-- <div id="alert-message" class="alert"></div> -->
+    <!-- <p>Light up your experience</p> -->
+    <br>
+    <br>
+
+    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+    <br>
+    <br>
+    <button type="button" id="login-btn">Log in</button>
+  </div>
+
+  <script>
+    // Glowing Particles Background
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    for (let i = 0; i < 70; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        dx: (Math.random() - 0.5) * 0.6,
+        dy: (Math.random() - 0.5) * 0.6,
+        color: `hsl(${Math.random() * 360}, 100%, 75%)`
+      });
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 18;
+        ctx.fill();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      }
+      requestAnimationFrame(animateParticles);
+    }
+
+    animateParticles();
+
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const loginBtn = document.getElementById('login-btn');
+      const popupAlert = document.getElementById('popup-alert');
+      const alertMessage = document.getElementById('alert-message');
+      const alertIcon = document.getElementById('alert-icon');
+      const closeBtn = document.getElementById('close-alert');
+      let alertTimeout;
+      // Function to show popup alerts
+      function showAlert(message, type = 'error') {
+        // Clear any existing timeout
+        if (alertTimeout) {
+          clearTimeout(alertTimeout);
+        }
+
+        // Remove existing classes
+        popupAlert.classList.remove('error', 'success', 'warning', 'show');
+
+
+        alertMessage.textContent = message;
+        popupAlert.classList.add(type);
+
+        // Show the alert with animation
+        setTimeout(() => {
+          popupAlert.classList.add('show');
+        }, 10);
+
+        // Auto-hide after 4 seconds
+        alertTimeout = setTimeout(() => {
+          hideAlert();
+        }, 4000);
+      }
+
+      // Function to hide popup alert
+      function hideAlert() {
+        popupAlert.classList.remove('show');
+        if (alertTimeout) {
+          clearTimeout(alertTimeout);
+        }
+      }
+
+      closeBtn.addEventListener('click', hideAlert);
+
+      // Add event listener to login button
+      loginBtn.addEventListener('click', function () {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        // Basic validation
+        if (!username || !password) {
+          showAlert('Please enter both username and password.');
+          return;
+        }
+
+        // Send login request to Flask backend
+        fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // showAlert('Login successful! Redirecting...', true);
+              // Redirect to dashboard or home page after successful login
+              setTimeout(() => {
+                window.location.href = data.redirect || '/dashboard';
+              }, 1500);
+            } else {
+              showAlert(data.message || 'Invalid username or password.');
             }
-            
-            // Add event listener to login button
-            loginBtn.addEventListener('click', function() {
-                const username = document.getElementById('username').value.trim();
-                const password = document.getElementById('password').value.trim();
-                
-                // Basic validation
-                if (!username || !password) {
-                    showAlert('Please enter both username and password.');
-                    return;
-                }
-                
-                // Send login request to Flask backend
-                fetch('/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // showAlert('Login successful! Redirecting...', true);
-                        // Redirect to dashboard or home page after successful login
-                        setTimeout(() => {
-                            window.location.href = data.redirect || '/dashboard';
-                        }, 1500);
-                    } else {
-                        showAlert(data.message || 'Invalid username or password.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('An error occurred. Please try again later.');
-                });
-            });
-            
-            // Allow form submission with Enter key
-            document.querySelectorAll('input').forEach(input => {
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        loginBtn.click();
-                    }
-                });
-            });
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred. Please try again later.');
+          });
+      });
+
+      // Allow form submission with Enter key
+      document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            loginBtn.click();
+          }
         });
-    </script>
+      });
+    });
+  </script>
 </body>
+
 </html>

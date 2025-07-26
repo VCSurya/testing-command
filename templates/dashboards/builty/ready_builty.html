@@ -13,8 +13,8 @@
 
     <style>
         :root {
-            --primary: #4361ee;
-            --secondary: #3a0ca3;
+            --primary: #1e2857;
+            --secondary: #1e094d;
             --success: #4cc9f0;
             --warning: #f72585;
             --info: #7209b7;
@@ -1239,12 +1239,6 @@
                                     </svg>
                                 </button>
 
-                                
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.main_id}','${invoiceObj.number}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>   
 
                             </div>
                         </div>
@@ -1282,7 +1276,7 @@
                         
                             ${invoiceObj.trans_note && invoiceObj.trans_note.trim() !== '' ? `
                                 <div class="note pack-note">
-                                <p> <span>Packing Note: </span> ${invoiceObj.trans_note.toLocaleString()}</p>
+                                <p> <span>Transport Note: </span> ${invoiceObj.trans_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
 

@@ -12,6 +12,7 @@ from sales import sales_bp
 from packaging import packaging_bp
 from transport import transport_bp
 from builty import builty_bp
+from account import account_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 
 # Load environment variables from .env file
@@ -97,7 +98,7 @@ app.register_blueprint(sales_bp)
 app.register_blueprint(packaging_bp)
 app.register_blueprint(transport_bp)
 app.register_blueprint(builty_bp)
-
+app.register_blueprint(account_bp)
 # Routes
 @app.route('/')
 def index():

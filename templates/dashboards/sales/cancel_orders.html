@@ -13,8 +13,8 @@
 
     <style>
         :root {
-            --primary: #4361ee;
-            --secondary: #3a0ca3;
+            --primary: #1e2857;
+            --secondary: #1e094d;
             --success: #4cc9f0;
             --warning: #f72585;
             --info: #7209b7;
@@ -1608,13 +1608,13 @@
                         <div class="tracking-stepper">
                             <div class="tracking-steps">
                             
-                            ${['Ready to Go', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                            ${['Sell', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
                             <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                 <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                 <div class="label-group">
                                     <div class="label">
                                         ${i === 0 && invoiceObj.trackingStatus === 0
-                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Ready to Go</button>`
+                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
                         : step}
                                     </div>
                                     <div class="date">${invoiceObj.trackingDates[i] || ''}</div>

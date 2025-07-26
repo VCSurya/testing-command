@@ -1170,7 +1170,7 @@ class MyOrders:
                 inv.completed = 1
 
                 OR (inv.completed = 0 AND lot.invoice_id IS NOT NULL)
-
+                
             )
 
             ORDER BY inv.created_at DESC;
