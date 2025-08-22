@@ -973,38 +973,46 @@ class MyOrders:
                 else:
                     trackingDates.append('')
                 trackingStatus = 1                
-            
-                if item['packing_proceed_for_transport']:
-                    
-                    if item['packing_proceed_for_transport']:
-                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+
+                if item['payment_confirm_status']:
+
+                    if item['payment_date_time']:
+                        trackingDates.append(item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                     else:
                         trackingDates.append('')
-                    trackingStatus = 2                
-                
-                    if item['transport_proceed_for_builty']:
+                    trackingStatus = 2
+
+                    if item['packing_proceed_for_transport']:
                         
-                        if item['transport_proceed_for_builty']:
-                            trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        if item['packing_proceed_for_transport']:
+                            trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                         else:
                             trackingDates.append('')
-                        trackingStatus = 3
-            
-                        if item['builty_received']:
-
-                            if item['builty_received']:
-                                trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        trackingStatus = 3                
+                    
+                        if item['transport_proceed_for_builty']:
+                            
+                            if item['transport_proceed_for_builty']:
+                                trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                             else:
                                 trackingDates.append('')
                             trackingStatus = 4
-            
-                            if item['verify_by_manager']:
-                                
-                                if item['verify_by_manager']:
-                                    trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                
+                            if item['builty_received']:
+
+                                if item['builty_received']:
+                                    trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
+                
+                                if item['verify_by_manager']:
+                                    
+                                    if item['verify_by_manager']:
+                                        trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    else:
+                                        trackingDates.append('')
+                                    trackingStatus = 6
 
 
             item['trackingStatus'] = trackingStatus
@@ -1124,6 +1132,7 @@ class MyOrders:
                 lot.builty_date_time,
 
                 lot.payment_confirm_status,
+                lot.payment_date_time,
 
                 lot.cancel_order_status,
 

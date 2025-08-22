@@ -13,28 +13,28 @@ formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 manager_bp = Blueprint('manager', __name__)
 
 # Manager Dashboard
-
-
 @manager_bp.route('/manager/dashboard')
 @login_required('Manager')
 def manager_dashboard():
     return render_template('dashboards/manager/manager.html')
 
 # User Management Routes
-
-
 @manager_bp.route('/manager/users')
 @login_required('Manager')
 def manager_users():
     return render_template('dashboards/manager/users.html')
 
 # Verify Orders Routes
-
-
 @manager_bp.route('/manager/verify-orders')
 @login_required('Manager')
 def verify_orders():
     return render_template('dashboards/manager/verify_orders.html')
+
+# Cancelled Orders Routes
+@manager_bp.route('/manager/cancelled-orders')
+@login_required('Manager')
+def cancelled_orders():
+    return render_template('dashboards/manager/cancelled.html')
 
 
 @manager_bp.route('/manager/users/data')
@@ -533,3 +533,123 @@ def add_event():
 
     except Exception as e:
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"}), 500
+    
+
+
+    # cancelled orders routes
+
+
+@manager_bp.route('/manager/cancelled-orders-list', methods=['GET'])
+@login_required('Manager')
+def cancelled_order_list():
+    try:
+        query = f"""
+               SELECT 
+                inv.id, 
+                inv.invoice_number, 
+                inv.customer_id, 
+                inv.grand_total, 
+                inv.payment_mode, 
+                inv.paid_amount, 
+                inv.left_to_paid, 
+                inv.transport_company_name,
+                inv.invoice_created_by_user_id, 
+                inv.payment_note, 
+                inv.gst_included, 
+                inv.created_at, 
+                inv.delivery_mode, 
+                b.id AS buddy_id, 
+                b.name AS customer, 
+                b.address, 
+                b.state, 
+                b.pincode, 
+                b.mobile, 
+
+                u.id AS users_id, 
+                u.username, 
+
+                up.id AS pu_id, 
+                up.username AS pu_name, 
+
+                ut.id AS tu_id, 
+                ut.username AS tu_name, 
+
+                ub.id AS bu_id, 
+                ub.username AS bu_name, 
+
+                upay.id AS payu_id, 
+                upay.username AS payu_name, 
+
+                ii.id AS invoices_items_id, 
+
+                ii.product_id, 
+                ii.quantity, 
+                ii.price, 
+                ii.gst_tax_amount, 
+                ii.total_amount, 
+                ii.created_at, 
+
+                p.id AS products_id, 
+                p.name, 
+
+                lot.id AS live_order_track_id,
+                lot.sales_proceed_for_packing,
+                lot.sales_date_time,
+                lot.packing_proceed_for_transport,
+                lot.packing_date_time,
+                lot.packing_proceed_by,
+                lot.transport_proceed_for_builty,
+                lot.transport_date_time,
+                lot.transport_proceed_by,
+                lot.builty_proceed_by,
+                lot.builty_received,
+                lot.builty_date_time,
+                lot.payment_confirm_status,
+                lot.cancel_order_status,
+                lot.verify_by_manager,
+                lot.payment_date_time
+
+
+                FROM invoices inv 
+
+                LEFT JOIN buddy b ON inv.customer_id = b.id 
+                LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id 
+                LEFT JOIN products p ON ii.product_id = p.id 
+                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
+
+                LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
+                LEFT JOIN users up ON lot.packing_proceed_by = up.id 
+                LEFT JOIN users ut ON lot.transport_proceed_by = ut.id 
+                LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
+                LEFT JOIN users upay ON lot.payment_verify_by = upay.id 
+
+                where lot.verify_by_manager = 0 
+                AND lot.cancel_order_status = 0 
+                AND lot.sales_proceed_for_packing = 1 
+                AND lot.packing_proceed_for_transport = 1 
+                AND lot.transport_proceed_for_builty = 1 
+                AND builty_received = 1 
+                AND payment_confirm_status = 1 
+                AND inv.completed = 0 
+                ORDER BY inv.created_at DESC;
+        """
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute(query)
+            events = cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+        if events:
+            # merged_orders = merge_orders_products(events)
+            return jsonify(events)
+        
+        return jsonify({'success': False, 'message': 'No events found'}),500
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500

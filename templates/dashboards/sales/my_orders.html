@@ -1189,8 +1189,8 @@
                             <div class="tracking-wrapper">
                             <div class="tracking-stepper">
                                 <div class="tracking-steps">
-                                
-                                ${['Sell', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+
+                                ${['Sell', 'Payment','Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
                                 <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                     <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                     <div class="label-group">
@@ -1201,7 +1201,7 @@
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                     </div>
-                                    ${i < 4 ? '<div class="bar"></div>' : ''}
+                                    ${i < 5 ? '<div class="bar"></div>' : ''}
                                 </div>
                                 `).join('')}
 

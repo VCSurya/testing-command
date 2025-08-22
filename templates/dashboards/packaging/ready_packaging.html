@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 
 
     <style>
@@ -101,7 +102,7 @@
             top: 0;
             left: 16.8%;
             right: 0;
-            z-index: 1030;
+            z-index: 180;
             width: 83%;
         }
 
@@ -835,6 +836,21 @@
             box-sizing: border-box;
         }
 
+        #open-popup-btn {
+            background: linear-gradient(to right, #874caf, #7445a0);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            width: 49%;
+            margin-top: 20px;
+        }
+
         /* Button Styling */
         .next-to-transport-btn {
             background: linear-gradient(to right, #84af4c, #69a045);
@@ -847,8 +863,9 @@
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease-in-out;
-            width: 100%;
+            width: 49%;
             margin-top: 20px;
+            float: right;
         }
 
         /* Hover & Active States */
@@ -863,7 +880,9 @@
 
         /* Responsive adjustments */
         @media (max-width: 600px) {
-            .next-to-transport-btn {
+
+            .next-to-transport-btn,
+            #open-popup-btn {
                 width: 100%;
                 font-size: 1rem;
                 padding: 0.5rem;
@@ -897,7 +916,93 @@
         }
     </style>
 
+    <style>
+        /* Style for the preview image grid */
+        #image-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 120px;
+        }
 
+        /* Style for individual preview images */
+        .preview-image-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            /* 1:1 Aspect Ratio */
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .preview-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .remove-image-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            line-height: 24px;
+            text-align: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .preview-image-wrapper:hover .remove-image-btn {
+            opacity: 1;
+        }
+
+        /* Hide scrollbar but allow scrolling */
+        #image-preview-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #image-preview-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        #image-preview-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        #image-preview-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Video element for camera */
+        #camera-view {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 0.5rem;
+            transform: scaleX(-1);
+            /* Mirror effect */
+        }
+
+        #image-popup {
+            z-index: 2000;
+        }
+    </style>
 </head>
 
 <body>
@@ -1011,14 +1116,95 @@
         </div>
     </div>
 
+    <!-- The Modal/Popup -->
+    <div id="image-popup" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 md:p-8 transform transition-all scale-95 opacity-0"
+            id="popup-content">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <button id="close-popup-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Main Content Area -->
+            <div id="main-content">
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
+                    <button id="upload-btn"
+                        class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                        </svg>
+                        Upload Images
+                    </button>
+                    <button id="camera-btn"
+                        class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-700 hover:bg-gray-800">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Take Picture
+                    </button>
+                </div>
+                <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+
+                <!-- Image Preview Area -->
+                <div id="image-preview-container" class="bg-gray-50 mb-6 flex items-center justify-center">
+                    <p id="preview-placeholder" class="text-gray-400 text-center">Your images will appear here</p>
+                </div>
+            </div>
+
+            <!-- Camera View Area (hidden by default) -->
+            <div id="camera-container" class="hidden mb-6">
+                <video id="camera-view" autoplay playsinline></video>
+                <canvas id="photo-canvas" class="hidden"></canvas>
+                <div class="flex space-x-4 mt-4">
+                    <button id="capture-btn"
+                        class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        Capture
+                    </button>
+                    <button id="cancel-camera-btn"
+                        class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                <div id="status-message" class="text-sm text-gray-600"></div>
+                <button id="save-btn"
+                    class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 disabled:bg-indigo-300 disabled:cursor-not-allowed">
+                    Save Images
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
-
-
-
         // Modal logic
         let deleteInvoiceNumber = null;
         let deleteTargetButton = null;
@@ -1142,7 +1328,7 @@
             if (!userConfirmed) return;
 
             const packingNote = document.getElementById('packing_note').value.trim();
-            
+
             try {
                 const response = await fetch('/packaging/start-shipment', {
                     method: 'POST',
@@ -1227,6 +1413,7 @@
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
 
                             <div class="invoice-actions">
+                                
                                 <button class="glass-btn" title="Download PDF" onclick="
                                     event.stopPropagation();
                                     window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
@@ -1336,6 +1523,9 @@
                                 
 
                         <div class="next-to-transport-container">
+                            <button id="open-popup-btn" onclick="openPopup('${invoiceObj.number}')">
+                                <i class="fa-solid fa-image"></i> Add Photos
+                            </button>
                             <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.live_order_track_id}','${invoiceObj.number}')">
                                 Ready for Dispatch <i class="fas fa-truck"></i>
                             </button>
@@ -1417,7 +1607,243 @@
                 filterAndRenderInvoices();
             });
         });
+        document.addEventListener('DOMContentLoaded', () => {
+            // Popup elements
+            const imagePopup = document.getElementById('image-popup');
+            const popupContent = document.getElementById('popup-content');
+            const closePopupBtn = document.getElementById('close-popup-btn');
 
+            // Main content elements
+            const mainContent = document.getElementById('main-content');
+            const uploadBtn = document.getElementById('upload-btn');
+            const fileInput = document.getElementById('file-input');
+            const cameraBtn = document.getElementById('camera-btn');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const saveBtn = document.getElementById('save-btn');
+            const statusMessage = document.getElementById('status-message');
+
+            // Camera elements
+            const cameraContainer = document.getElementById('camera-container');
+            const cameraView = document.getElementById('camera-view');
+            const photoCanvas = document.getElementById('photo-canvas');
+            const captureBtn = document.getElementById('capture-btn');
+            const cancelCameraBtn = document.getElementById('cancel-camera-btn');
+
+            let cameraStream = null;
+            let currentInvoiceId = null; // Variable to store the invoice ID
+
+            // --- Popup Management ---
+            const openPopup = (invoiceId) => {
+                currentInvoiceId = invoiceId; // Store the passed invoice ID
+                console.log(`Opening popup for Invoice ID: ${currentInvoiceId}`);
+                imagePopup.classList.remove('hidden');
+                setTimeout(() => {
+                    popupContent.classList.remove('scale-95', 'opacity-0');
+                }, 10);
+                // Fetch existing images for this invoice
+                fetchAndDisplayImages(currentInvoiceId);
+            };
+            // Expose the function to the global scope so inline onclick can call it
+            window.openPopup = openPopup;
+
+            const closePopup = () => {
+                stopCamera();
+                // Clear data on close
+                imagePreviewContainer.innerHTML = '';
+                updateSaveButtonState();
+                currentInvoiceId = null;
+                statusMessage.textContent = '';
+                popupContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    imagePopup.classList.add('hidden');
+                }, 200);
+            };
+
+            closePopupBtn.addEventListener('click', closePopup);
+            imagePopup.addEventListener('click', (e) => {
+                if (e.target === imagePopup) {
+                    closePopup();
+                }
+            });
+
+            // --- Image Management ---
+            const updateSaveButtonState = () => {
+                const imageCount = imagePreviewContainer.querySelectorAll('.preview-image-wrapper').length;
+                saveBtn.disabled = imageCount === 0;
+
+                const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
+                if (imageCount > 0) {
+                    if (placeholder) placeholder.remove();
+                } else {
+                    if (!placeholder) {
+                        imagePreviewContainer.innerHTML = '<p class="placeholder-text text-gray-400 text-center">Your images will appear here</p>';
+                    }
+                }
+            };
+
+            const addImageToPreview = (base64String, imageId) => {
+                const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
+                if (placeholder) placeholder.remove();
+
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('preview-image-wrapper');
+
+                const img = document.createElement('img');
+                img.src = base64String;
+                img.classList.add('preview-image');
+                img.dataset.base64 = base64String;
+                img.dataset.id = imageId; // Store the image ID
+
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '&times;';
+                removeBtn.classList.add('remove-image-btn');
+                removeBtn.onclick = () => {
+                    wrapper.remove();
+                    updateSaveButtonState();
+                };
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(removeBtn);
+                imagePreviewContainer.appendChild(wrapper);
+                updateSaveButtonState();
+            };
+
+            // --- Fetch Existing Images ---
+            const fetchAndDisplayImages = async (invoiceId) => {
+                imagePreviewContainer.innerHTML = '<p class="placeholder-text text-gray-500">Loading existing images...</p>';
+
+                try {
+                    const response = await fetch(`/packaging/images/${invoiceId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        imagePreviewContainer.innerHTML = ''; // Clear loading text
+
+                        if (data.images && data.images.length > 0) {
+                            data.images.forEach(imageObj => {
+                                const base64String = imageObj.image_base64;
+                                addImageToPreview(base64String, imageObj.image_id);
+                            });
+                        } else {
+                            console.log('No existing images found for this invoice.');
+                            updateSaveButtonState(); // Optional: reset UI if needed
+                        }
+                    } else {
+                        throw new Error('Response returned with success = false');
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch images:', error);
+                    imagePreviewContainer.innerHTML = '<p class="placeholder-text text-red-500 text-center">Failed to load images. Please try again.</p>';
+                }
+            };
+
+            // --- File Upload Logic ---
+            uploadBtn.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (event) => {
+                const files = event.target.files;
+                if (!files) return;
+
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            addImageToPreview(e.target.result,'0');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+                fileInput.value = '';
+            });
+
+            // --- Camera Logic ---
+            const startCamera = async () => {
+                try {
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                        cameraView.srcObject = cameraStream;
+                        mainContent.classList.add('hidden');
+                        cameraContainer.classList.remove('hidden');
+                    } else {
+                        throw new Error('Camera not supported by this browser.');
+                    }
+                } catch (error) {
+                    console.error("Error accessing camera:", error);
+                    statusMessage.textContent = `Error: ${error.message}`;
+                    statusMessage.classList.add('text-red-500');
+                }
+            };
+
+            const stopCamera = () => {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+                mainContent.classList.remove('hidden');
+                cameraContainer.classList.add('hidden');
+            };
+
+            const takePicture = () => {
+                const context = photoCanvas.getContext('2d');
+                const { videoWidth, videoHeight } = cameraView;
+                photoCanvas.width = videoWidth;
+                photoCanvas.height = videoHeight;
+                context.translate(videoWidth, 0);
+                context.scale(-1, 1);
+                context.drawImage(cameraView, 0, 0, videoWidth, videoHeight);
+                const data = photoCanvas.toDataURL('image/png');
+                addImageToPreview(data, '0');
+                stopCamera();
+            };
+
+            cameraBtn.addEventListener('click', startCamera);
+            captureBtn.addEventListener('click', takePicture);
+            cancelCameraBtn.addEventListener('click', stopCamera);
+
+            // --- Save Logic ---
+            saveBtn.addEventListener('click', async () => {
+                const images = imagePreviewContainer.querySelectorAll('.preview-image');
+                console.log('Images to save:', images);
+                if (images.length === 0) {
+                    statusMessage.textContent = 'No images to save.';
+                    return;
+                }
+                // const base64Images = Array.from(images).map(img => img.dataset.base64);
+                const base64Images = Array.from(images).filter(img => img.dataset.id === '0').map(img => img.dataset.base64);
+                console.log('Base64 Images:', base64Images);
+                statusMessage.textContent = `Saving ${base64Images.length} images for Invoice ID: ${currentInvoiceId}...`;
+                statusMessage.classList.remove('text-red-500', 'text-green-500');
+                const payload = {
+                    invoiceId: currentInvoiceId,
+                    images: base64Images
+                };
+
+                try {
+                    const response = await fetch('/packaging/saveimages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),   
+                    });
+
+                    if (Math.random() > 0.1) {
+                        console.log('Simulated Success:', payload);
+                        statusMessage.textContent = 'Images saved successfully!';
+                        statusMessage.classList.add('text-green-500');
+                        setTimeout(closePopup, 1500);
+                    } else {
+                        throw new Error('Simulated server error.');
+                    }
+                } catch (error) {
+                    console.error('Failed to save images:', error);
+                    statusMessage.textContent = 'Failed to save images. Check console.';
+                    statusMessage.classList.add('text-red-500');
+                    console.log('Data that would be sent:', payload);
+                }
+            });
+
+            // Initial state
+            updateSaveButtonState();
+        });
     </script>
 </body>
 

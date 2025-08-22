@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
+from sympy import im
 from utils import get_db_connection, login_required, encrypt_password,decrypt_password
 import mysql.connector
 from datetime import datetime
@@ -226,6 +227,8 @@ class PackagingModel:
 
                     AND inv.delivery_mode = "transport"
 
+                    AND lot.payment_confirm_status = 1
+
                     ORDER BY inv.created_at DESC;                
                     
                 """
@@ -367,6 +370,8 @@ class PackagingModel:
 
                     AND inv.delivery_mode = "transport"
 
+                    AND lot.payment_confirm_status = 1
+
                     ORDER BY inv.created_at DESC;                
                     
                 """
@@ -425,6 +430,38 @@ class PackagingModel:
         except Exception as e:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
+
+    def save_images(self, invoice_id, images):
+        try:
+            # Convert images to a format suitable for storage, e.g., base64 or binary
+            # Here we assume images is a list of base64 strings
+            for image in images:
+                insert_query = """
+                    INSERT INTO packing_images (invoice_id, image_base64, uploaded_by)
+                    VALUES (%s, %s, %s)
+                """
+                self.cursor.execute(insert_query, (invoice_id[10:], image, session.get('user_id')))
+
+            self.conn.commit()  # commit on connection, not cursor
+            return {"success": True}
+        
+        except Exception as e:
+            self.conn.rollback()
+
+    def get_images(self, invoice_id):
+        try:
+            query = """
+            SELECT image_id, image_base64
+            FROM packing_images
+            WHERE invoice_id = %s
+            """
+            self.cursor.execute(query, (invoice_id[10:],))
+            images = self.cursor.fetchall()
+
+            return images  # Extract base64 strings
+
+        except Exception as e:
+            return {"success": False, "message": f"From Server Side: {e}"}
 
     def close(self):
         self.cursor.close()
@@ -538,3 +575,49 @@ def my_orders():
 
     finally:
         my_pack.close()
+
+
+@packaging_bp.route('/packaging/saveimages', methods=['POST'])
+@login_required('Packaging')
+def save_images():
+    try:
+        data = request.get_json()
+        invoice_id = data.get('invoiceId')
+        images = data.get('images')
+
+        if not invoice_id or not images:
+            return jsonify({"success": False, "message": "Invalid data!"}), 400
+
+        packaging_model = PackagingModel()
+        
+        response = packaging_model.save_images(invoice_id, images)
+
+        if response.get('success'):
+            return jsonify({"success": True, "message": "Images saved successfully!"}), 200
+
+        return jsonify({"success": False, "message": "Failed to save images!"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+
+
+@packaging_bp.route('/packaging/images/<string:invoice_id>', methods=['GET'])
+@login_required('Packaging')
+def get_images(invoice_id):
+    try:
+        packaging_model = PackagingModel()
+        images = packaging_model.get_images(invoice_id)
+
+        if len(images) > 0:
+            return jsonify({"success": True, "images": images}), 200
+        
+        elif len(images) == 0:
+            return jsonify({"success": False, "message": "No images found!"}), 200
+        
+        else:
+            return jsonify({"success": False, "message": "Unexpected error occurred!"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+
+
