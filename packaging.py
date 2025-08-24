@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, session
+from flask import Blueprint, make_response, render_template, jsonify, request, session
 from sympy import im
 from utils import get_db_connection, login_required, encrypt_password,decrypt_password
 import mysql.connector
@@ -463,6 +463,21 @@ class PackagingModel:
         except Exception as e:
             return {"success": False, "message": f"From Server Side: {e}"}
 
+    def delete_image(self, image_id):
+        try:
+            delete_query = """
+            DELETE FROM packing_images
+            WHERE image_id = %s
+            """
+            self.cursor.execute(delete_query, (image_id,))
+            self.conn.commit()
+
+            return {"success": True}
+
+        except Exception as e:
+            self.conn.rollback()
+            return {"success": False, "message": f"From Server Side: {e}"}
+
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -621,3 +636,33 @@ def get_images(invoice_id):
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
 
+@packaging_bp.route('/packaging/image/delete', methods=['POST'])
+@login_required('Packaging')
+def delete_image():
+    try:
+        data = request.get_json()
+        image_id = data.get('imageId')
+
+        if not image_id:
+            return jsonify({"success": False, "message": "Invalid data!"}), 400
+
+        if not int(image_id) or image_id == 0:
+            return jsonify({"success": False, "message": "Invalid data!"}), 400
+
+        packaging_model = PackagingModel()
+        response = packaging_model.delete_image(image_id)
+
+        if response.get('success'):
+            return jsonify({"success": True, "message": "Image deleted successfully!"}), 200
+
+        return jsonify({"success": False, "message": "Failed to delete image!"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+
+@packaging_bp.route('/packaging/images_page/<string:invoice_id>', methods=['GET'])
+@login_required('Packaging')
+def show_images_page(invoice_id):
+    packaging_model = PackagingModel()
+    images = packaging_model.get_images(invoice_id)
+    return render_template('dashboards/packaging/images_page.html', images=images, invoice_id=invoice_id)

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Images - {{ invoice_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Font (Optional) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+        }
+
+        h2 {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            font-size: 18px;
+            color: #000000cc;
+            text-align: center;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .reel-container {
+            height: 100vh;
+            width: 100vw;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .reel-slide {
+            height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #111;
+            position: relative;
+        }
+
+        .reel-slide img {
+            max-height: 90vh;
+            max-width: 90vw;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Scrollbar styling */
+        .reel-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .reel-container::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 600px) {
+            h2 {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>{{ invoice_id }}</h2>
+
+    <div class="reel-container">
+        {% for image in images %}
+        <div class="reel-slide">
+            <img src="{{ image.image_base64 }}" alt="Image {{ loop.index }}">
+        </div>
+        {% endfor %}
+    </div>
+
+</body>
+
+</html>

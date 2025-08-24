@@ -1148,6 +1148,22 @@
         }
 
 
+        function checkAndOpenImages(invoiceId) {
+            fetch(`/packaging/images/${invoiceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.images.length > 0) {
+                        window.open(`/packaging/images_page/${invoiceId}`, '_blank');
+                    } else {
+                        alert(data.message || 'No images found!');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('An error occurred while fetching images.');
+                });
+        }
+
         // Render invoices from dynamic backend data
         let allInvoices = [];
         function renderInvoices(invoices) {
@@ -1193,6 +1209,12 @@
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
 
                             <div class="invoice-actions">
+
+                                <button class="glass-btn" title="Images" onclick="event.stopPropagation();checkAndOpenImages('${invoiceObj.number}')">
+                                    <i class="fa-solid fa-image"></i>
+                                </button>
+
+
                                 <button class="glass-btn" title="Download PDF" onclick="
                                     event.stopPropagation();
                                     window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');

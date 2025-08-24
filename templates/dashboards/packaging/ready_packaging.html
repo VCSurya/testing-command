@@ -946,14 +946,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .remove-image-btn {
             position: absolute;
             top: 4px;
             right: 4px;
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
             border: none;
             border-radius: 50%;
@@ -963,13 +963,9 @@
             line-height: 24px;
             text-align: center;
             cursor: pointer;
-            opacity: 0;
             transition: opacity 0.2s ease-in-out;
         }
 
-        .preview-image-wrapper:hover .remove-image-btn {
-            opacity: 1;
-        }
 
         /* Hide scrollbar but allow scrolling */
         #image-preview-container::-webkit-scrollbar {
@@ -1122,7 +1118,8 @@
             id="popup-content">
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
-                <button id="close-popup-btn" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-2xl font-semibold text-gray-800" id="popup-title">Packing Images</h3>
+                <button id="close-popup-btn" class="ml-auto text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -1130,6 +1127,7 @@
                     </svg>
                 </button>
             </div>
+
 
             <!-- Main Content Area -->
             <div id="main-content">
@@ -1668,18 +1666,38 @@
 
             // --- Image Management ---
             const updateSaveButtonState = () => {
-                const imageCount = imagePreviewContainer.querySelectorAll('.preview-image-wrapper').length;
-                saveBtn.disabled = imageCount === 0;
+                const wrappers = imagePreviewContainer.querySelectorAll('.preview-image-wrapper');
+                const imageCount = wrappers.length;
 
+                // Check if any image has dataset.id === "0"
+                const hasNewImage = Array.from(wrappers).some(wrapper => {
+                    const img = wrapper.querySelector('img');
+                    return img && img.dataset.id === "0";
+                });
+
+                // Enable/disable the save button based on the conditions
+                // saveBtn.disabled = imageCount === 0 || !hasNewImage;
+                if (imageCount === 0 || !hasNewImage) {
+                    saveBtn.style.display = 'none'; // Hide the button
+                } else {
+                    saveBtn.style.display = 'block'; // Show the button
+                }
+
+
+                // Handle placeholder text
                 const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
                 if (imageCount > 0) {
                     if (placeholder) placeholder.remove();
                 } else {
                     if (!placeholder) {
-                        imagePreviewContainer.innerHTML = '<p class="placeholder-text text-gray-400 text-center">Your images will appear here</p>';
+                        imagePreviewContainer.innerHTML = `
+                        <p class="placeholder-text text-gray-400 text-center">
+                            Your images will appear here
+                        </p>`;
                     }
                 }
             };
+
 
             const addImageToPreview = (base64String, imageId) => {
                 const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
@@ -1697,9 +1715,36 @@
                 const removeBtn = document.createElement('button');
                 removeBtn.innerHTML = '&times;';
                 removeBtn.classList.add('remove-image-btn');
-                removeBtn.onclick = () => {
-                    wrapper.remove();
-                    updateSaveButtonState();
+
+                removeBtn.onclick = async () => {
+                    if (imageId === '0') {
+                        // Just remove from DOM if not saved yet
+                        wrapper.remove();
+                        updateSaveButtonState();
+                        return;
+                    }
+                    const confirmDelete = window.confirm('Are you sure you want to remove this image?');
+                    if (!confirmDelete) return;
+                    try {
+                        const response = await fetch('/packaging/image/delete', {
+                            method: 'POST', // or 'DELETE' if your backend supports it
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ imageId }), // send image ID to backend
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to delete image');
+                        }
+
+                        // If successful, remove the image from the DOM
+                        wrapper.remove();
+                        updateSaveButtonState();
+                    } catch (error) {
+                        console.error('Error deleting image:', error);
+                        alert('Failed to delete image. Please try again.');
+                    }
                 };
 
                 wrapper.appendChild(img);
@@ -1748,7 +1793,7 @@
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                            addImageToPreview(e.target.result,'0');
+                            addImageToPreview(e.target.result, '0');
                         };
                         reader.readAsDataURL(file);
                     }
@@ -1822,7 +1867,7 @@
                     const response = await fetch('/packaging/saveimages', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),   
+                        body: JSON.stringify(payload),
                     });
 
                     if (Math.random() > 0.1) {

@@ -51,7 +51,7 @@ class Sales:
             if count == 0:
                 return invoice_number
 
-    def insert_live_order_track(self, invoice_id,payment_confirm_status):
+    def insert_live_order_track(self, invoice_id):
         """
         Insert a saved invoice into the database live order track table.
         """
@@ -63,14 +63,13 @@ class Sales:
         try:
             # Prepare the SQL query to insert the invoice data
             insert_query = """
-                INSERT INTO live_order_track (invoice_id,payment_confirm_status)
-                VALUES (%s,%s)
+                INSERT INTO live_order_track (invoice_id)
+                VALUES (%s)
             """
 
             # Extract values from the invoice_data dictionary
             values = (
                 invoice_id,
-                payment_confirm_status,
             )
 
             # Execute the query
@@ -465,18 +464,12 @@ def save_invoice_into_database():
         sales = Sales()
         if sales.data_base_connection_check():
             result = sales.add_invoice_detail(bill_data)
-            print(result)
 
             if result['invoice_id']:
 
-                payment_confirm_status = 0
-                
-                if grand_total == paid_amount:
-                    payment_confirm_status = 1
-
                 if bill_data['completed'] == 0:
                     # Insert into live order track
-                    response = sales.insert_live_order_track(result['invoice_id'],payment_confirm_status)
+                    response = sales.insert_live_order_track(result['invoice_id'])
 
                     if response['success']:
                         # Successfully inserted into live order track
@@ -542,20 +535,20 @@ def generate_bill_pdf(invoice_id):
         invoice_data = cursor.fetchone()
 
 
-        print(invoice_data)
-
         if invoice_data['invoice_number'] != invoice_number:
             return jsonify({'error': 'Invoice not found'}), 404
 
         # Get invoice details
         cursor.execute("""
-            SELECT i.*, c.name, c.mobile, c.address, c.pincode, c.state 
+            SELECT i.*, c.name, c.mobile, c.address, c.pincode, c.state, lot.payment_confirm_status 
             FROM invoices i 
-            JOIN buddy c ON i.customer_id = c.id 
-            WHERE i.id = %s
+            JOIN buddy c ON i.customer_id = c.id
+            JOIN live_order_track lot ON i.id = lot.invoice_id
+            WHERE i.id = %s AND lot.payment_confirm_status = 1
         """, (invoice_id,))
 
         invoice_data = cursor.fetchone()
+
         if not invoice_data:
             cursor.close()
             conn.close()
