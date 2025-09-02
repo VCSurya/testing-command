@@ -17,7 +17,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import random
 import string
-
+from decimal import Decimal
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -1867,6 +1867,357 @@ def update_canceled_orders_status():
         print(f"Error fetching orders: {e}")
         return jsonify({'success':False,'message':f'Somthing went wrong! {e}'}),500
 
-
-
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)
+
+
+#-------------------------------------------------------------------- Edit The Bill --------------------------------------------------------------------------------------------
+
+class EditBill:
+
+    def __init__(self):
+        self.conn = get_db_connection()
+        if not self.conn:
+            raise Exception("Database connection failed")
+        self.cursor = self.conn.cursor(dictionary=True)
+
+    def verify_invoice_for_edit(self, invoice_id):
+
+        query = "SELECT sales_proceed_for_packing FROM live_order_track WHERE invoice_id = %s"
+        self.cursor.execute(query, (invoice_id,))
+        invoice = self.cursor.fetchone()
+        
+        if not invoice:
+            raise Exception("Invoice not found")
+
+        if invoice['sales_proceed_for_packing'] == 0:
+            return {'success': True, 'message': 'Invoice can be edited'}
+
+        return {'success': False, 'message': 'Invoice cannot be edited'}
+
+    def get_invoice(self, invoice_id):
+        
+        query = """
+        SELECT invoices.id, invoices.customer_id, invoices.grand_total,
+            invoices.payment_mode, invoices.paid_amount, invoices.transport_company_name,
+            invoices.sales_note, invoices.payment_note, invoices.gst_included, 
+            invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id, 
+            ip.quantity, ip.total_amount, p.name as product_name 
+        FROM invoice_items ip 
+        JOIN products p ON ip.product_id = p.id 
+        JOIN invoices ON invoices.id = ip.invoice_id
+        WHERE ip.invoice_id = %s;
+        """
+
+        self.cursor.execute(query, (invoice_id,))
+        invoice_data = self.cursor.fetchall()
+
+        # Extract common fields
+        common_keys = ['customer_id', 'grand_total', 'payment_mode', 'paid_amount', 'transport_company_name',
+                    'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
+        
+        # Build the unified dict with Decimal -> float conversion
+        unified_dict = {
+            key: float(invoice_data[0][key]) if isinstance(invoice_data[0][key], Decimal) else invoice_data[0][key]
+            for key in common_keys
+        }
+
+        # Create products list with basePrice and without total_amount
+        unified_dict['products'] = []
+        for item in invoice_data:
+            quantity = item['quantity']
+            total_amount = float(item['total_amount']) if isinstance(item['total_amount'], Decimal) else item['total_amount']
+            base_price = total_amount / quantity if quantity else 0
+
+            product = {
+                'id': item['id'],
+                'product_id': item['product_id'],
+                'product_name': item['product_name'],
+                'quantity': quantity,
+                'basePrice': base_price
+            }
+
+            unified_dict['products'].append(product)
+
+
+        return unified_dict
+
+    
+    def update_invoice_detail(self, invoice_data):
+        if not self.conn:
+            return "Database connection is not available."
+
+        try:
+            cursor = self.conn.cursor()
+
+            # Prepare invoice data
+            gst_included = 1 if invoice_data.get('gst_included') == 'on' else 0
+            left_to_paid = invoice_data['grand_total'] - invoice_data['paid_amount']
+
+            # Update the invoice record
+            update_invoice_query = """
+                UPDATE invoices
+                SET customer_id = %s,
+                    delivery_mode = %s,
+                    grand_total = %s,
+                    gst_included = %s,
+                    invoice_created_by_user_id = %s,
+                    left_to_paid = %s,
+                    paid_amount = %s,
+                    payment_mode = %s,
+                    payment_note = %s,
+                    sales_note = %s,
+                    transport_company_name = %s,
+                    event_id = %s,
+                    completed = %s
+                WHERE id = %s
+            """
+
+            invoice_values = (
+                int(invoice_data['customer_id']),
+                invoice_data['delivery_mode'],
+                float(invoice_data['grand_total']),
+                gst_included,
+                int(invoice_data['invoice_created_by_user_id']),
+                left_to_paid,
+                float(invoice_data['paid_amount']),
+                invoice_data['payment_mode'],
+                invoice_data['payment_note'],
+                invoice_data['sales_note'],
+                invoice_data['transport_company_name'],
+                invoice_data['event_id'] if invoice_data.get('event_id') else None,
+                invoice_data.get('completed', 0),
+                invoice_data['invoice_id'][10:]  # assuming this is `invoice_number`
+            )
+
+            cursor.execute(update_invoice_query, invoice_values)
+
+
+            # Insert new invoice items
+            insert_item_query = """
+                INSERT INTO invoice_items (
+                    invoice_id, product_id, quantity, price, total_amount,
+                    gst_tax_amount, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            """
+
+            for product in invoice_data['products'].get('insert', []):
+                product_id = int(product[0])
+                quantity = int(product[1])
+                price = float(product[2])
+                gst_tax_amount = float(product[3])
+                total_amount = float(product[4])
+
+                cursor.execute(insert_item_query, (invoice_data['invoice_id'][10:],product_id,quantity,price,total_amount,gst_tax_amount))
+
+            # Update existing invoice items
+            update_item_query = """
+                UPDATE invoice_items
+                SET quantity = %s,
+                    price = %s,
+                    total_amount = %s,
+                    gst_tax_amount = %s
+                WHERE invoice_id = %s AND product_id = %s
+            """
+
+            for product in invoice_data['products'].get('update', []):
+                product_id = int(product[0])
+                quantity = int(product[1])
+                price = float(product[2])
+                gst_tax_amount = float(product[3])
+                total_amount = float(product[4])
+
+                cursor.execute(update_item_query, (
+                    quantity,
+                    price,
+                    total_amount,
+                    gst_tax_amount,
+                    invoice_data['invoice_id'][10:],
+                    product_id
+                ))
+
+            self.conn.commit()
+            return {"status":True,'msg':"All Things Are Done!"}
+
+        except mysql.connector.Error as e:
+            self.conn.rollback()
+            return {"status":False,'error':str(e)}
+
+    def close(self):
+        self.cursor.close()
+        self.conn.close()
+
+
+@sales_bp.route('/sales/edit-invoice/<invoice_number>', methods=['GET'])
+@login_required('Sales')
+def edit_invoice(invoice_number):
+    """
+    Edit an existing invoice.
+    """
+
+    invoice_id = int(invoice_number[10:])
+
+    my_obj = EditBill()
+    response = my_obj.verify_invoice_for_edit(invoice_id)
+
+    if not response['success']:
+        return jsonify({'success': False, 'message': response['message']}), 400
+
+    invoice_data = my_obj.get_invoice(invoice_id)
+    invoice_data['id'] = invoice_number
+    
+    if invoice_data['grand_total'] == invoice_data['paid_amount']:
+        invoice_data['payment_type'] = 'full_payment'
+    else:
+        invoice_data['payment_type'] = 'half_payment'
+
+    my_obj.close()
+
+    return render_template('dashboards/sales/edit_invoice.html', data=invoice_data), 200
+
+
+@sales_bp.route('/sales/update_invoice', methods=['POST'])
+def update_invoice_into_database():
+    """ Save invoice data to database """
+    try:
+
+        # Get form data
+        customer_id = request.form.get('customer_id')
+        delivery_mode = request.form.get('delivery_mode')
+        transport_company = request.form.get('transport_company')
+        payment_mode = request.form.get('payment_mode')
+        payment_type = request.form.get('payment_type')
+        paid_amount = float(request.form.get('paid_amount', 0))
+        grand_total = float(request.form.get('grand_total', 0))
+        sales_note = request.form.get('sales_note', '')
+        IncludeGST = request.form.get('IncludeGST', 'off')
+        event_id = request.form.get('event_id', None)
+        invoice_id = request.form.get('invoice_number')
+
+        if not invoice_id or invoice_id == "":
+            return jsonify({'error': 'Somthing is Missing in the bill'}), 400
+
+        if payment_mode == "not_paid":
+            paid_amount = 0
+
+        # Get products from form data
+        products = request.form.get('products')
+        if products or customer_id:
+            products = json.loads(products)
+        else:
+            return jsonify({'error': 'Some data is Missing in the bill'}), 400
+
+        # Need transport_company name
+        if delivery_mode == 'transport':
+            if not transport_company:
+                return jsonify({'error': 'Some data is Missing in the bill'}), 400
+
+        # Get customer details to validate
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM buddy WHERE id = %s", (customer_id,))
+        customer = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Process products for database
+        tax_rate = 0
+        if IncludeGST == 'on':
+            tax_rate = 18
+
+        product_data_for_sql_table = {
+            'insert' : [],
+            'update' : []
+        }
+        for product in products:
+            qty = product['quantity']
+            rate = float(product['finalPrice'])
+
+            # Calculate the original amount (before GST)
+            original_amount = rate / (1 + tax_rate / 100)
+            # Calculate the GST amount
+            gst_amount = rate - original_amount
+            tax_amount = float(f"{gst_amount:.2f}")
+            total_amount = float(product['total'])
+
+            if product['old'] == 0:
+                product_data_for_sql_table['insert'].append([
+                    product['id'],
+                    f"{qty}",
+                    f"{original_amount:.2f}",
+                    f"{tax_amount:.2f}",
+                    f"{total_amount:.0f}"
+                ])
+
+            if product['old'] == 1:
+                product_data_for_sql_table['update'].append([
+                    product['id'],
+                    f"{qty}",
+                    f"{original_amount:.2f}",
+                    f"{tax_amount:.2f}",
+                    f"{total_amount:.0f}"
+                ])
+
+        # Prepare bill data for database
+        bill_data = {
+            'invoice_id':invoice_id,
+            'customer_id': customer_id,
+            'delivery_mode': delivery_mode,
+            'grand_total': grand_total,
+            'payment_mode': payment_mode,
+            'paid_amount': paid_amount,
+            'transport_company_name': transport_company,
+            'sales_note': sales_note,
+            'invoice_created_by_user_id': session.get('user_id'),
+            'payment_note': request.form.get('payment_note', ''),
+            'gst_included': IncludeGST,
+            'products': product_data_for_sql_table,
+            'event_id': event_id,
+            'completed' : 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
+        }
+
+        # Save to database
+        update = EditBill()
+        
+        if update:
+            result = update.update_invoice_detail(bill_data)
+            print('✅',result)
+
+        # if result['invoice_id']:
+
+            # if bill_data['completed'] == 0:
+            #     # Insert into live order track
+            #     response = sales.insert_live_order_track(result['invoice_id'])
+
+            #     if response['success']:
+            #         # Successfully inserted into live order track
+            #         print(
+            #             f"Live order track inserted for invoice ID: {result['invoice_id']}")
+            #     else:
+            #         # If there was an error inserting into live order track
+            #         print(
+            #             f"Error inserting live order track: {response['error']}")
+            #         sales.close_connection()
+            #         return jsonify({'error': response['error']}), 500
+
+
+        # else:
+            # return jsonify({'error': result}), 500
+
+        update.close_connection()
+
+        # Return success with invoice ID
+        return jsonify({
+            'success': True,
+            # 'invoice_id': result['invoice_id'],
+            # 'invoice_number': result['invoice_number']
+        }), 200
+    
+    except Exception as e:
+        print(f"Error saving invoice: {e}")
+        return jsonify({'error': str(e)}), 500
