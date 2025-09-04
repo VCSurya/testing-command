@@ -1026,16 +1026,24 @@
         document.getElementById('deleteConfirmOk').onclick = async function () {
             if (!deleteInvoiceNumber || !deleteTargetLi) return closeDeleteModal();
             // Call backend endpoint to delete invoice
+        
             try {
-                const resp = await deleteInvoice(deleteInvoiceNumber);
-                if (resp && resp.success) {
-                    deleteTargetLi.remove();
+                const response = await fetch(`/sales/delete_invoice/${deleteInvoiceNumber}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
+
+                const result = await response.json();
+
+                if (result.success) {
+                    location.reload();  // Show success message from server
                 } else {
-                    alert(resp && resp.message ? resp.message : 'Failed to delete invoice.');
+                    alert('Deletion failed: ' + result.message);
+                    alert(result && result.message ? result.message : 'Failed to delete invoice.');
                 }
-            } catch (err) {
-                alert('Error deleting invoice.');
+
+            } catch (e) {
+                alert(`Error: ${e.message}`);
             }
+
             closeDeleteModal();
         };
 
@@ -1047,7 +1055,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(result.message);  // Show success message from server
+                    location.reload();  // Show success message from server
                 } else {
                     alert('Deletion failed: ' + result.message);
                 }
@@ -1215,12 +1223,10 @@
                                     </svg>
                                 </button>
 
-                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.number}', this)">
-                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
+                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${invoiceObj.number}', this)">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
-                                
+                               
                             </div>
                         </div>
                     </div>

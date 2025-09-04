@@ -1317,7 +1317,7 @@
 
                             <div class="form-group">
                                 <label for="salesNote">Sales Note:</label>
-                                <textarea class="form-control" id="salesNote" name="sales_note" rows="3"></textarea>
+                                <textarea class="form-control" id="salesNote" name="sales_note" rows="3">{{data.sales_note}}</textarea>
                             </div>
 
                             <div class="d-flex gap-2 justify-content-end">
@@ -1326,7 +1326,7 @@
                         </form>
                         <!-- Print button at the very bottom of billing-container -->
                         <button type="button" class="btn btn-secondary w-100 mt-3" id="printBtn"
-                            style="display:none;">Save
+                            style="display:none;">Update
                             Bill</button>
                     </div>
                 </div>
@@ -1703,7 +1703,7 @@
                 const shouldReload = shouldReloadValue === "true";
 
                 if (shouldReload) {
-                    location.reload();
+                    window.location.replace(window.location.origin + "/sales/ready-to-go-orders");
                 }
             }
 
@@ -1937,7 +1937,7 @@
             }   
 
             function addOrUpdateProduct(productObj) {
-                const { id, name, finalPrice, quantity , old} = productObj;
+                const { id, name, finalPrice, quantity} = productObj;
                 const productTotal = finalPrice * quantity;
 
                 const existingProductIndex = selectedProducts.findIndex(p => p.id === id);
@@ -1951,7 +1951,6 @@
                         finalPrice,
                         quantity,
                         total: productTotal,
-                        old:old
                     });
                 }
             }
@@ -1963,7 +1962,6 @@
                         name: prod.product_name,
                         finalPrice: prod.basePrice,
                         quantity: prod.quantity,
-                        old:1
                     });
                 });
 
@@ -2005,7 +2003,6 @@
                     name: productName,
                     finalPrice: basePrice,
                     quantity: quantity,
-                    old:0
                 });
 
                 updateProductTable();
@@ -2075,7 +2072,18 @@
                         row.className = 'product-row';
                         row.innerHTML = `
                         <td>${product.name}</td>
-                        <td>₹${product.finalPrice.toFixed(2)}</td>
+                        <td style="width:15%;">
+                        <div class="input-group input-group-sm" style="width: 100%;padding:0px">
+                            <span class="input-group-text" style="font-size:2em;padding:0px 10px;">₹</span>
+                            <input type="number"
+                                min="0.01"
+                                step="0.01"
+                                class="form-control text-end"
+                                value="${product.finalPrice.toFixed(2)}"
+                                onchange="updateProductPrice(${index}, event)"
+                                style='padding:0px 2px;font-size:1.5em;width:80%;'>
+                        </div>
+                        </td>
                         <td>
                             <div class="d-flex justify-content-left" >
                                 <div class="input-group input-group-sm flex-nowrap" style="max-width: 150px;" id="quantityController">
@@ -2088,10 +2096,12 @@
                                 </button>
 
                                 <input type="number"
-                                        id="quantity-input-${index}"
-                                        class="form-control text-center no-spinner"
-                                        value="${product.quantity}"
-                                        style="min-width: 45px; max-width: 60px; padding: 2px 5px; font-size: 0.95rem;">
+                                    id="quantity-input-${index}"
+                                    class="form-control text-center no-spinner"
+                                    value="${product.quantity}"
+                                    min="1"
+                                    style="min-width: 45px; max-width: 60px; padding: 2px 5px; font-size: 0.95rem;"
+                                    onchange="updateQuantityFromInput(${index}, event)">
 
                                 <button type="button"
                                         class="btn btn-outline-secondary quantity-btn"
@@ -2175,6 +2185,37 @@
                 selectedProducts.splice(index, 1);
                 updateProductTable();
                 updateTotals();
+            };
+            
+            // Handle manual input of price
+            window.updateProductPrice = function(index, event) {
+                const inputValue = parseFloat(event.target.value);
+
+                if (!isNaN(inputValue) && inputValue >= 0.01) {
+                    selectedProducts[index].finalPrice = inputValue;
+                    selectedProducts[index].total = selectedProducts[index].quantity * inputValue;
+                    updateProductTable();
+                    updateTotals();
+                } else {
+                    // Reset to previous valid price if invalid
+                    event.target.value = selectedProducts[index].finalPrice.toFixed(2);
+                }
+            };
+
+
+            // Handle manual input of quantity
+            window.updateQuantityFromInput = function(index, event) {
+                const inputValue = parseInt(event.target.value, 10);
+
+                if (!isNaN(inputValue) && inputValue >= 0) {
+                    selectedProducts[index].quantity = inputValue;
+                    selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
+                    updateProductTable();
+                    updateTotals();
+                } else {
+                    // Optionally reset to previous valid value if input is invalid
+                    event.target.value = selectedProducts[index].quantity;
+                }
             };
 
             // Increase product quantity
@@ -2358,7 +2399,7 @@
                         return response.json(); // Expecting JSON response with invoice_id
                     })
                     .then(data => {
-                        if (data.success && data.invoice_number && data.invoice_id) {
+                        if (data.success && data.invoice_id) {
 
                             document.getElementById('popupCloseBtnRelode').value = "true"; // Explicitly as a string
                             // Show success message and share button
@@ -2372,7 +2413,7 @@
                                     <div class="alert alert-success d-flex justify-content-between align-items-center">
                                         <div>
                                             <i class="fas fa-file-pdf text-danger"></i>
-                                            <strong>${data.invoice_number}${data.invoice_id}</strong>
+                                            <strong>${data.invoice_id}</strong>
                                         </div>
                                         <button type="button" id="copyBtn" onclick="copyLink();">
                                             <i class="fas fa-copy"></i> <span id="copyText">Copy Link</span>
@@ -2380,7 +2421,7 @@
                                     </div>
                                 `;
 
-                                document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number + data.invoice_id;
+                                document.getElementById('invoiceNumber_for_sharing').value = data.data.invoice_id;
 
 
 

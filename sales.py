@@ -123,8 +123,10 @@ class Sales:
                 invoice_data['sales_note'],
                 invoice_data['transport_company_name'],
                 invoice_number,
-                invoice_data['event_id'] if invoice_data.get('event_id') else None,
-                invoice_data.get('completed', 0)  # Default to 0 if not provided
+                invoice_data['event_id'] if invoice_data.get(
+                    'event_id') else None,
+                # Default to 0 if not provided
+                invoice_data.get('completed', 0)
             )
 
             cursor.execute(insert_invoice_query, invoice_values)
@@ -176,25 +178,30 @@ class Sales:
 def sales_dashboard():
     return render_template('dashboards/sales/main.html')
 
+
 @sales_bp.route('/sales/sell')
 @login_required('Sales')
 def sales():
     return render_template('dashboards/sales/sell.html', active_page='sell')
+
 
 @sales_bp.route('/sales/my-orders')
 @login_required('Sales')
 def sales_cancel_orders():
     return render_template('dashboards/sales/my_orders.html')
 
+
 @sales_bp.route('/sales/cancel-orders')
 @login_required('Sales')
 def sales_my_orders():
     return render_template('dashboards/sales/cancel_orders.html')
 
+
 @sales_bp.route('/sales/ready-to-go-orders')
 @login_required('Sales')
 def sales_ready_to_go_orders():
     return render_template('dashboards/sales/ready_to_go.html')
+
 
 @sales_bp.route('/sales/all_events_details', methods=['GET'])
 @login_required('Sales')
@@ -221,11 +228,12 @@ def all_market_events():
             conn.close()
         if len(events) == 0 or not events:
             return jsonify({'success': True, 'data': []})
-        
+
         return jsonify({'success': True, 'data': events})
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
 
 @sales_bp.route('/sales/customers', methods=['GET'])
 def get_customers():
@@ -275,11 +283,10 @@ def add_new_customer():
 
         # Insert new product into database
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
-                       (name, address, state, pincode, mobile,session.get('user_id')))
+                       (name, address, state, pincode, mobile, session.get('user_id')))
         conn.commit()
         cursor.close()
         conn.close()
-
 
         # print(f"New customer added with ID: {customer_id}")
 
@@ -371,6 +378,7 @@ def add_new_product():
 
 # ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
 
+
 @sales_bp.route('/sales/save_invoice', methods=['POST'])
 def save_invoice_into_database():
     """ Save invoice data to database """
@@ -387,7 +395,6 @@ def save_invoice_into_database():
         sales_note = request.form.get('sales_note', '')
         IncludeGST = request.form.get('IncludeGST', 'off')
         event_id = request.form.get('event_id', None)
-
 
         if payment_mode == "not_paid":
             paid_amount = 0
@@ -457,7 +464,7 @@ def save_invoice_into_database():
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
             'event_id': event_id,
-            'completed' : 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
+            'completed': 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
         }
 
         # Save to database
@@ -469,7 +476,8 @@ def save_invoice_into_database():
 
                 if bill_data['completed'] == 0:
                     # Insert into live order track
-                    response = sales.insert_live_order_track(result['invoice_id'])
+                    response = sales.insert_live_order_track(
+                        result['invoice_id'])
 
                     if response['success']:
                         # Successfully inserted into live order track
@@ -481,7 +489,6 @@ def save_invoice_into_database():
                             f"Error inserting live order track: {response['error']}")
                         sales.close_connection()
                         return jsonify({'error': response['error']}), 500
-
 
             else:
                 return jsonify({'error': result}), 500
@@ -533,7 +540,6 @@ def generate_bill_pdf(invoice_id):
             WHERE id = %s;
         """, (invoice_id,))
         invoice_data = cursor.fetchone()
-
 
         if invoice_data['invoice_number'] != invoice_number:
             return jsonify({'error': 'Invoice not found'}), 404
@@ -600,8 +606,6 @@ def generate_bill_pdf(invoice_id):
                 'total': product['total_amount'],
                 'hsn_code': '95059090'
             })
-
-        
 
         # Get invoice creation date
         formatted_time = invoice_data['created_at'].strftime("%d/%m/%Y %I:%M %p") if invoice_data.get(
@@ -670,7 +674,7 @@ def generate_bill_pdf(invoice_id):
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
-        
+
         # Product table
         headers = ["S.NO.", "ITEMS", "QTY.",
                    "RATE", f"TAX ({18 if IncludeGST == 1 else 0}%)", "AMOUNT"]
@@ -946,71 +950,76 @@ class MyOrders:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
-    def merge_orders_products(self,data):
+    def merge_orders_products(self, data):
 
         merged = {}
 
         for item in data:
 
-            # change created_at date formate 
-            item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
+            # change created_at date formate
+            item['created_at'] = item['created_at'].strftime(
+                "%d/%m/%Y %I:%M %p")
 
-            # passed tracking status with date            
+            # passed tracking status with date
             trackingStatus = 0
             trackingDates = []
 
             if item['sales_proceed_for_packing']:
 
                 if item['sales_date_time']:
-                    trackingDates.append(item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    trackingDates.append(
+                        item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                 else:
                     trackingDates.append('')
-                trackingStatus = 1                
+                trackingStatus = 1
 
                 if item['payment_confirm_status']:
 
                     if item['payment_date_time']:
-                        trackingDates.append(item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        trackingDates.append(
+                            item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                     else:
                         trackingDates.append('')
                     trackingStatus = 2
 
                     if item['packing_proceed_for_transport']:
-                        
+
                         if item['packing_proceed_for_transport']:
-                            trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            trackingDates.append(
+                                item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                         else:
                             trackingDates.append('')
-                        trackingStatus = 3                
-                    
+                        trackingStatus = 3
+
                         if item['transport_proceed_for_builty']:
-                            
+
                             if item['transport_proceed_for_builty']:
-                                trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                trackingDates.append(
+                                    item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                             else:
                                 trackingDates.append('')
                             trackingStatus = 4
-                
+
                             if item['builty_received']:
 
                                 if item['builty_received']:
-                                    trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    trackingDates.append(
+                                        item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
-                
+
                                 if item['verify_by_manager']:
-                                    
+
                                     if item['verify_by_manager']:
-                                        trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                        trackingDates.append(
+                                            item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                     else:
                                         trackingDates.append('')
                                     trackingStatus = 6
 
-
             item['trackingStatus'] = trackingStatus
             item['trackingDates'] = trackingDates
-
 
             # merge products
             order_id = item["id"]
@@ -1034,7 +1043,7 @@ class MyOrders:
 
         return list(merged.values())
 
-    def fetch_my_orders(self, user_id,start_shipment):
+    def fetch_my_orders(self, user_id, start_shipment):
         query = f"""
             SELECT 
 
@@ -1180,14 +1189,12 @@ class MyOrders:
  
         """
 
-        
         self.cursor.execute(query, (user_id,))
         all_order_data = self.cursor.fetchall()
-        
+
         if not all_order_data:
             return []
 
-    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
@@ -1318,14 +1325,12 @@ class MyOrders:
  
         """
 
-        
         self.cursor.execute(query, (user_id,))
         all_order_data = self.cursor.fetchall()
-        
+
         if not all_order_data:
             return []
 
-    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
@@ -1347,7 +1352,7 @@ class MyOrders:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Error deleting invoice {invoice_id}: {e}"}
 
-    def cancel_order(self, invoice_id,data):
+    def cancel_order(self, invoice_id, data):
         try:
             update_query = """
 
@@ -1357,7 +1362,7 @@ class MyOrders:
             """
             self.cursor.execute(update_query, (data.get('track_order_id'),))
             self.conn.commit()  # commit on connection, not cursor
-            
+
             insert_query = """
                 
                 INSERT INTO cancelled_orders (
@@ -1365,11 +1370,12 @@ class MyOrders:
                 ) VALUES (%s, %s, %s,%s)
             """
 
-            self.cursor.execute(insert_query, (invoice_id,session.get('user_id'),data.get('reason'),data.get('track_order_id'),))
+            self.cursor.execute(insert_query, (invoice_id, session.get(
+                'user_id'), data.get('reason'), data.get('track_order_id'),))
             self.conn.commit()  # commit on connection, not cursor
-            
+
             return {"success": True, "message": f"Order successfully Cancel"}
-            
+
         except Exception as e:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
@@ -1395,7 +1401,8 @@ class MyOrders:
         self.cursor.close()
         self.conn.close()
 
-@sales_bp.route('/sales/cancel_order' ,methods=['POST'])     
+
+@sales_bp.route('/sales/cancel_order', methods=['POST'])
 @login_required('Sales')
 def cancel_order():
     try:
@@ -1416,22 +1423,24 @@ def cancel_order():
             WHERE id = %s;
         """, (track_order_id,))
         invoice_data = cursor.fetchone()
-        
+
         if invoice_data is None:
             return jsonify({"success": False, "message": "Order not found"}), 404
 
         for_cancel_order = MyOrders()
-        response = for_cancel_order.cancel_order(invoice_data['invoice_id'],data)
+        response = for_cancel_order.cancel_order(
+            invoice_data['invoice_id'], data)
 
         if response.get('success'):
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-        
-        return {"success": False, "message": f"Somthing went wrong to cancel order"},500
+
+        return {"success": False, "message": f"Somthing went wrong to cancel order"}, 500
 
     except Exception as e:
         return jsonify({"success": False, "message": "Internal server error"}), 500
 
-@sales_bp.route('/sales/delete_invoice/<string:invoice_id>' ,methods=['DELETE'])     
+
+@sales_bp.route('/sales/delete_invoice/<string:invoice_id>', methods=['DELETE'])
 @login_required('Sales')
 def delete_invoice(invoice_id):
     try:
@@ -1454,19 +1463,19 @@ def delete_invoice(invoice_id):
         invoice_data = cursor.fetchone()
 
         if invoice_data['invoice_number'] != invoice_number:
-            return jsonify({"success": False, "message":"Sorry, there was an issue. We are looking into it."}), 404
-        
+            return jsonify({"success": False, "message": "Sorry, there was an issue. We are looking into it."}), 404
+
         for_delete_invoice = MyOrders()
         response = for_delete_invoice.delete_invoice(invoice_id)
-        
+
         if response['success']:
-            return jsonify({"success": True, "message": 'Invoice successfully deleted!'}),200
+            return jsonify({"success": True, "message": 'Invoice successfully deleted!'}), 200
 
         return jsonify({"success": False, "message": str(e)}), 500
 
-
-    except Exception as e:   
+    except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
 
 @sales_bp.route('/sales/my-orders-list', methods=['GET'])
 def sales_my_orders_list():
@@ -1483,12 +1492,12 @@ def sales_my_orders_list():
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = MyOrders()
-        orders = my_orders.fetch_my_orders(user_id,1)
+        orders = my_orders.fetch_my_orders(user_id, 1)
         my_orders.close()
         if not orders:
             return jsonify([]), 200
         # Format the orders for JSON response
-        
+
         return jsonify(orders)
 
     except Exception as e:
@@ -1499,10 +1508,11 @@ def sales_my_orders_list():
         cursor.close()
         conn.close()
 
+
 @sales_bp.route('/start-shipment', methods=['POST'])
 @login_required('Sales')
 def start_shipment():
-    
+
     try:
         data = request.get_json()
         live_order_track_id = data.get('live_order_track_id')
@@ -1514,17 +1524,18 @@ def start_shipment():
         response = shipment_start.start_shipment(live_order_track_id)
 
         if response['success']:
-            return jsonify({"success": True, "message": 'Order Successfully Shiped!'}),200
+            return jsonify({"success": True, "message": 'Order Successfully Shiped!'}), 200
 
-        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'}),500
+        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'}), 500
 
     except Exception as e:
         return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'})
-    
+
+
 @sales_bp.route('/sales/my-ready-to-go-orders-list', methods=['GET'])
 @login_required('Sales')
 def sales_my_ready_to_go_orders_list():
-    
+
     conn = get_db_connection()
     if not conn:
         return jsonify({'error': 'Database connection failed'}), 500
@@ -1535,12 +1546,13 @@ def sales_my_ready_to_go_orders_list():
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = MyOrders()
-        orders = my_orders.fetch_ready_to_go_orders(user_id)  # 0 for ready to go orders
+        orders = my_orders.fetch_ready_to_go_orders(
+            user_id)  # 0 for ready to go orders
         my_orders.close()
         if not orders:
             return jsonify([]), 200
         # Format the orders for JSON response
-        
+
         return jsonify(orders)
 
     except Exception as e:
@@ -1552,75 +1564,79 @@ def sales_my_ready_to_go_orders_list():
         conn.close()
 
 
-
 # -------------------------------------------------------------- Canceled Orders -----------------------------------------------------------------------------------------------
 
 class Canceled_Orders:
-    
+
     def __init__(self):
         self.conn = get_db_connection()
         if not self.conn:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
-    def merge_orders_products(self,data):
+    def merge_orders_products(self, data):
 
         merged = {}
 
         for item in data:
 
-            # change created_at date formate 
-            item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
+            # change created_at date formate
+            item['created_at'] = item['created_at'].strftime(
+                "%d/%m/%Y %I:%M %p")
 
-            # passed tracking status with date            
+            # passed tracking status with date
             trackingStatus = 0
             trackingDates = []
 
             if item['sales_proceed_for_packing']:
 
                 if item['sales_date_time']:
-                    trackingDates.append(item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    trackingDates.append(
+                        item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                 else:
                     trackingDates.append('')
-                trackingStatus = 1                
-            
+                trackingStatus = 1
+
                 if item['packing_proceed_for_transport']:
-                    
+
                     if item['packing_proceed_for_transport']:
-                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        trackingDates.append(
+                            item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                     else:
                         trackingDates.append('')
-                    trackingStatus = 2                
-                
+                    trackingStatus = 2
+
                     if item['transport_proceed_for_builty']:
-                        
+
                         if item['transport_proceed_for_builty']:
-                            trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            trackingDates.append(
+                                item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                         else:
                             trackingDates.append('')
                         trackingStatus = 3
-            
+
                         if item['builty_received']:
 
                             if item['builty_received']:
-                                trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                trackingDates.append(
+                                    item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                             else:
                                 trackingDates.append('')
                             trackingStatus = 4
-            
+
                             if item['verify_by_manager']:
-                                
+
                                 if item['verify_by_manager']:
-                                    trackingDates.append(item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    trackingDates.append(
+                                        item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
 
-
             item['trackingStatus'] = trackingStatus
             item['trackingDates'] = trackingDates
-            item['cancelled_at'] = item['cancelled_at'].strftime("%d/%m/%Y %I:%M %p")
-
+            item['cancelled_at'] = item['cancelled_at'].strftime(
+                "%d/%m/%Y %I:%M %p")
 
             # merge products
             order_id = item["id"]
@@ -1745,17 +1761,16 @@ class Canceled_Orders:
         """
         self.cursor.execute(query, (user_id,))
         all_order_data = self.cursor.fetchall()
-        
+
         if not all_order_data:
             return []
 
-    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
         return merged_orders
 
-    def confirm_canceled_order(self,id):
+    def confirm_canceled_order(self, id):
 
         query = """
                 UPDATE cancelled_orders
@@ -1763,8 +1778,8 @@ class Canceled_Orders:
                 WHERE id = %s;
         """
         try:
-            
-            self.cursor.execute(query,(id,))
+
+            self.cursor.execute(query, (id,))
             self.conn.commit()
 
             return {"success": True}
@@ -1772,9 +1787,9 @@ class Canceled_Orders:
         except Exception as e:
             self.conn.rollback()
             return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
-            
-    def reject_canceled_order(self,id):
-        
+
+    def reject_canceled_order(self, id):
+
         update_query = """
                 UPDATE live_order_track
                 SET cancel_order_status = 0
@@ -1788,8 +1803,8 @@ class Canceled_Orders:
         """
 
         try:
-            self.cursor.execute(update_query,(id,))
-            self.cursor.execute(delete_query,(id,))
+            self.cursor.execute(update_query, (id,))
+            self.cursor.execute(delete_query, (id,))
             self.conn.commit()
             return {"success": True}
 
@@ -1797,10 +1812,10 @@ class Canceled_Orders:
             self.conn.rollback()
             return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
 
-            
     def close(self):
         self.cursor.close()
         self.conn.close()
+
 
 @sales_bp.route('/sales/canceld-orders-list', methods=['GET'])
 def sales_cancled_orders_list():
@@ -1815,10 +1830,10 @@ def sales_cancled_orders_list():
         my_orders = Canceled_Orders()
         orders = my_orders.find_all_canceled_orders(user_id)
         my_orders.close()
-        
+
         if not orders:
             return jsonify([]), 200
-        
+
         return jsonify(orders)
 
     except Exception as e:
@@ -1827,6 +1842,7 @@ def sales_cancled_orders_list():
 
     finally:
         my_orders.close()
+
 
 @sales_bp.route('/sales/canceled-orders-status', methods=['PUT'])
 @login_required('Sales')
@@ -1840,15 +1856,15 @@ def update_canceled_orders_status():
         my_obj = Canceled_Orders()
 
         if cancel_order_status == 1 and id:
-            
+
             response = my_obj.confirm_canceled_order(id)
 
             if response['success']:
                 my_obj.close()
-                return jsonify({'success':True,'message':'Done!'}),200
+                return jsonify({'success': True, 'message': 'Done!'}), 200
 
             else:
-                return jsonify({'success':False,'message':f'Somthing went wrong!{response['message']}'}),500
+                return jsonify({'success': False, 'message': f'Somthing went wrong!{response['message']}'}), 500
 
         if cancel_order_status == 0 and id:
 
@@ -1856,21 +1872,21 @@ def update_canceled_orders_status():
 
             if response['success']:
                 my_obj.close()
-                return jsonify({'success':True,'message':'Done!'}),200
+                return jsonify({'success': True, 'message': 'Done!'}), 200
             else:
-                return jsonify({'success':False,'message':f'Somthing went wrong!{response['message']}'}),500
+                return jsonify({'success': False, 'message': f'Somthing went wrong!{response['message']}'}), 500
 
-    
-        return jsonify({'success':False,'message':f'Somthing went wrong!'}),500
+        return jsonify({'success': False, 'message': f'Somthing went wrong!'}), 500
 
     except Exception as e:
         print(f"Error fetching orders: {e}")
-        return jsonify({'success':False,'message':f'Somthing went wrong! {e}'}),500
+        return jsonify({'success': False, 'message': f'Somthing went wrong! {e}'}), 500
+
 
 sales_bp.add_url_rule('/sales/', view_func=sales_dashboard)
 
 
-#-------------------------------------------------------------------- Edit The Bill --------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------- Edit The Bill --------------------------------------------------------------------------------------------
 
 class EditBill:
 
@@ -1885,7 +1901,7 @@ class EditBill:
         query = "SELECT sales_proceed_for_packing FROM live_order_track WHERE invoice_id = %s"
         self.cursor.execute(query, (invoice_id,))
         invoice = self.cursor.fetchone()
-        
+
         if not invoice:
             raise Exception("Invoice not found")
 
@@ -1895,7 +1911,7 @@ class EditBill:
         return {'success': False, 'message': 'Invoice cannot be edited'}
 
     def get_invoice(self, invoice_id):
-        
+
         query = """
         SELECT invoices.id, invoices.customer_id, invoices.grand_total,
             invoices.payment_mode, invoices.paid_amount, invoices.transport_company_name,
@@ -1913,11 +1929,12 @@ class EditBill:
 
         # Extract common fields
         common_keys = ['customer_id', 'grand_total', 'payment_mode', 'paid_amount', 'transport_company_name',
-                    'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
-        
+                       'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
+
         # Build the unified dict with Decimal -> float conversion
         unified_dict = {
-            key: float(invoice_data[0][key]) if isinstance(invoice_data[0][key], Decimal) else invoice_data[0][key]
+            key: float(invoice_data[0][key]) if isinstance(
+                invoice_data[0][key], Decimal) else invoice_data[0][key]
             for key in common_keys
         }
 
@@ -1925,7 +1942,8 @@ class EditBill:
         unified_dict['products'] = []
         for item in invoice_data:
             quantity = item['quantity']
-            total_amount = float(item['total_amount']) if isinstance(item['total_amount'], Decimal) else item['total_amount']
+            total_amount = float(item['total_amount']) if isinstance(
+                item['total_amount'], Decimal) else item['total_amount']
             base_price = total_amount / quantity if quantity else 0
 
             product = {
@@ -1938,13 +1956,11 @@ class EditBill:
 
             unified_dict['products'].append(product)
 
-
         return unified_dict
 
-    
     def update_invoice_detail(self, invoice_data):
         if not self.conn:
-            return "Database connection is not available."
+            return {"status": False, "error": "Database connection is not available."}
 
         try:
             cursor = self.conn.cursor()
@@ -1952,8 +1968,9 @@ class EditBill:
             # Prepare invoice data
             gst_included = 1 if invoice_data.get('gst_included') == 'on' else 0
             left_to_paid = invoice_data['grand_total'] - invoice_data['paid_amount']
+            invoice_id = invoice_data['invoice_id'][10:]  # Assuming ID starts after 10th char
 
-            # Update the invoice record
+            # Step 1: Update invoice record
             update_invoice_query = """
                 UPDATE invoices
                 SET customer_id = %s,
@@ -1986,13 +2003,22 @@ class EditBill:
                 invoice_data['transport_company_name'],
                 invoice_data['event_id'] if invoice_data.get('event_id') else None,
                 invoice_data.get('completed', 0),
-                invoice_data['invoice_id'][10:]  # assuming this is `invoice_number`
+                invoice_id
             )
 
             cursor.execute(update_invoice_query, invoice_values)
 
+            # Step 2: Fetch & delete old invoice items
+            cursor.execute("SELECT id FROM invoice_items WHERE invoice_id = %s;", (invoice_id,))
+            all_old_items_ids = cursor.fetchall()
 
-            # Insert new invoice items
+            for (item_id,) in all_old_items_ids:
+                cursor.execute("DELETE FROM invoice_items WHERE id = %s;", (item_id,))
+
+            if invoice_data['delivery_mode'] == "porter" or invoice_data['delivery_mode'] == "at_store":
+                cursor.execute("DELETE FROM live_order_track WHERE invoice_id = %s;", (invoice_id,))
+
+            # Step 3: Insert new invoice items
             insert_item_query = """
                 INSERT INTO invoice_items (
                     invoice_id, product_id, quantity, price, total_amount,
@@ -2000,47 +2026,25 @@ class EditBill:
                 ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
             """
 
-            for product in invoice_data['products'].get('insert', []):
+            for product in invoice_data.get('products', []):
                 product_id = int(product[0])
                 quantity = int(product[1])
                 price = float(product[2])
                 gst_tax_amount = float(product[3])
                 total_amount = float(product[4])
 
-                cursor.execute(insert_item_query, (invoice_data['invoice_id'][10:],product_id,quantity,price,total_amount,gst_tax_amount))
-
-            # Update existing invoice items
-            update_item_query = """
-                UPDATE invoice_items
-                SET quantity = %s,
-                    price = %s,
-                    total_amount = %s,
-                    gst_tax_amount = %s
-                WHERE invoice_id = %s AND product_id = %s
-            """
-
-            for product in invoice_data['products'].get('update', []):
-                product_id = int(product[0])
-                quantity = int(product[1])
-                price = float(product[2])
-                gst_tax_amount = float(product[3])
-                total_amount = float(product[4])
-
-                cursor.execute(update_item_query, (
-                    quantity,
-                    price,
-                    total_amount,
-                    gst_tax_amount,
-                    invoice_data['invoice_id'][10:],
-                    product_id
+                cursor.execute(insert_item_query, (
+                    invoice_id, product_id, quantity, price, total_amount, gst_tax_amount
                 ))
 
+            # Step 4: Final commit
             self.conn.commit()
-            return {"status":True,'msg':"All Things Are Done!"}
+            return {"status": True, 'msg': "All Things Are Done!"}
+        
 
         except mysql.connector.Error as e:
             self.conn.rollback()
-            return {"status":False,'error':str(e)}
+            return {"status": False, 'error': str(e)}
 
     def close(self):
         self.cursor.close()
@@ -2053,26 +2057,29 @@ def edit_invoice(invoice_number):
     """
     Edit an existing invoice.
     """
+    try:
+        invoice_id = int(invoice_number[10:])
 
-    invoice_id = int(invoice_number[10:])
+        my_obj = EditBill()
+        response = my_obj.verify_invoice_for_edit(invoice_id)
 
-    my_obj = EditBill()
-    response = my_obj.verify_invoice_for_edit(invoice_id)
+        if not response['success']:
+            return jsonify({'success': False, 'message': response['message']}), 400
 
-    if not response['success']:
-        return jsonify({'success': False, 'message': response['message']}), 400
+        invoice_data = my_obj.get_invoice(invoice_id)
+        invoice_data['id'] = invoice_number
 
-    invoice_data = my_obj.get_invoice(invoice_id)
-    invoice_data['id'] = invoice_number
-    
-    if invoice_data['grand_total'] == invoice_data['paid_amount']:
-        invoice_data['payment_type'] = 'full_payment'
-    else:
-        invoice_data['payment_type'] = 'half_payment'
+        if invoice_data['grand_total'] == invoice_data['paid_amount']:
+            invoice_data['payment_type'] = 'full_payment'
+        else:
+            invoice_data['payment_type'] = 'half_payment'
 
-    my_obj.close()
+        my_obj.close()
 
-    return render_template('dashboards/sales/edit_invoice.html', data=invoice_data), 200
+        return render_template('dashboards/sales/edit_invoice.html', data=invoice_data), 200
+
+    except Exception as e:
+        return render_template('dashboards/sales/sell.html'), 200
 
 
 @sales_bp.route('/sales/update_invoice', methods=['POST'])
@@ -2130,10 +2137,7 @@ def update_invoice_into_database():
         if IncludeGST == 'on':
             tax_rate = 18
 
-        product_data_for_sql_table = {
-            'insert' : [],
-            'update' : []
-        }
+        product_data_for_sql_table = []
         for product in products:
             qty = product['quantity']
             rate = float(product['finalPrice'])
@@ -2145,27 +2149,17 @@ def update_invoice_into_database():
             tax_amount = float(f"{gst_amount:.2f}")
             total_amount = float(product['total'])
 
-            if product['old'] == 0:
-                product_data_for_sql_table['insert'].append([
-                    product['id'],
-                    f"{qty}",
-                    f"{original_amount:.2f}",
-                    f"{tax_amount:.2f}",
-                    f"{total_amount:.0f}"
-                ])
-
-            if product['old'] == 1:
-                product_data_for_sql_table['update'].append([
-                    product['id'],
-                    f"{qty}",
-                    f"{original_amount:.2f}",
-                    f"{tax_amount:.2f}",
-                    f"{total_amount:.0f}"
-                ])
+            product_data_for_sql_table.append([
+                product['id'],
+                f"{qty}",
+                f"{original_amount:.2f}",
+                f"{tax_amount:.2f}",
+                f"{total_amount:.0f}"
+            ])
 
         # Prepare bill data for database
         bill_data = {
-            'invoice_id':invoice_id,
+            'invoice_id': invoice_id,
             'customer_id': customer_id,
             'delivery_mode': delivery_mode,
             'grand_total': grand_total,
@@ -2178,15 +2172,29 @@ def update_invoice_into_database():
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
             'event_id': event_id,
-            'completed' : 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
+            'completed': 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
         }
 
         # Save to database
         update = EditBill()
-        
+
         if update:
             result = update.update_invoice_detail(bill_data)
-            print('✅',result)
+            
+            if result['status']:
+                # Return success with invoice ID
+                return jsonify({
+                    'success': True,
+                    'invoice_id': invoice_id
+                }), 200
+            
+            else:
+                # Return success with invoice ID
+                return jsonify({
+                    'success': False,
+                    'invoice_id': invoice_id
+                }), 200
+
 
         # if result['invoice_id']:
 
@@ -2205,19 +2213,18 @@ def update_invoice_into_database():
             #         sales.close_connection()
             #         return jsonify({'error': response['error']}), 500
 
-
         # else:
             # return jsonify({'error': result}), 500
 
-        update.close_connection()
+        update.close()
 
         # Return success with invoice ID
         return jsonify({
-            'success': True,
-            # 'invoice_id': result['invoice_id'],
-            # 'invoice_number': result['invoice_number']
+            'success': False,
+            'invoice_id': invoice_id
         }), 200
-    
+
     except Exception as e:
         print(f"Error saving invoice: {e}")
         return jsonify({'error': str(e)}), 500
+    

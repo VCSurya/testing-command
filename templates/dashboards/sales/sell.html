@@ -1272,10 +1272,10 @@
                                         <thead>
                                             <tr>
                                                 <th>Product Name</th>
-                                                <th>Price</th>
-                                                <th>Quantity</th>
-                                                <th>Total</th>
-                                                <th>Action</th>
+                                                <th style="text-align: center;">Price</th>
+                                                <th style="width: 20%;text-align: center;">Quantity</th>
+                                                <th style="text-align: center;">Total</th>
+                                                <th style="text-align: center;">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="productTableBody">
@@ -2007,9 +2007,20 @@
                         row.className = 'product-row';
                         row.innerHTML = `
                         <td>${product.name}</td>
-                        <td>₹${product.finalPrice.toFixed(2)}</td>
+                        <td style="width:15%;">
+                        <div class="input-group input-group-sm" style="width: 100%;padding:0px">
+                            <span class="input-group-text" style="font-size:2em;padding:0px 10px;">₹</span>
+                            <input type="number"
+                                min="0.01"
+                                step="0.01"
+                                class="form-control text-end"
+                                value="${product.finalPrice.toFixed(2)}"
+                                onchange="updateProductPrice(${index}, event)"
+                                style='padding:0px 2px;font-size:1.5em;width:80%;'>
+                        </div>
+                        </td>
                         <td>
-                            <div class="d-flex justify-content-left" >
+                            <div class="d-flex justify-content-center" >
                                 <div class="input-group input-group-sm flex-nowrap" style="max-width: 150px;" id="quantityController">
                                 <button type="button"
                                         class="btn btn-outline-secondary quantity-btn"
@@ -2020,10 +2031,12 @@
                                 </button>
 
                                 <input type="number"
-                                        id="quantity-input-${index}"
-                                        class="form-control text-center no-spinner"
-                                        value="${product.quantity}"
-                                        style="min-width: 45px; max-width: 60px; padding: 2px 5px; font-size: 0.95rem;">
+                                    id="quantity-input-${index}"
+                                    class="form-control text-center no-spinner"
+                                    value="${product.quantity}"
+                                    min="1"
+                                    style="min-width: 45px; max-width: 60px; padding: 2px 5px; font-size: 0.95rem;"
+                                    onchange="updateQuantityFromInput(${index}, event)">
 
                                 <button type="button"
                                         class="btn btn-outline-secondary quantity-btn"
@@ -2035,12 +2048,11 @@
                             </div>
                         </td>
 
-                        <td>₹${product.total.toFixed(2)}</td>
+                        <td class="text-center">₹${product.total.toFixed(2)}</td>
 
-                        <td>
-                                <div  class=" text-danger pointer text-left" onclick="removeProduct(${index})"><i class="fa-solid fa-trash"></i></div>
+                        <td >
+                                <div  class=" text-danger pointer text-center" onclick="removeProduct(${index})"><i class="fa-solid fa-trash"></i></div>
                         </td>
-
                     `;
                         tableBody.appendChild(row);
                     });
@@ -2108,6 +2120,39 @@
                 updateProductTable();
                 updateTotals();
             };
+
+            
+            // Handle manual input of price
+            window.updateProductPrice = function(index, event) {
+                const inputValue = parseFloat(event.target.value);
+
+                if (!isNaN(inputValue) && inputValue >= 0.01) {
+                    selectedProducts[index].finalPrice = inputValue;
+                    selectedProducts[index].total = selectedProducts[index].quantity * inputValue;
+                    updateProductTable();
+                    updateTotals();
+                } else {
+                    // Reset to previous valid price if invalid
+                    event.target.value = selectedProducts[index].finalPrice.toFixed(2);
+                }
+            };
+
+
+            // Handle manual input of quantity
+            window.updateQuantityFromInput = function(index, event) {
+                const inputValue = parseInt(event.target.value, 10);
+
+                if (!isNaN(inputValue) && inputValue >= 0) {
+                    selectedProducts[index].quantity = inputValue;
+                    selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
+                    updateProductTable();
+                    updateTotals();
+                } else {
+                    // Optionally reset to previous valid value if input is invalid
+                    event.target.value = selectedProducts[index].quantity;
+                }
+            };
+
 
             // Increase product quantity
             window.increaseQuantity = function (index) {
