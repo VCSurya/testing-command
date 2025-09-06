@@ -14,11 +14,13 @@ from transport import transport_bp
 from builty import builty_bp
 from account import account_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
+from flask_cors import CORS
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # Constants for encryption

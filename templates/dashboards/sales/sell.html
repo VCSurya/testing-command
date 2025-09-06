@@ -11,6 +11,17 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 
     <style>
         :root {
@@ -30,15 +41,29 @@
             display: flex;
         }
 
-        .sidebar {
-            height: 100vh;
-            min-height: 100vh;
-            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+        #sidebarToggle {
+            background-color: var(--secondary);
             color: white;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            position: relative;
+            border: 1px solid var(--secondary);
+        }
+
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            min-width: 30vh;
+            max-width: 40vh;
+            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1050;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #sidebar.active {
+            transform: translateX(0);
         }
 
         .main-content {
@@ -46,9 +71,10 @@
             overflow-y: auto;
             padding: 0;
             scrollbar-width: none;
-            /* Firefox */
             -ms-overflow-style: none;
-            /* IE and Edge */
+            width: 100%;
+            /* z-index: 1050; */
+
         }
 
         .main-content::-webkit-scrollbar {
@@ -57,7 +83,7 @@
         }
 
         .sidebar-logo {
-            padding: 1.5rem 0;
+            padding: 0 0 10px 0;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -88,14 +114,7 @@
             /* border-radius: 12px; */
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Profile */
-        .profile-menu img {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
+            /* margin-bottom: 1.5rem; */
         }
 
         /* Responsive */
@@ -103,16 +122,35 @@
             display: none;
         }
 
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+
         @media (max-width: 991.98px) {
-            .sidebar {
-                position: fixed;
-                z-index: 1050;
-                left: -260px;
-                width: 260px !important;
+
+            #sidebarToggle {
+                margin-left: 10px;
+                margin-top: 10px;
             }
 
-            .sidebar.show {
-                left: 0;
+            .header-container {
+                padding: 0;
+            }
+
+            .profile-menu {
+                display: none;
             }
 
             .main-content {
@@ -124,20 +162,7 @@
                 display: block;
             }
 
-            .overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 1040;
-            }
-
-            .overlay.show {
-                display: block;
-            }
+           
         }
 
         @media (max-width: 767.98px) {
@@ -184,12 +209,12 @@
         }
 
         .billing-container {
-            background: linear-gradient(135deg, #f7fafc 60%, #e6eeff 100%);
+            /* background: linear-gradient(135deg, #f7fafc 60%, #e6eeff 100%); */
             border-radius: 22px;
-            box-shadow: 0 8px 32px rgba(67, 97, 238, 0.10), 0 2px 8px rgba(67, 97, 238, 0.07);
-            border: 1.5px solid #e3e8f7;
-            padding: 2.5rem 2.2rem 2.2rem 2.2rem;
-            margin: 1.5rem auto 0 auto;
+            /* box-shadow: 0 8px 32px rgba(67, 97, 238, 0.10), 0 2px 8px rgba(67, 97, 238, 0.07); */
+            /* border: 1.5px solid #e3e8f7; */
+            padding: 2rem 0;
+            /* margin: 1.5rem auto 0 auto; */
             max-width: 100%;
             width: 100%;
             transition: all 0.3s cubic-bezier(.4, 2, .6, 1);
@@ -251,10 +276,10 @@
         }
 
         #productTable th {
-            background-color: var(--primary);
+            background-color: rgb(83, 83, 83);
             color: white;
-            padding: 1rem;
-            font-weight: 500;
+            padding: 0.7rem;
+            font-weight: 700;
             text-align: left;
         }
 
@@ -365,7 +390,7 @@
 
         @media (max-width: 991.98px) {
             .billing-container {
-                padding: 1.2rem 0.7rem 1.2rem 0.7rem;
+                padding: 1rem 0;
                 border-radius: 16px;
                 max-width: 98vw;
                 min-height: 320px;
@@ -376,7 +401,7 @@
 
         @media (max-width: 575.98px) {
             .billing-container {
-                padding: 0.7rem 0.2rem 1rem 0.2rem;
+                padding: 1rem 0;
                 border-radius: 10px;
                 max-width: 100vw;
                 min-width: 0;
@@ -392,7 +417,7 @@
 
         @media (max-width: 991.98px) {
             .billing-container {
-                padding: 1.2rem 0.7rem 1.2rem 0.7rem;
+                padding: 1rem 0;
                 border-radius: 16px;
                 max-width: 98vw;
                 min-height: 320px;
@@ -401,7 +426,7 @@
 
         @media (max-width: 575.98px) {
             .billing-container {
-                padding: 0.7rem 0.2rem 1rem 0.2rem;
+                padding: 1rem 0;
                 border-radius: 10px;
                 max-width: 100vw;
                 min-height: 180px;
@@ -410,13 +435,13 @@
 
         @media (max-width: 991.98px) {
             .billing-container {
-                padding: 1.25rem 0.5rem;
+                padding: 1rem 0;
             }
         }
 
         @media (max-width: 575.98px) {
             .billing-container {
-                padding: 0.75rem 0.25rem;
+                padding: 1rem 0;
             }
         }
 
@@ -532,7 +557,7 @@
 
         @media (max-width: 991.98px) {
             .billing-container {
-                padding: 1.5rem;
+                padding: 1rem 0;
             }
 
             .split-row {
@@ -570,7 +595,8 @@
 
         @media (max-width: 767.98px) {
             .billing-container {
-                padding: 1rem;
+                padding: 1rem 0;
+
             }
 
             .form-group {
@@ -639,7 +665,7 @@
             }
 
             .billing-container {
-                padding: 1rem;
+                padding: 1rem 0;
             }
         }
     </style>
@@ -719,86 +745,7 @@
             }
         }
     </style>
-    <style>
-        /* Responsive Product Table as Cards on Mobile */
-        @media (max-width: 767.98px) {
-            #productTable {
-                display: none;
-            }
 
-            .product-card-container {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                margin-top: 1rem;
-            }
-
-            .product-card {
-                background: #fff;
-                border-radius: 12px;
-                box-shadow: 0 4px 16px rgba(67, 97, 238, 0.09), 0 1.5px 6px rgba(67, 97, 238, 0.05);
-                padding: 1.2rem 1rem 1rem 1rem;
-                display: flex;
-                flex-direction: column;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                position: relative;
-                transition: box-shadow 0.2s, transform 0.15s;
-            }
-
-            .product-card:hover {
-                box-shadow: 0 8px 24px rgba(67, 97, 238, 0.17), 0 2px 8px rgba(67, 97, 238, 0.08);
-                transform: translateY(-2px) scale(1.015);
-            }
-
-            .product-card-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 0.6rem;
-            }
-
-            .product-card-row:last-child {
-                margin-bottom: 0;
-            }
-
-            .product-card-label {
-                font-weight: 600;
-                color: var(--primary);
-                font-size: 1rem;
-                min-width: 90px;
-            }
-
-            .product-card-value {
-                font-size: 1.07rem;
-                color: #222;
-                font-weight: 500;
-            }
-
-            .product-card-actions {
-                display: flex;
-                gap: 0.5rem;
-                margin-top: 0.7rem;
-            }
-
-            .product-card-actions button {
-                min-width: 40px;
-                min-height: 40px;
-                font-size: 1.1rem;
-                border-radius: 8px;
-                transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
-            }
-
-            .product-card-actions button:active {
-                transform: scale(0.97);
-            }
-        }
-
-        @media (min-width: 768px) {
-            .product-card-container {
-                display: none;
-            }
-        }
-    </style>
     <style>
         /* Loading dots animation for print popup */
         #printLoadingDots .dot {
@@ -881,231 +828,16 @@
         }
     </style>
     <style>
-        .empty-state {
+        .empty-table {
             text-align: center;
-            padding: 10px 10px;
-            background: transparent;
-            position: relative;
-            overflow: hidden;
-            border-radius: 12px;
+            padding: 40px 20px;
+            color: #9ca3af;
         }
 
-        .floating-elements {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .floating-dot {
-            position: absolute;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            opacity: 0.6;
-            animation: float-dot 8s infinite ease-in-out;
-        }
-
-        .floating-dot:nth-child(1) {
-            width: 12px;
-            height: 12px;
-            top: 20%;
-            left: 15%;
-            animation-delay: 0s;
-        }
-
-        .floating-dot:nth-child(2) {
-            width: 8px;
-            height: 8px;
-            top: 60%;
-            right: 20%;
-            animation-delay: -2s;
-        }
-
-        .floating-dot:nth-child(3) {
-            width: 10px;
-            height: 10px;
-            top: 75%;
-            left: 25%;
-            animation-delay: -4s;
-        }
-
-        .icon-container {
-            position: relative;
-            display: inline-block;
-            z-index: 2;
-        }
-
-
-        .empty-state h4 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0;
-            position: relative;
-            z-index: 2;
-            background: linear-gradient(135deg, rgb(224, 118, 118), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Animations */
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px) rotate(0deg);
-            }
-
-            50% {
-                transform: translateY(-15px) rotate(180deg);
-            }
-        }
-
-        @keyframes bounce {
-
-            0%,
-            100% {
-                transform: translateY(0px) scale(1);
-            }
-
-            50% {
-                transform: translateY(-8px) scale(1.05);
-            }
-        }
-
-        @keyframes float-dot {
-
-            0%,
-            100% {
-                transform: translateY(0px) scale(1);
-                opacity: 0.6;
-            }
-
-            50% {
-                transform: translateY(-20px) scale(1.2);
-                opacity: 1;
-            }
-        }
-
-        @keyframes shine {
-            0% {
-                transform: translateX(-100%) translateY(-100%) rotate(45deg);
-            }
-
-            50% {
-                transform: translateX(100%) translateY(100%) rotate(45deg);
-            }
-
-            100% {
-                transform: translateX(-100%) translateY(-100%) rotate(45deg);
-            }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .empty-state {
-                padding: 60px 24px;
-            }
-
-            .product-icon {
-                width: 80px;
-                height: 80px;
-                border-radius: 20px;
-            }
-
-            .product-icon svg {
-                width: 40px;
-                height: 40px;
-            }
-
-            .empty-state h4 {
-                font-size: 24px;
-            }
-
-            .icon-container {
-                margin-bottom: 24px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .empty-state {
-                padding: 40px 20px;
-            }
-
-            .product-icon {
-                width: 64px;
-                height: 64px;
-                border-radius: 16px;
-            }
-
-            .product-icon svg {
-                width: 32px;
-                height: 32px;
-            }
-
-            .empty-state h4 {
-                font-size: 20px;
-            }
-
-            .icon-container {
-                margin-bottom: 20px;
-            }
-
-            .floating-dot {
-                display: none;
-                /* Hide floating dots on very small screens for cleaner look */
-            }
-        }
-
-        @media (max-width: 320px) {
-            .empty-state {
-                padding: 32px 16px;
-            }
-
-            .product-icon {
-                width: 56px;
-                height: 56px;
-                border-radius: 14px;
-            }
-
-            .product-icon svg {
-                width: 28px;
-                height: 28px;
-            }
-
-            .empty-state h4 {
-                font-size: 18px;
-            }
-        }
-
-        /* Hover effects for desktop */
-        @media (hover: hover) {
-            .product-icon:hover {
-                transform: translateY(-4px) scale(1.05);
-                box-shadow:
-                    0 16px 32px var(--shadow),
-                    0 8px 16px rgba(0, 0, 0, 0.15);
-                transition: all 0.3s ease;
-            }
-        }
-
-        /* Reduced motion for accessibility */
-        @media (prefers-reduced-motion: reduce) {
-
-            .empty-state::before,
-            .product-icon,
-            .floating-dot {
-                animation: none;
-            }
-
-            .product-icon::before {
-                animation: none;
-            }
+        .empty-table .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
         }
     </style>
 
@@ -1121,6 +853,436 @@
         }
     </style>
 
+    <style>
+        #section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #d1d1d1;
+        }
+
+        #section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+
+        #section-header .icon {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+    </style>
+    <style>
+        .item-container {
+            background-color: #ffffff;
+            /* border-radius: 5px; */
+            border-bottom: 1px solid #999999;
+            padding: 2px;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            /* Ensures padding doesn't affect the final width */
+            position: relative;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            border: 0.5px solid #050047;
+            /* border-radius: 4px; */
+            overflow: hidden;
+            width: 95%;
+            /* margin-left: 5px; */
+        }
+
+        .currency-symbol {
+            background-color: #f0f0f0;
+            padding: 4px 10px;
+            font-size: 1.5em;
+            font-weight: 600;
+            border-right: 0.5px solid #636363;
+        }
+
+
+
+        .item-name-label {
+            font-size: 1em;
+            border: 1px solid rgb(87, 86, 86);
+            background-color: #e7d8ff;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            /* pushes icon to the right */
+            align-items: center;
+            /* vertical alignment */
+            padding: 10px;
+            background-color: #f5f5f5;
+            /* optional: light background */
+            border-radius: 6px;
+            /* optional: rounded corners */
+            font-family: Arial, sans-serif;
+            border-radius: 5px 5px 0px 0px;
+            font-weight: 600;
+        }
+
+        /* --- Main Content Area (for flexbox layout) --- */
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            /* gap: 10px; */
+            width: 100%;
+            /* Space between the left and right columns */
+        }
+
+        /* --- Left and Right Columns --- */
+        .left-column,
+        .right-column {
+            flex: 1;
+            /* Each column takes up equal space */
+            display: flex;
+            flex-direction: column;
+            /* Space between elements within a column */
+        }
+
+
+        /* --- Specific styles for input fields --- */
+        .input-field {
+            background-color: #ffffff;
+            color: #000000;
+            padding: 10px;
+            text-align: center;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            /* Ensures padding doesn't affect the final width */
+            font-size: 1em;
+        }
+
+        /* --- Quantity Control Container --- */
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            background-color: #2d333b;
+            /* border-radius: 4px; */
+            overflow: hidden;
+            width: fit-content;
+            border: 1px solid #3f4751;
+        }
+
+        .quantity-control button {
+            background-color: #2d333b;
+            color: #c9d1d9;
+            border: none;
+            padding: 0 15px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .quantity-control .item-quantity {
+            width: 50px;
+            background-color: #d6d6d6;
+            border: none;
+            color: #000000;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 8px 0;
+        }
+
+        .quantity-control .item-quantity:focus {
+            outline: none;
+            background-color: #eeeeee;
+            color: #000000;
+        }
+
+
+        .amount-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f5f5f5;
+            border: 1px solid rgb(87, 86, 86);
+            border-radius: 0px 0px 5px 5px;
+            padding: 5px 20px;
+            margin-top: 0.3rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .grand-total-display {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgb(8, 1, 48);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 0.3rem 1rem;
+            margin-bottom: 0.5em;
+            margin-top: 0.5em;
+        }
+
+        .grand-total-label {
+            font-size: 1rem;
+            /* Slightly larger label */
+            font-weight: 600;
+            color: white;
+        }
+
+        .grand-total-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .rupee-symbol {
+            font-weight: 400;
+            margin-right: 0.5rem;
+            color: var(--secondary-text-color);
+        }
+
+        #preGrandTotal {
+            display: none;
+        }
+    </style>
+    <style>
+        /* Responsive Product Table as Cards on Mobile */
+        @media (max-width: 767.98px) {
+            #productTable {
+                display: none;
+            }
+
+            .product-card-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+
+            .product-card {
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 4px 16px rgba(67, 97, 238, 0.09), 0 1.5px 6px rgba(67, 97, 238, 0.05);
+                display: flex;
+                flex-direction: column;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                position: relative;
+                transition: box-shadow 0.2s, transform 0.15s;
+            }
+
+            .product-card-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.6rem;
+            }
+
+            .product-card-row:last-child {
+                margin-bottom: 0;
+            }
+
+
+        }
+
+        @media (min-width: 768px) {
+            .product-card-container {
+                display: none;
+            }
+        }
+    </style>
+
+    <style>
+        /* Main container for the form */
+        .main-container {
+            background-color: #ffffff;
+            padding: 24px;
+            /* Increased padding */
+            border-radius: 1.25rem;
+            /* Softer radius */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            /* Softer shadow */
+            width: 100%;
+            transition: box-shadow 300ms ease-in-out;
+            border: 1px solid #d1d1d1;
+
+        }
+
+        .icon-container {
+            background-color: #ede9fe;
+            /* New color scheme: violet */
+            color: #6d28d9;
+            height: 3rem;
+            width: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+        }
+
+        .icon-container .fa-truck {
+            font-size: 1.25rem;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        /* Dropdown Section */
+        .dropdown-wrapper {
+            flex: 1 1 0%;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            /* Bolder label */
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .select-container {
+            position: relative;
+        }
+
+        .select-element {
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding: 0.875rem 1rem;
+            /* Standardized padding */
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out;
+            font-size: 1rem;
+            line-height: 1.5;
+            /* Ensure consistent line height */
+        }
+
+        .select-element:focus {
+            outline: none;
+            border-color: #6d28d9;
+            /* Focus color matches theme */
+            box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
+        }
+
+        .select-arrow {
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            color: #6b7280;
+        }
+
+        .select-arrow .fa-chevron-down {
+            font-size: 0.75rem;
+        }
+
+        /* GST Toggle Section */
+        .gst-wrapper {
+            flex-shrink: 0;
+        }
+
+        .gst-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f9fafb;
+            padding: 0.875rem 1rem;
+            /* Standardized padding for alignment */
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .gst-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1f2937;
+            margin-right: 1rem;
+        }
+
+        .toggle-switch-label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .sr-only-checkbox {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        .toggle-track {
+            width: 2.75rem;
+            height: 1.5rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            transition: background-color 300ms ease-in-out;
+        }
+
+        .toggle-thumb {
+            position: absolute;
+            top: 0.125rem;
+            left: 2px;
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 9999px;
+            height: 1.25rem;
+            width: 1.25rem;
+            transition: transform 300ms ease-in-out;
+        }
+
+        .sr-only-checkbox:checked+.toggle-track {
+            background-color: #6d28d9;
+            /* Checked color matches theme */
+        }
+
+        .sr-only-checkbox:checked~.toggle-thumb {
+            transform: translateX(1.25rem);
+        }
+
+        .sr-only-checkbox:focus+.toggle-track {
+            box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.3);
+            /* Focus ring color matches theme */
+        }
+
+        /* Responsive Styles */
+        @media (min-width: 768px) {
+            .form-elements-wrapper {
+                display: flex;
+                align-items: flex-end;
+                /* Align to the bottom for a clean line */
+                gap: 1.5rem;
+            }
+
+            .dropdown-wrapper {
+                margin-bottom: 0;
+            }
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1131,18 +1293,26 @@
         <div class="row g-0">
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
-                <div class="sidebar-logo mb-4">
-                    <h3 class="logo-text">Sales<span class="text-warning">Pro</span></h3>
+                <div class="sidebar-logo mb-4 d-flex">
+                    <i class="bi bi-list fs-4 text-white"  id="hideButton"></i>
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
+                        <h3 class="logo-text text-white">
+                            Sales<span class="text-warning">Pro</span>
+                        </h3>
+                    </div>
                 </div>
+
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/sales/dashboard"><i
+                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/ready-to-go-orders"><i class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                        <a class="nav-link" href="/sales/ready-to-go-orders"><i
+                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
@@ -1150,6 +1320,11 @@
                     <li class="nav-item">
                         <a class="nav-link " href="/sales/cancel-orders">
                             <i class="bi bi-x-circle me-2"></i>Canceled
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
                     </li>
                 </ul>
@@ -1161,24 +1336,21 @@
 
                 <div class="header-container d-flex justify-content-between align-items-center">
 
-                    <div class="d-flex align-items-center">
-                        <button class="btn mobile-toggle me-3" id="sidebarToggle">
-                            <i class="bi bi-list fs-4"></i>
+                    <div class="d-flex align-items-center justify-content-between p-0">
+                        <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
+                            <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0">Billing</h4>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Billing</h4>
                     </div>
 
+
                     <div class="dropdown profile-menu">
-                        <button class="btn dropdown-toggle d-flex align-items-center" type="button"
-                            id="dropdownMenuButton" data-bs-toggle="dropdown">
-                            <!-- <img src="/api/placeholder/100/500" alt="profile" class="me-2"> -->
+                        <button class="btn d-flex align-items-center" type="button" id="dropdownMenuButton"
+                            style="border: 1px solid rgb(207, 207, 207);">
+                            <i class="fas fa-user me-2"></i>
                             <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
                             </span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/logout"><i
-                                        class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
                     </div>
                 </div>
 
@@ -1186,189 +1358,387 @@
                     <!-- Billing System Container -->
                     <div class="billing-container">
                         <form id="billingForm">
+
+
                             <!-- Customer Information -->
-                            <div class="form-group">
-                                <label for="customerSelect">Customer:</label>
+                            <div class="form-group" id="section">
+                                <div class="section-header">
+                                    <span for="customerSelect" class="icon">👤</span>
+                                    SELECT CUSTOMER
+                                    <button type="button"
+                                        style="border:none;padding: 0px 10px;float: right;background-color: #ffffff;color: #1e094d;"
+                                        id="addCustomerBtn">
+                                        <span> <i class="bi bi-plus-circle"></i> Add </span>
+                                    </button>
+                                </div>
+                                <br>
                                 <div style="display: flex;gap: 20px;">
                                     <select class="form-select" id="customerSelect" name="customer_id" required>
                                         <option value="">Select Customer</option>
                                     </select>
-                                    <button type="button" style="border-radius: 5px;padding: 0px 10px;"
-                                        id="addCustomerBtn" class="bi bi-people-fill"></button>
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label for="deliveryMode">Delivery Mode:</label>
-                                <div style="display: flex;gap: 20px;">
-                                    <select class="form-select" id="deliveryMode" name="delivery_mode" required>
-                                        <option value="at_store">At Store</option>
-                                        <option value="porter">Porter</option>
-                                        <option value="transport">Transport</option>
-                                        <option value="post">Post</option>
-                                    </select>
-                                    <i class="bi bi-plus-circle-fill" id="addProductBtn"
-                                        style="font-size: 35px;color: #45a049;padding: 0px 3px;"></i>
+                            <div class="form-group" id="section">
+                                <div class="section-header">
+                                    <span for="customerSelect" class="icon">📦</span>
+                                    PRODUCT TABLE
+                                    <button type="button"
+                                        style="border:none;padding: 0px 10px;float: right;background-color: #ffffff;color: #1e094d;"
+                                        id="addCustomerBtn">
+                                        <span id="addProductBtn"> <i class="bi bi-plus-circle"></i> Add Item </span>
+                                    </button>
                                 </div>
-                            </div>
 
-                            <div class="form-group" id="transportCompanyGroup" style="display: none;">
-                                <label for="transportCompany">Transport Company Name:</label>
-                                <input type="text" class="form-control" id="transportCompany" name="transport_company">
-                            </div>
-
-                            <div class="form-group" id="eventSelectionGroup" style="display: none;">
-                                <div style="display: flex; gap: 20px;">
-                                    <select class="form-select" id="eventSelect" name="event_id">
-                                        <option value="">Select Event</option>
-                                    </select>
+                                <div class="table-responsive">
+                                    <div class="table-responsive" id="productTableResponsive">
+                                        <table id="productTable" class="table product-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th style="text-align: center;">Price</th>
+                                                    <th style="width: 20%;text-align: center;">Quantity</th>
+                                                    <th style="text-align: center;">Total</th>
+                                                    <th style="text-align: center;">Delete</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="productTableBody">
+                                            </tbody>
+                                        </table>
+                                        <!-- Card container for mobile view -->
+                                        <div id="productCardContainer" class="product-card-container">
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <script>
-                                document.addEventListener('DOMContentLoaded', function () {
-                                    function fetchEvents() {
-                                        fetch('/sales/all_events_details')
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                const eventSelectGroup = document.getElementById('eventSelectionGroup');
-                                                const eventSelect = document.getElementById('eventSelect');
-
-                                                if (!data.success || data.data.length === 0) {
-                                                    // Hide the selection group if no events are available
-                                                    eventSelectGroup.style.display = 'none';
-                                                    return;
-                                                }
-
-                                                // Clear existing options
-                                                eventSelect.innerHTML = '<option value="">Select Event</option>';
-
-                                                // Populate dropdown
-                                                data.data.forEach(event => {
-                                                    const option = document.createElement('option');
-                                                    option.value = event.id;
-                                                    option.textContent = event.name;
-                                                    eventSelect.appendChild(option);
-                                                });
-
-                                                // Show the selection group
-                                                eventSelectGroup.style.display = 'block';
-                                            })
-                                            .catch(error => {
-                                                console.error('Error fetching events:', error);
-                                                alert('Failed to load events. Please try again.');
-                                            });
-                                    }
-
-                                    fetchEvents();
-                                    document.getElementById('refreshEventsBtn').addEventListener('click', fetchEvents);
-                                });
-
-                            </script>
-
-                            <div class="table-responsive">
-                                <div class="table-responsive" id="productTableResponsive">
-                                    <table id="productTable" class="table product-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Product Name</th>
-                                                <th style="text-align: center;">Price</th>
-                                                <th style="width: 20%;text-align: center;">Quantity</th>
-                                                <th style="text-align: center;">Total</th>
-                                                <th style="text-align: center;">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="productTableBody">
-                                        </tbody>
-                                    </table>
-                                    <!-- Card container for mobile view -->
-                                    <div id="productCardContainer" class="product-card-container"></div>
+                                <div class="grand-total-display" id="preGrandTotal">
+                                    <span class="grand-total-label">Grand Total</span>
+                                    <div class="grand-total-value">
+                                        <span class="rupee-symbol">₹</span>
+                                        <span id="grand-total-value">0</span>
+                                    </div>
                                 </div>
 
                             </div>
 
-                            <!-- Payment Information -->
-                            <div class="payment-section" id="paymentSection" style="display: none;">
-                                <h3>Payment Details</h3>
+                            <!-- Main container for the delivery options section -->
+                            <div class="main-container">
 
-                                <div class="form-group">
-                                    <label for="paymentMode">Payment Mode:</label>
-                                    <div style="display: flex;">
-                                        <select class="form-select" id="paymentMode" name="payment_mode" required>
-                                            <option value="cash">Cash</option>
-                                            <option value="online">Online</option>
-                                            <option value="not_paid">Not Paid</option>
-                                        </select>
-                                        <div class="payment-container" id="paymentDiv">
-                                            <div class="add-payment-btn" id="addPaymentButton">✍️</div>
+                                <div class="section-header">
+                                    <span class="icon"><i class="fa-solid fa-truck"></i></span>
+                                    DELIVERY MODE
+                                </div>
+                                <br>
+                                <!-- Responsive container for form elements -->
+                                <div class="form-elements-wrapper">
+
+                                    <!-- Delivery Mode Dropdown Wrapper -->
+                                    <div class="dropdown-wrapper">
+                                        <div class="select-container">
+                                            <select id="delivery-mode-select" name="delivery_mode"
+                                                class="select-element" required>
+                                                <option value="" disabled selected>Select an option</option>
+                                                <option value="store_pickup">At Store</option>
+                                                <option value="local_courier">Porter</option>
+                                                <option value="transport_service">Transport</option>
+                                                <option value="postal_service">Post</option>
+                                            </select>
+                                            <div class="select-arrow">
+                                                <i class="fa-solid fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="form-group" id="section">
+                                <div class="section-header">
+                                    <span for="customerSelect" class="icon"><i class="fa-solid fa-bullhorn"></i></span>
+                                    SELECT EVENT
+                                </div>
+                                <br>
+                                <!-- Responsive container for form elements -->
+                                <div class="form-elements-wrapper">
+
+                                    <!-- Delivery Mode Dropdown Wrapper -->
+                                    <div class="dropdown-wrapper">
+                                        <div class="select-container">
+                                            <select class="form-select" id="eventSelect" name="event_id">
+                                                <option value="">Select Event</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- this is for payment notes here user can enter the notes about payment -->
-                                <div class="form-group" id="otherPaymentDetails" style="display: none;">
-                                    <label for="otherPaymentNote">Enter Relevant Payment Notes:</label>
-                                    <textarea class="form-control" id="otherPaymentNote" name="payment_note"
-                                        rows="2"></textarea>
-                                </div>
-
-                                <div class="form-group" id="paymentTypeGroup">
-                                    <label for="paymentType">Payment Type:</label>
-                                    <select class="form-select" id="paymentType" name="payment_type" required>
-                                        <option disabled selected>Select Payment Type</option>
-                                        <option value="full_payment">Full Payment</option>
-                                        <option value="half_payment">Half Payment</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group" id="paidAmountGroup" style="display: none;">
-                                    <label for="paidAmount">Paid Amount:</label>
-                                    <input type="number" class="form-control" id="paidAmount" name="paid_amount"
-                                        value="0" min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
-                                    <div class="invalid-feedback">Paid amount must be between 0 and the grand total.
-                                    </div>
-                                </div>
-
-                                <div class="form-group" id="leftToPayGroup" style="display: none;">
-                                    <label for="leftToPayDisplay">Left to Pay:</label>
-                                    <input type="text" class="form-control" id="leftToPayDisplay" readonly disabled>
-                                    <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
-                                </div>
-
-                                <div class="form-group">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="IncludeGST"
-                                            id="IncludeGST">
-                                        <label class="form-check-label" for="IncludeGST ">Include GST (18%)</label>
-                                    </div>
-                                </div>
-
-                                <div class="total-calculation">
-                                    <div class="total-row">
-                                        <strong>Grand Total:</strong>
-                                        <span id="grandTotal">₹0.00</span>
-                                        <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
-                                    </div>
-                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label for="salesNote">Sales Note:</label>
-                                <textarea class="form-control" id="salesNote" name="sales_note" rows="3"></textarea>
+                            <div class="form-group" id="section">
+                                <div class="section-header">
+                                    <span for="customerSelect" class="icon"><i class="fas fa-credit-card" style="font-size: 1em; color: #002042;"></i></span>
+                                    PAYMENT 
+                                </div>
+                                <br>
+
+
+                                <!-- Form Fields Container -->
+                                <div style="display: flex; flex-direction: column; gap: 18px;">
+
+                                    <!-- Flex container for dropdowns to make them responsive -->
+                                    <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                                        <!-- Payment Method Dropdown -->
+                                        <div style="flex: 1; min-width: 150px;">
+                                            <label for="payment-method"
+                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
+                                                Method</label>
+                                            <select id="payment-method"
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
+                                                <option>Select a method...</option>
+                                                <option value="credit_card">Credit Card</option>
+                                                <option value="debit_card">Debit Card</option>
+                                                <option value="net_banking">Net Banking</option>
+                                                <option value="upi">UPI / QR Code</option>
+                                                <option value="cash">Cash</option>
+                                            </select>
+                                        </div>
+                                        <!-- Payment Type Dropdown -->
+                                        <div style="flex: 1; min-width: 150px;">
+                                            <label for="payment-type"
+                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
+                                                Type</label>
+                                            <select id="payment-type"
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
+                                                <option>Select payment type...</option>
+                                                <option value="full">Full Payment</option>
+                                                <option value="partial">Partial Payment</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Flex container for amount inputs to make them responsive -->
+                                    <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                                        <!-- Paid Amount Input -->
+                                        <div style="flex: 1; min-width: 150px;">
+                                            <label for="paid-amount"
+                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Paid
+                                                Amount</label>
+                                            <input type="number" id="paid-amount" placeholder="e.g., 1000"
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; box-sizing: border-box;">
+                                        </div>
+                                        <!-- Left to Pay (disabled) -->
+                                        <div style="flex: 1; min-width: 150px;">
+                                            <label for="left-to-pay"
+                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Left
+                                                to Pay</label>
+                                            <input type="number" id="left-to-pay" placeholder="e.g., 500" disabled
+                                                style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #edf2f7; font-size: 16px; color: #718096; box-sizing: border-box; cursor: not-allowed;">
+                                        </div>
+                                    </div>
+
+                                    <!-- GST Toggle Switch Wrapper -->
+                                    <div class="gst-wrapper">
+                                        <div class="gst-container">
+                                            <span class="gst-text">Include GST (18%)</span>
+                                            <label for="gst-toggle-switch" class="toggle-switch-label">
+                                                <input type="checkbox" id="gst-toggle-switch" class="sr-only-checkbox">
+                                                <div class="toggle-track"></div>
+                                                <div class="toggle-thumb"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+
+                                    <!-- Notes Textarea -->
+                                    <div>
+                                        <label for="notes"
+                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment Note (Optional)</label>
+                                        <textarea id="notes" rows="3"
+                                            placeholder="Add any notes regarding this payment..."
+                                            style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
+                                    </div>
+
+                                    <!-- Notes Textarea -->
+                                    <div>
+                                        <label for="notes"
+                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Sales Note (Optional)</label>
+                                        <textarea id="notes" rows="3"
+                                            placeholder="Add any notes regarding this payment..."
+                                            style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
+                                    </div>
+
+                                    <!-- Grand Total Display -->
+                                    <div
+                                        style="background-color: #edf2f7; border-radius: 8px; padding: 16px; text-align: center; margin-top: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #4a5568; font-weight: 500;">
+                                            GRAND TOTAL</p>
+                                        <p
+                                            style="margin: 8px 0 0 0; font-size: 32px; color: #1a202c; font-weight: 700;">
+                                            ₹1,500.00
+                                        </p>
+                                    </div>
+
+                                    <!-- Submit Button -->
+                                    <button type="submit"
+                                        style="width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #2c5282; color: #ffffff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center;">
+                                        Confirm Order
+                                    </button>
+
+                                </div>
+
                             </div>
 
-                            <div class="d-flex gap-2 justify-content-end">
-                                <!-- <button type="submit" class="btn btn-primary">Generate Bill</button> -->
-                            </div>
-                        </form>
-                        <!-- Print button at the very bottom of billing-container -->
-                        <button type="button" class="btn btn-secondary w-100 mt-3" id="printBtn"
-                            style="display:none;">Save
-                            Bill</button>
                     </div>
+
+
+
+                    <div class="form-group">
+                        <label for="deliveryMode">Delivery Mode:</label>
+                        <div style="display: flex;gap: 20px;">
+                            <select class="form-select" id="deliveryMode" name="delivery_mode" required>
+                                <option value="at_store">At Store</option>
+                                <option value="porter">Porter</option>
+                                <option value="transport">Transport</option>
+                                <option value="post">Post</option>
+                            </select>
+                            <i class="bi bi-plus-circle-fill" id="addProductBtn"
+                                style="font-size: 35px;color: #45a049;padding: 0px 3px;"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="transportCompanyGroup" style="display: none;">
+                        <label for="transportCompany">Transport Company Name:</label>
+                        <input type="text" class="form-control" id="transportCompany" name="transport_company">
+                    </div>
+
+                    <div class="form-group" id="eventSelectionGroup" style="display: none;">
+                        <div style="display: flex; gap: 20px;">
+                            <select class="form-select" id="eventSelect" name="event_id">
+                                <option value="">Select Event</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            function fetchEvents() {
+                                fetch('/sales/all_events_details')
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        const eventSelectGroup = document.getElementById('eventSelectionGroup');
+                                        const eventSelect = document.getElementById('eventSelect');
+
+                                        if (!data.success || data.data.length === 0) {
+                                            // Hide the selection group if no events are available
+                                            eventSelectGroup.style.display = 'none';
+                                            return;
+                                        }
+
+                                        // Clear existing options
+                                        eventSelect.innerHTML = '<option value="">Select Event</option>';
+
+                                        // Populate dropdown
+                                        data.data.forEach(event => {
+                                            const option = document.createElement('option');
+                                            option.value = event.id;
+                                            option.textContent = event.name;
+                                            eventSelect.appendChild(option);
+                                        });
+
+                                        // Show the selection group
+                                        eventSelectGroup.style.display = 'block';
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching events:', error);
+                                        alert('Failed to load events. Please try again.');
+                                    });
+                            }
+
+                            fetchEvents();
+                            document.getElementById('refreshEventsBtn').addEventListener('click', fetchEvents);
+                        });
+
+                    </script>
+
+
+                    <!-- Payment Information -->
+                    <div class="payment-section" id="paymentSection" style="display: none;">
+                        <h3>Payment Details</h3>
+
+                        <div class="form-group">
+                            <label for="paymentMode">Payment Mode:</label>
+                            <div style="display: flex;">
+                                <select class="form-select" id="paymentMode" name="payment_mode" required>
+                                    <option value="cash">Cash</option>
+                                    <option value="online">Online</option>
+                                    <option value="not_paid">Not Paid</option>
+                                </select>
+                                <div class="payment-container" id="paymentDiv">
+                                    <div class="add-payment-btn" id="addPaymentButton">✍️</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- this is for payment notes here user can enter the notes about payment -->
+                        <div class="form-group" id="otherPaymentDetails" style="display: none;">
+                            <label for="otherPaymentNote">Enter Relevant Payment Notes:</label>
+                            <textarea class="form-control" id="otherPaymentNote" name="payment_note"
+                                rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group" id="paymentTypeGroup">
+                            <label for="paymentType">Payment Type:</label>
+                            <select class="form-select" id="paymentType" name="payment_type" required>
+                                <option disabled selected>Select Payment Type</option>
+                                <option value="full_payment">Full Payment</option>
+                                <option value="half_payment">Half Payment</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="paidAmountGroup" style="display: none;">
+                            <label for="paidAmount">Paid Amount:</label>
+                            <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0"
+                                min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
+                            <div class="invalid-feedback">Paid amount must be between 0 and the grand total.
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="leftToPayGroup" style="display: none;">
+                            <label for="leftToPayDisplay">Left to Pay:</label>
+                            <input type="text" class="form-control" id="leftToPayDisplay" readonly disabled>
+                            <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="IncludeGST" id="IncludeGST">
+                                <label class="form-check-label" for="IncludeGST ">Include GST (18%)</label>
+                            </div>
+                        </div>
+
+                        <div class="total-calculation">
+                            <div class="total-row">
+                                <strong>Grand Total:</strong>
+                                <span id="grandTotal">₹0.00</span>
+                                <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="salesNote">Sales Note:</label>
+                        <textarea class="form-control" id="salesNote" name="sales_note" rows="3"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <!-- <button type="submit" class="btn btn-primary">Generate Bill</button> -->
+                    </div>
+                    </form>
+                    <!-- Print button at the very bottom of billing-container -->
+                    <button type="button" class="btn btn-secondary w-100 mt-3" id="printBtn" style="display:none;">Save
+                        Bill</button>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Print Popup Modal -->
@@ -1442,7 +1812,7 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmAddCustomer">Add</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddCustomer">+ Add</button>
                 </div>
             </div>
         </div>
@@ -1480,7 +1850,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="confirmAddProduct">Add to Bill</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddProduct">+ Add to Bill</button>
                 </div>
             </div>
         </div>
@@ -1503,31 +1873,37 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Sidebar toggle functionality
-            const sidebarToggle = document.getElementById('sidebarToggle');
+
+            const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            const hideButton = document.getElementById('hideButton');
 
-            function toggleSidebar() {
-                sidebar.classList.toggle('show');
-                overlay.classList.toggle('show');
+            // Toggle sidebar open/close
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                    document.body.classList.toggle('sidebar-open');
+                    overlay.classList.toggle('show');
+                });
             }
 
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
+            // Hide sidebar function (reusable)
+            function hideSidebar() {
+                sidebar.classList.remove('active', 'show');
+                document.body.classList.remove('sidebar-open');
+                overlay.classList.remove('show');
             }
 
+            // Hide when clicking on overlay
             if (overlay) {
-                overlay.addEventListener('click', toggleSidebar);
+                overlay.addEventListener('click', hideSidebar);
             }
 
-            // Close sidebar on window resize if screen becomes large
-            window.addEventListener('resize', function () {
-                if (window.innerWidth > 992 && sidebar.classList.contains('show')) {
-                    sidebar.classList.remove('show');
-                    overlay.classList.remove('show');
-                }
-            });
+            // Hide when clicking on the hide button
+            if (hideButton) {
+                hideButton.addEventListener('click', hideSidebar);
+            }
 
             // Billing System JavaScript
             let customers = [];
@@ -1668,6 +2044,7 @@
             function updateTotals() {
                 grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
                 document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+                document.getElementById('grand-total-value').textContent = `${grandTotal.toFixed(2)}`;
                 document.getElementById('grandTotalInput').value = grandTotal;
 
 
@@ -1970,8 +2347,12 @@
                 if (paymentSection) {
                     if (selectedProducts.length > 0) {
                         paymentSection.style.display = '';
+                        document.getElementById('preGrandTotal').style.display = 'flex'
+
                     } else {
                         paymentSection.style.display = 'none';
+                        document.getElementById('preGrandTotal').style.display = 'none'
+
                     }
                 }
 
@@ -1988,13 +2369,14 @@
                 if (selectedProducts.length <= 0) {
                     tableBody.innerHTML = `
                     
+                    
                     <tr>
-                    <td colspan="5">
-                            <div class="empty-state">
-                                <h4>No Product Selected</h4>
-                            </div>
-                    </td>
-                </tr>
+                        <td colspan="5" class="empty-table">
+                                <div class="icon">🛒</div>
+                                <div>No products added yet</div>
+                                <div style="font-size: 12px; margin-top: 8px;">Click "Add Item" to add items</div>
+                        </td>
+                    </tr>
 
                     
                     `;
@@ -2065,33 +2447,45 @@
                             const card = document.createElement('div');
                             card.className = 'product-card';
                             card.innerHTML = `
-                                <div class="product-card-row">
-                                    <span class="product-card-label">Name:</span>
-                                    <span class="product-card-value"><strong>${product.name}</strong></span>
-                                </div>
-                                <div class="product-card-row">
-                                    <span class="product-card-label">Price:</span>
-                                    <span class="product-card-value">₹${product.finalPrice.toFixed(2)}</span>
-                                </div>
-                                <div class="product-card-row">
-                                    <span class="product-card-label">Quantity:</span>
-                                    <span class="product-card-value">${product.quantity}</span>
-                                </div>
-                                <div class="product-card-row">
-                                    <span class="product-card-label">Total:</span>
-                                    <span class="product-card-value">₹${product.total.toFixed(2)}</span>
-                                </div>
-                                <div class="product-card-actions">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="decreaseQuantity(${index})" title="Decrease Quantity" ${product.quantity <= 1 ? 'disabled' : ''}>
-                                        <i class="bi bi-dash"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="increaseQuantity(${index})" title="Increase Quantity">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeProduct(${index})"><i class="fa-solid fa-trash"></i></button>
                                     
-                                </div>
-                            `;
+                                    <div class="item-container"> 
+                                        <div class="item-name-label">
+                                            <span>❏ ${product.name} </span>
+                                            <i class="fas fa-trash" style="color:red;" onclick="removeProduct(${index})"></i>                                        
+                                        </div>
+
+                                        <div class="item-details">
+                                            <div class="left-column">
+                                                
+                                                <div class="input-wrapper">
+                                                    <span class="currency-symbol">₹</span>
+                                                    <input type="number" class="input-field" id="item-price" value="${product.finalPrice.toFixed(2)}" min="0.01" step="0.01" onchange="updateProductPrice(${index}, event)">
+                                                </div>
+
+                                                
+                                            </div>
+
+                                            <div class="right-column">
+                                                <div class="quantity-control">
+                                                    <button id="decrease-qty" onclick="decreaseQuantity(${index})" title="Decrease Quantity" ${product.quantity <= 1 ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
+
+                                                    <input type="number" class="item-quantity" id="item-quantity" value="${product.quantity}" min="1"  onchange="updateQuantityFromInput(${index}, event)">
+                                                    
+                                                    <button id="increase-qty" onclick="increaseQuantity(${index})" title="Increase Quantity"><i class="fas fa-plus"></i></button>
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="amount-display">
+                                            <span class="total-label">Total:</span>
+                                            <div class="amount-value">
+                                                <span class="rupee-symbol">₹</span>
+                                                <span id="amount-value">${product.total.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    `;
                             cardContainer.appendChild(card);
                         });
                     }
@@ -2121,9 +2515,9 @@
                 updateTotals();
             };
 
-            
+
             // Handle manual input of price
-            window.updateProductPrice = function(index, event) {
+            window.updateProductPrice = function (index, event) {
                 const inputValue = parseFloat(event.target.value);
 
                 if (!isNaN(inputValue) && inputValue >= 0.01) {
@@ -2139,7 +2533,7 @@
 
 
             // Handle manual input of quantity
-            window.updateQuantityFromInput = function(index, event) {
+            window.updateQuantityFromInput = function (index, event) {
                 const inputValue = parseInt(event.target.value, 10);
 
                 if (!isNaN(inputValue) && inputValue >= 0) {
