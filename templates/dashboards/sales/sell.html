@@ -162,7 +162,7 @@
                 display: block;
             }
 
-           
+
         }
 
         @media (max-width: 767.98px) {
@@ -854,7 +854,8 @@
     </style>
 
     <style>
-        #section {
+        #section,
+        #eventSelectionGroup {
             background: white;
             border-radius: 12px;
             padding: 24px;
@@ -966,7 +967,7 @@
         .quantity-control {
             display: flex;
             align-items: center;
-            background-color: #2d333b;
+            background-color: #ffffff;
             /* border-radius: 4px; */
             overflow: hidden;
             width: fit-content;
@@ -974,7 +975,7 @@
         }
 
         .quantity-control button {
-            background-color: #2d333b;
+            background-color: #ffffff;
             color: #c9d1d9;
             border: none;
             padding: 0 15px;
@@ -992,10 +993,10 @@
             font-size: 18px;
             font-weight: 600;
             padding: 8px 0;
+            z-index: 1;
         }
 
         .quantity-control .item-quantity:focus {
-            outline: none;
             background-color: #eeeeee;
             color: #000000;
         }
@@ -1042,7 +1043,6 @@
 
         .rupee-symbol {
             font-weight: 400;
-            margin-right: 0.5rem;
             color: var(--secondary-text-color);
         }
 
@@ -1294,8 +1294,9 @@
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
                 <div class="sidebar-logo mb-4 d-flex">
-                    <i class="bi bi-list fs-4 text-white"  id="hideButton"></i>
-                    <div style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
+                    <i class="bi bi-list fs-4 text-white" id="hideButton"></i>
+                    <div
+                        style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
                         <h3 class="logo-text text-white">
                             Sales<span class="text-warning">Pro</span>
                         </h3>
@@ -1410,14 +1411,37 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="grand-total-display" id="preGrandTotal">
                                     <span class="grand-total-label">Grand Total</span>
                                     <div class="grand-total-value">
                                         <span class="rupee-symbol">₹</span>
                                         <span id="grand-total-value">0</span>
+                                        <input type="hidden" id="input-grand-total-value" name="grand_total" value="0">
+
                                     </div>
                                 </div>
 
+                            </div>
+
+
+                            
+                            <div class="form-group" id="eventSelectionGroup" style="display: none;">
+                                <div class="section-header">
+                                    <span for="customerSelect" class="icon"><i class="fa-solid fa-bullhorn"></i></span>
+                                    SELECT EVENT
+                                </div>
+                                <br>
+                                <!-- Responsive container for form elements -->
+                                <div class="form-elements-wrapper">
+                                    <div class="dropdown-wrapper">
+                                        <div class="select-container">
+                                            <select class="form-select" id="eventSelect" name="event_id">
+                                                <option value="">Select Event</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Main container for the delivery options section -->
@@ -1434,13 +1458,12 @@
                                     <!-- Delivery Mode Dropdown Wrapper -->
                                     <div class="dropdown-wrapper">
                                         <div class="select-container">
-                                            <select id="delivery-mode-select" name="delivery_mode"
-                                                class="select-element" required>
+                                            <select class="form-select" id="deliveryMode" name="delivery_mode" required>
                                                 <option value="" disabled selected>Select an option</option>
-                                                <option value="store_pickup">At Store</option>
-                                                <option value="local_courier">Porter</option>
-                                                <option value="transport_service">Transport</option>
-                                                <option value="postal_service">Post</option>
+                                                <option value="at_store">At Store</option>
+                                                <option value="porter">Porter</option>
+                                                <option value="transport">Transport</option>
+                                                <option value="post">Post</option>
                                             </select>
                                             <div class="select-arrow">
                                                 <i class="fa-solid fa-chevron-down"></i>
@@ -1448,38 +1471,25 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="form-group" id="transportCompanyGroup" style="display: none;margin-top: 20px;">
+                                    <!-- <label for="transportCompany">Transport Company Name:</label> -->
+                                    <input type="text" class="form-control" id="transportCompany"
+                                        name="transport_company" placeholder="Enter Transport Company Name">
+                                </div>
                             </div>
                             <br>
 
+                        <div id="paymentSection" style="display: none;">
                             <div class="form-group" id="section">
+
                                 <div class="section-header">
-                                    <span for="customerSelect" class="icon"><i class="fa-solid fa-bullhorn"></i></span>
-                                    SELECT EVENT
+                                    <span for="customerSelect" class="icon"><i class="fas fa-credit-card"
+                                            style="font-size: 1em; color: #002042;"></i></span>
+                                    PAYMENT SECTION
                                 </div>
+
                                 <br>
-                                <!-- Responsive container for form elements -->
-                                <div class="form-elements-wrapper">
-
-                                    <!-- Delivery Mode Dropdown Wrapper -->
-                                    <div class="dropdown-wrapper">
-                                        <div class="select-container">
-                                            <select class="form-select" id="eventSelect" name="event_id">
-                                                <option value="">Select Event</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <div class="form-group" id="section">
-                                <div class="section-header">
-                                    <span for="customerSelect" class="icon"><i class="fas fa-credit-card" style="font-size: 1em; color: #002042;"></i></span>
-                                    PAYMENT 
-                                </div>
-                                <br>
-
-
                                 <!-- Form Fields Container -->
                                 <div style="display: flex; flex-direction: column; gap: 18px;">
 
@@ -1487,50 +1497,58 @@
                                     <div style="display: flex; flex-wrap: wrap; gap: 16px;">
                                         <!-- Payment Method Dropdown -->
                                         <div style="flex: 1; min-width: 150px;">
-                                            <label for="payment-method"
+                                            <label for="paymentMode"
                                                 style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
                                                 Method</label>
-                                            <select id="payment-method"
+                                            <select class="form-select" id="paymentMode" name="payment_mode" required
                                                 style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
                                                 <option>Select a method...</option>
-                                                <option value="credit_card">Credit Card</option>
-                                                <option value="debit_card">Debit Card</option>
-                                                <option value="net_banking">Net Banking</option>
-                                                <option value="upi">UPI / QR Code</option>
                                                 <option value="cash">Cash</option>
+                                                <option value="online">Online</option>
+                                                <option value="not_paid">Not Paid</option>
                                             </select>
                                         </div>
                                         <!-- Payment Type Dropdown -->
-                                        <div style="flex: 1; min-width: 150px;">
-                                            <label for="payment-type"
+                                        <div style="flex: 1; min-width: 150px;" id="paymentTypeGroup">
+                                            <label for="paymentType"
                                                 style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
                                                 Type</label>
-                                            <select id="payment-type"
+                                            <select class="form-select" id="paymentType" name="payment_type" required
                                                 style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
-                                                <option>Select payment type...</option>
-                                                <option value="full">Full Payment</option>
-                                                <option value="partial">Partial Payment</option>
+                                                <option disabled selected>Select Payment Type</option>
+                                                <option value="full_payment">Full Payment</option>
+                                                <option value="half_payment">Half Payment</option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <!-- Flex container for amount inputs to make them responsive -->
                                     <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+
                                         <!-- Paid Amount Input -->
-                                        <div style="flex: 1; min-width: 150px;">
+                                        <div style="flex: 1; min-width: 150px;display: none;" id="paidAmountGroup">
                                             <label for="paid-amount"
                                                 style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Paid
                                                 Amount</label>
-                                            <input type="number" id="paid-amount" placeholder="e.g., 1000"
-                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; box-sizing: border-box;">
+                                            <input
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; box-sizing: border-box;"
+                                                type="number" class="form-control" id="paidAmount" name="paid_amount"
+                                                placeholder="e.g., 1000" value="0" min="0" max="0" step="0.01"
+                                                oninput="validatePaidAmount(this)">
                                         </div>
+
                                         <!-- Left to Pay (disabled) -->
-                                        <div style="flex: 1; min-width: 150px;">
-                                            <label for="left-to-pay"
+                                        <div style="flex: 1; min-width: 150px;display: none;" id="leftToPayGroup">
+                                            <label for="leftToPayDisplay"
                                                 style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Left
                                                 to Pay</label>
-                                            <input type="number" id="left-to-pay" placeholder="e.g., 500" disabled
+
+                                            <input type="text" class="form-control" id="leftToPayDisplay" readonly
+                                                disabled
                                                 style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #edf2f7; font-size: 16px; color: #718096; box-sizing: border-box; cursor: not-allowed;">
+                                            <input type="hidden" name="left_to_pay_display" id="leftToPayInput"
+                                                value="0">
+
                                         </div>
                                     </div>
 
@@ -1539,19 +1557,20 @@
                                         <div class="gst-container">
                                             <span class="gst-text">Include GST (18%)</span>
                                             <label for="gst-toggle-switch" class="toggle-switch-label">
-                                                <input type="checkbox" id="gst-toggle-switch" class="sr-only-checkbox">
+                                                <input type="checkbox" id="gst-toggle-switch" class="sr-only-checkbox"
+                                                    name="IncludeGST">
                                                 <div class="toggle-track"></div>
                                                 <div class="toggle-thumb"></div>
                                             </label>
                                         </div>
                                     </div>
 
-
                                     <!-- Notes Textarea -->
                                     <div>
                                         <label for="notes"
-                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment Note (Optional)</label>
-                                        <textarea id="notes" rows="3"
+                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
+                                            Note (Optional)</label>
+                                        <textarea id="otherPaymentNote" name="payment_note" rows="3"
                                             placeholder="Add any notes regarding this payment..."
                                             style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
                                     </div>
@@ -1559,8 +1578,9 @@
                                     <!-- Notes Textarea -->
                                     <div>
                                         <label for="notes"
-                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Sales Note (Optional)</label>
-                                        <textarea id="notes" rows="3"
+                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Sales
+                                            Note (Optional)</label>
+                                        <textarea id="salesNote" name="sales_note" rows="3"
                                             placeholder="Add any notes regarding this payment..."
                                             style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
                                     </div>
@@ -1570,171 +1590,21 @@
                                         style="background-color: #edf2f7; border-radius: 8px; padding: 16px; text-align: center; margin-top: 8px;">
                                         <p style="margin: 0; font-size: 14px; color: #4a5568; font-weight: 500;">
                                             GRAND TOTAL</p>
-                                        <p
-                                            style="margin: 8px 0 0 0; font-size: 32px; color: #1a202c; font-weight: 700;">
-                                            ₹1,500.00
+                                        <p style="margin: 8px 0 0 0; font-size: 32px; color: #1a202c; font-weight: 700;"
+                                            id="finalGrandTotal">
+                                            ₹00.00
                                         </p>
                                     </div>
 
                                     <!-- Submit Button -->
-                                    <button type="submit"
+                                    <button type="submit" id="printBtn"
                                         style="width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #2c5282; color: #ffffff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center;">
                                         Confirm Order
                                     </button>
-
-                                </div>
-
-                            </div>
-
-                    </div>
-
-
-
-                    <div class="form-group">
-                        <label for="deliveryMode">Delivery Mode:</label>
-                        <div style="display: flex;gap: 20px;">
-                            <select class="form-select" id="deliveryMode" name="delivery_mode" required>
-                                <option value="at_store">At Store</option>
-                                <option value="porter">Porter</option>
-                                <option value="transport">Transport</option>
-                                <option value="post">Post</option>
-                            </select>
-                            <i class="bi bi-plus-circle-fill" id="addProductBtn"
-                                style="font-size: 35px;color: #45a049;padding: 0px 3px;"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="transportCompanyGroup" style="display: none;">
-                        <label for="transportCompany">Transport Company Name:</label>
-                        <input type="text" class="form-control" id="transportCompany" name="transport_company">
-                    </div>
-
-                    <div class="form-group" id="eventSelectionGroup" style="display: none;">
-                        <div style="display: flex; gap: 20px;">
-                            <select class="form-select" id="eventSelect" name="event_id">
-                                <option value="">Select Event</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            function fetchEvents() {
-                                fetch('/sales/all_events_details')
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        const eventSelectGroup = document.getElementById('eventSelectionGroup');
-                                        const eventSelect = document.getElementById('eventSelect');
-
-                                        if (!data.success || data.data.length === 0) {
-                                            // Hide the selection group if no events are available
-                                            eventSelectGroup.style.display = 'none';
-                                            return;
-                                        }
-
-                                        // Clear existing options
-                                        eventSelect.innerHTML = '<option value="">Select Event</option>';
-
-                                        // Populate dropdown
-                                        data.data.forEach(event => {
-                                            const option = document.createElement('option');
-                                            option.value = event.id;
-                                            option.textContent = event.name;
-                                            eventSelect.appendChild(option);
-                                        });
-
-                                        // Show the selection group
-                                        eventSelectGroup.style.display = 'block';
-                                    })
-                                    .catch(error => {
-                                        console.error('Error fetching events:', error);
-                                        alert('Failed to load events. Please try again.');
-                                    });
-                            }
-
-                            fetchEvents();
-                            document.getElementById('refreshEventsBtn').addEventListener('click', fetchEvents);
-                        });
-
-                    </script>
-
-
-                    <!-- Payment Information -->
-                    <div class="payment-section" id="paymentSection" style="display: none;">
-                        <h3>Payment Details</h3>
-
-                        <div class="form-group">
-                            <label for="paymentMode">Payment Mode:</label>
-                            <div style="display: flex;">
-                                <select class="form-select" id="paymentMode" name="payment_mode" required>
-                                    <option value="cash">Cash</option>
-                                    <option value="online">Online</option>
-                                    <option value="not_paid">Not Paid</option>
-                                </select>
-                                <div class="payment-container" id="paymentDiv">
-                                    <div class="add-payment-btn" id="addPaymentButton">✍️</div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- this is for payment notes here user can enter the notes about payment -->
-                        <div class="form-group" id="otherPaymentDetails" style="display: none;">
-                            <label for="otherPaymentNote">Enter Relevant Payment Notes:</label>
-                            <textarea class="form-control" id="otherPaymentNote" name="payment_note"
-                                rows="2"></textarea>
-                        </div>
-
-                        <div class="form-group" id="paymentTypeGroup">
-                            <label for="paymentType">Payment Type:</label>
-                            <select class="form-select" id="paymentType" name="payment_type" required>
-                                <option disabled selected>Select Payment Type</option>
-                                <option value="full_payment">Full Payment</option>
-                                <option value="half_payment">Half Payment</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" id="paidAmountGroup" style="display: none;">
-                            <label for="paidAmount">Paid Amount:</label>
-                            <input type="number" class="form-control" id="paidAmount" name="paid_amount" value="0"
-                                min="0" max="0" step="0.01" oninput="validatePaidAmount(this)">
-                            <div class="invalid-feedback">Paid amount must be between 0 and the grand total.
-                            </div>
-                        </div>
-
-                        <div class="form-group" id="leftToPayGroup" style="display: none;">
-                            <label for="leftToPayDisplay">Left to Pay:</label>
-                            <input type="text" class="form-control" id="leftToPayDisplay" readonly disabled>
-                            <input type="hidden" name="left_to_pay_display" id="leftToPayInput" value="0">
-                        </div>
-
-                        <div class="form-group">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="IncludeGST" id="IncludeGST">
-                                <label class="form-check-label" for="IncludeGST ">Include GST (18%)</label>
-                            </div>
-                        </div>
-
-                        <div class="total-calculation">
-                            <div class="total-row">
-                                <strong>Grand Total:</strong>
-                                <span id="grandTotal">₹0.00</span>
-                                <input type="hidden" name="grand_total" id="grandTotalInput" value="0">
-                            </div>
-                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="salesNote">Sales Note:</label>
-                        <textarea class="form-control" id="salesNote" name="sales_note" rows="3"></textarea>
-                    </div>
-
-                    <div class="d-flex gap-2 justify-content-end">
-                        <!-- <button type="submit" class="btn btn-primary">Generate Bill</button> -->
-                    </div>
-                    </form>
-                    <!-- Print button at the very bottom of billing-container -->
-                    <button type="button" class="btn btn-secondary w-100 mt-3" id="printBtn" style="display:none;">Save
-                        Bill</button>
                 </div>
             </div>
         </div>
@@ -1963,10 +1833,11 @@
             updateProductTable();
 
 
+            fetchEvents();
+
             // Set up event listeners
             document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
             document.getElementById('addCustomerBtn').addEventListener('click', addCustomerModal);
-            document.getElementById('addPaymentButton').addEventListener('click', showOtherPaymentDetailsTextBox);
 
             document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
@@ -2043,9 +1914,9 @@
             // Update totals
             function updateTotals() {
                 grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
-                document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
                 document.getElementById('grand-total-value').textContent = `${grandTotal.toFixed(2)}`;
-                document.getElementById('grandTotalInput').value = grandTotal;
+                document.getElementById('input-grand-total-value').value = grandTotal.toFixed(2);
+                document.getElementById('finalGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
 
 
                 // Update paid amount max value
@@ -2109,6 +1980,8 @@
 
             }
 
+
+
             // Fetch customers from the server
             function fetchCustomers() {
                 fetch('/sales/customers')
@@ -2157,6 +2030,38 @@
                     .catch(error => {
                         console.error('Error fetching products:', error);
                         alert('Failed to load products. Please refresh the page and try again.');
+                    });
+            }
+
+            function fetchEvents() {
+                fetch('/sales/all_events_details')
+                    .then(response => response.json())
+                    .then(data => {
+                        const eventSelectGroup = document.getElementById('eventSelectionGroup');
+                        const eventSelect = document.getElementById('eventSelect');
+
+                        if (!data.success || data.data.length === 0) {
+                            // Hide the selection group if no events are available
+                            eventSelectGroup.style.display = 'none';
+                            return;
+                        }
+
+                        // Clear existing options
+                        eventSelect.innerHTML = '<option value="">Select Event</option>';
+
+                        // Populate dropdown
+                        data.data.forEach(event => {
+                            const option = document.createElement('option');
+                            option.value = event.id;
+                            option.textContent = event.name;
+                            eventSelect.appendChild(option);
+                        });
+
+                        // Show the selection group
+                        eventSelectGroup.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching events:', error);
                     });
             }
 
@@ -2467,11 +2372,11 @@
 
                                             <div class="right-column">
                                                 <div class="quantity-control">
-                                                    <button id="decrease-qty" onclick="decreaseQuantity(${index})" title="Decrease Quantity" ${product.quantity <= 1 ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
+                                                    <button id="decrease-qty" onclick="decreaseQuantity(${index})" title="Decrease Quantity" ${product.quantity <= 1 ? 'disabled' : ''}><i class="fas fa-minus" style="color: black;"></i></button>
 
                                                     <input type="number" class="item-quantity" id="item-quantity" value="${product.quantity}" min="1"  onchange="updateQuantityFromInput(${index}, event)">
-                                                    
-                                                    <button id="increase-qty" onclick="increaseQuantity(${index})" title="Increase Quantity"><i class="fas fa-plus"></i></button>
+
+                                                    <button id="increase-qty" onclick="increaseQuantity(${index})" title="Increase Quantity"><i class="fas fa-plus" style="color: black;"></i></button>
                                                 </div>
                                                 
                                             </div>

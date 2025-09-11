@@ -406,6 +406,9 @@ def save_invoice_into_database():
         else:
             return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
+        if grand_total < 0:
+            return jsonify({'error': 'Some data is Missing in the bill'}), 400
+
         # Need transport_company name
         if delivery_mode == 'transport':
             if not transport_company:
