@@ -86,3 +86,18 @@ def decrypt_password(encrypted_password):
     
     # Unpad and return the original password
     return unpad(decrypted_padded, AES.block_size).decode('utf-8')
+
+def get_invoice_id(invoice_number=None):
+    connection = get_db_connection()
+    if connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM invoices WHERE invoice_number = %s", (invoice_number,))
+        invoice_id = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        if invoice_id:
+            return {'status': True, 'invoice_id': invoice_id[0]}
+        else:
+            return {'status': False, 'invoice_id': None}
+
+    return {'status': False, 'invoice_id': None}

@@ -1465,9 +1465,6 @@
                                                 <option value="transport">Transport</option>
                                                 <option value="post">Post</option>
                                             </select>
-                                            <div class="select-arrow">
-                                                <i class="fa-solid fa-chevron-down"></i>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2294,18 +2291,44 @@
                         row.className = 'product-row';
                         row.innerHTML = `
                         <td>${product.name}</td>
-                        <td style="width:15%;">
-                        <div class="input-group input-group-sm" style="width: 100%;padding:0px">
-                            <span class="input-group-text" style="font-size:2em;padding:0px 10px;">₹</span>
-                            <input type="number"
-                                min="0.01"
-                                step="0.01"
-                                class="form-control text-end"
-                                value="${product.finalPrice.toFixed(2)}"
-                                onchange="updateProductPrice(${index}, event)"
-                                style='padding:0px 2px;font-size:1.5em;width:80%;'>
-                        </div>
+
+                        <td style="width: 15%; text-align: center;">
+                            <div style="
+                                display: inline-flex;
+                                align-items: center;
+                                max-width: 100%;
+                            ">
+                                <span style="
+                                    font-size: 1.8em;
+                                    padding: 0 0.5em;
+                                    display: flex;
+                                    align-items: center;
+                                    background-color: #f1f1f1;
+                                    border: 1px solid #ccc;
+                                    border-right: none;
+                                    border-radius: 4px 0 0 4px;
+                                    height: 100%;
+                                ">
+                                    ₹
+                                </span>
+                                <input 
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value="${product.finalPrice.toFixed(2)}"
+                                    onchange="updateProductPrice(${index}, event)"
+                                    style="
+                                        font-size: 1.2em;
+                                        padding: 0.4em;
+                                        text-align: right;
+                                        border: 1px solid #ccc;
+                                        border-radius: 0 4px 4px 0;
+                                        width: 120px; /* Or use max-width: 100% if you want full control */
+                                    "
+                                >
+                            </div>
                         </td>
+
                         <td>
                             <div class="d-flex justify-content-center" >
                                 <div class="input-group input-group-sm flex-nowrap" style="max-width: 150px;" id="quantityController">

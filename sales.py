@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session, send_file
-from utils import get_db_connection, login_required, encrypt_password, decrypt_password
+from utils import get_db_connection, login_required, get_invoice_id
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -321,31 +321,6 @@ def get_products():
         conn.close()
 
 
-@sales_bp.route('/sales/check-bill-number/<bill_no>')
-@login_required('Sales')
-def check_bill_number(bill_no):
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Database connection failed'}), 500
-
-    cursor = conn.cursor(dictionary=True)
-    try:
-        # Check if bill number exists in the sales table
-        cursor.execute(
-            "SELECT COUNT(*) as count FROM sales WHERE bill_no = %s", (bill_no,))
-        result = cursor.fetchone()
-
-        return jsonify({
-            'exists': result['count'] > 0
-        })
-    except Exception as e:
-        print(f"Error checking bill number: {e}")
-        return jsonify({'error': 'Failed to check bill number'}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
 @sales_bp.route('/sales/add_new_product', methods=['POST'])
 def add_new_product():
     try:
@@ -520,8 +495,13 @@ def generate_bill_pdf(invoice_id):
     """
     try:
 
-        invoice_number = invoice_id[:10]
-        invoice_id = int(invoice_id[10:])
+        result = get_invoice_id(invoice_id)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
+
         from reportlab.lib.pagesizes import A4, inch
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
         from reportlab.lib import colors
@@ -544,8 +524,6 @@ def generate_bill_pdf(invoice_id):
         """, (invoice_id,))
         invoice_data = cursor.fetchone()
 
-        if invoice_data['invoice_number'] != invoice_number:
-            return jsonify({'error': 'Invoice not found'}), 404
 
         # Get invoice details
         cursor.execute("""
@@ -1383,8 +1361,17 @@ class MyOrders:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
-    def start_shipment(self, live_order_track_id):
+    def start_shipment(self, invoiceNumber):
         try:
+
+            # Get live_order_track_id using invoiceNumber
+            select_query = """
+            SELECT id FROM live_order_track WHERE invoice_id = ( SELECT id FROM invoices WHERE invoice_number = %s );
+            """
+            self.cursor.execute(select_query, (invoiceNumber,))
+            result = self.cursor.fetchone()
+            live_order_track_id = result['id'] if result else None
+
             update_query = """
             UPDATE live_order_track
             SET sales_proceed_for_packing = 1,
@@ -1518,21 +1505,21 @@ def start_shipment():
 
     try:
         data = request.get_json()
-        live_order_track_id = data.get('live_order_track_id')
+        invoiceNumber = data.get('invoiceNumber')
 
-        if not live_order_track_id:
-            return jsonify({'error': 'Missing Order ID'}), 400
+        if not invoiceNumber:
+            return jsonify({'error': 'Missing Invoice Number'}), 400
 
         shipment_start = MyOrders()
-        response = shipment_start.start_shipment(live_order_track_id)
+        response = shipment_start.start_shipment(invoiceNumber)
 
         if response['success']:
-            return jsonify({"success": True, "message": 'Order Successfully Shiped!'}), 200
+            return jsonify({"success": True, "message": 'Order Successfully Shipped!'}), 200
 
-        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'}), 500
+        return jsonify({'success': False, 'message': 'Shipment Failed: Something Went Wrong!'}), 500
 
     except Exception as e:
-        return jsonify({'success': False, 'message': 'Shipment Fails Somthing Went Wrong!'})
+        return jsonify({'success': False, 'message': 'Shipment Failed: Something Went Wrong!'}), 500
 
 
 @sales_bp.route('/sales/my-ready-to-go-orders-list', methods=['GET'])
