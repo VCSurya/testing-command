@@ -27,6 +27,136 @@ formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 # Create a Blueprint for manager routes
 sales_bp = Blueprint('sales', __name__)
 
+# Sales Dashboard
+@sales_bp.route('/sales/dashboard')
+@login_required('Sales')
+def sales_dashboard():
+    return render_template('dashboards/sales/main.html')
+
+
+@sales_bp.route('/sales/sell')
+@login_required('Sales')
+def sales():
+    return render_template('dashboards/sales/sell.html', active_page='sell')
+
+
+@sales_bp.route('/sales/my-orders')
+@login_required('Sales')
+def sales_cancel_orders():
+    return render_template('dashboards/sales/my_orders.html')
+
+
+@sales_bp.route('/sales/cancel-orders')
+@login_required('Sales')
+def sales_my_orders():
+    return render_template('dashboards/sales/cancel_orders.html')
+
+
+@sales_bp.route('/sales/ready-to-go-orders')
+@login_required('Sales')
+def sales_ready_to_go_orders():
+    return render_template('dashboards/sales/ready_to_go.html')
+
+# Class ralated sales dasebored
+class Dasebored:
+    def __init__(self):
+        self.conn = get_db_connection()
+        if not self.conn:
+            raise Exception("Database connection failed")
+        self.cursor = self.conn.cursor(dictionary=True)
+
+    def get_dasebored_data(self,user_id):
+        query = f"""
+        SELECT 
+        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0) AS total_sales_order_count,
+        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0) AS total_sales_order_sum,
+        
+        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 1 AND cancel_order_status = 0) AS completed_order_count,
+        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 1 AND cancel_order_status = 0) AS completed_order_sum,
+        
+        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 0 AND cancel_order_status = 0) AS pending_order_count,
+        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 0 AND cancel_order_status = 0) AS pending_order_sum,
+        
+        (SELECT COUNT(*) FROM live_order_track 
+            JOIN invoices ON invoices.id = live_order_track.invoice_id 
+            WHERE live_order_track.sales_proceed_for_packing = 1 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0) AS running_order_count,
+        
+        (SELECT COUNT(*) FROM live_order_track 
+            JOIN invoices ON invoices.id = live_order_track.invoice_id 
+            WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS draft_order_count,
+        
+        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id}) AS total_cancelled_orders,
+        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id} AND confirm_by_saler = 0) AS pending_cancelled_orders,
+        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id} AND confirm_by_saler = 1) AS confirmed_cancelled_orders,
+        
+        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_count,
+        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_sum,
+        
+        (SELECT COUNT(*) FROM live_order_track 
+            JOIN invoices ON invoices.id = live_order_track.invoice_id 
+            WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0 AND DATE(invoices.created_at) = CURRENT_DATE()) AS today_draft_order_count
+        """
+
+        try:    
+            self.cursor.execute(query,)
+            result = self.cursor.fetchone()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            self.conn.close()
+
+        def safe_int(value):
+            return int(value) if value is not None else 0
+
+        def safe_float(value):
+            return float(value) if value is not None else 0.0
+
+        response = {
+            "user_id": user_id,
+            "total_sales_orders": {
+                "count": safe_int(result["total_sales_order_count"]),
+                "sum": safe_float(result["total_sales_order_sum"])
+            },
+            "completed_orders": {
+                "count": safe_int(result["completed_order_count"]),
+                "sum": safe_float(result["completed_order_sum"])
+            },
+            "pending_orders": {
+                "count": safe_int(result["pending_order_count"]),
+                "sum": safe_float(result["pending_order_sum"])
+            },
+            "running_orders": {
+                "count": safe_int(result["running_order_count"])
+            },
+            "draft_orders": {
+                "count": safe_int(result["draft_order_count"])
+            },
+            "cancelled_orders": {
+                "total": safe_int(result["total_cancelled_orders"]),
+                "pending_confirmation": safe_int(result["pending_cancelled_orders"]),
+                "confirmed": safe_int(result["confirmed_cancelled_orders"])
+            },
+            "today_orders": {
+                "count": safe_int(result["today_order_count"]),
+                "sum": safe_float(result["today_order_sum"])
+            },
+            "today_draft_orders": {
+                "count": safe_int(result["today_draft_order_count"])
+            }
+        }
+
+
+        return jsonify(response)
+
+
+
+@sales_bp.route('/sales/dasebored-data', methods=['GET'])
+@login_required('Sales')
+def sales_summary():
+    obj = Dasebored()
+    return obj.get_dasebored_data(session.get('user_id'))
+
+
 
 # Class ralated sales routes
 class Sales:
@@ -171,38 +301,6 @@ class Sales:
         if self.conn:
             self.conn.close()
 
-
-# Sales Dashboard
-@sales_bp.route('/sales/dashboard')
-@login_required('Sales')
-def sales_dashboard():
-    return render_template('dashboards/sales/main.html')
-
-
-@sales_bp.route('/sales/sell')
-@login_required('Sales')
-def sales():
-    return render_template('dashboards/sales/sell.html', active_page='sell')
-
-
-@sales_bp.route('/sales/my-orders')
-@login_required('Sales')
-def sales_cancel_orders():
-    return render_template('dashboards/sales/my_orders.html')
-
-
-@sales_bp.route('/sales/cancel-orders')
-@login_required('Sales')
-def sales_my_orders():
-    return render_template('dashboards/sales/cancel_orders.html')
-
-
-@sales_bp.route('/sales/ready-to-go-orders')
-@login_required('Sales')
-def sales_ready_to_go_orders():
-    return render_template('dashboards/sales/ready_to_go.html')
-
-
 @sales_bp.route('/sales/all_events_details', methods=['GET'])
 @login_required('Sales')
 def all_market_events():
@@ -236,6 +334,7 @@ def all_market_events():
 
 
 @sales_bp.route('/sales/customers', methods=['GET'])
+@login_required('Sales')
 def get_customers():
     conn = get_db_connection()
     if not conn:
@@ -260,6 +359,7 @@ def get_customers():
 
 
 @sales_bp.route('/sales/add-customer', methods=['POST'])
+@login_required('Sales')
 def add_new_customer():
     try:
         data = request.get_json()
@@ -297,6 +397,7 @@ def add_new_customer():
 
 
 @sales_bp.route('/sales/products')
+@login_required('Sales')
 def get_products():
     conn = get_db_connection()
     if not conn:
@@ -322,6 +423,7 @@ def get_products():
 
 
 @sales_bp.route('/sales/add_new_product', methods=['POST'])
+@login_required('Sales')
 def add_new_product():
     try:
         # Get form data
@@ -1344,6 +1446,16 @@ class MyOrders:
             self.cursor.execute(update_query, (data.get('track_order_id'),))
             self.conn.commit()  # commit on connection, not cursor
 
+            update_query = """
+
+            UPDATE invoices
+            SET cancel_order_status = 1
+            WHERE invoices.id = (SELECT invoice_id from live_order_track WHERE id = %s );
+            """
+            self.cursor.execute(update_query, (data.get('track_order_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+
             insert_query = """
                 
                 INSERT INTO cancelled_orders (
@@ -1788,12 +1900,20 @@ class Canceled_Orders:
                 );
         """
 
+        update_query_ = """
+            UPDATE invoices
+            SET cancel_order_status = 0
+            WHERE invoices.id = (SELECT invoice_id from cancelled_orders WHERE cancelled_orders.id = %s );
+        """
+            
+
         delete_query = """
                 DELETE FROM cancelled_orders WHERE id = %s;
         """
 
         try:
             self.cursor.execute(update_query, (id,))
+            self.cursor.execute(update_query_, (id,))
             self.cursor.execute(delete_query, (id,))
             self.conn.commit()
             return {"success": True}
@@ -1854,7 +1974,10 @@ def update_canceled_orders_status():
                 return jsonify({'success': True, 'message': 'Done!'}), 200
 
             else:
-                return jsonify({'success': False, 'message': f'Somthing went wrong!{response['message']}'}), 500
+                return jsonify({
+                    'success': False,
+                    'message': f"Something went wrong! {response.get('message', 'Unknown error')}"
+                }), 500
 
         if cancel_order_status == 0 and id:
 
@@ -1864,7 +1987,7 @@ def update_canceled_orders_status():
                 my_obj.close()
                 return jsonify({'success': True, 'message': 'Done!'}), 200
             else:
-                return jsonify({'success': False, 'message': f'Somthing went wrong!{response['message']}'}), 500
+                return jsonify({'success': False, 'message': f'Somthing went wrong!{response["message"]}'}), 500
 
         return jsonify({'success': False, 'message': f'Somthing went wrong!'}), 500
 
@@ -2048,7 +2171,14 @@ def edit_invoice(invoice_number):
     Edit an existing invoice.
     """
     try:
-        invoice_id = int(invoice_number[10:])
+        
+        # invoice_id = int(invoice_number[10:])
+        result = get_invoice_id(invoice_number)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
 
         my_obj = EditBill()
         response = my_obj.verify_invoice_for_edit(invoice_id)

@@ -898,7 +898,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/sales/ready-to-go-orders"><i
-                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                                class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
@@ -1129,7 +1129,7 @@
         }
 
         async function confirmAndStart(invoiceNumber) {
-            if (confirm("Are you sure you want to start this shipment?")) {
+            if (confirm("Are you sure ?")) {
                 fetch('/start-shipment', {
                     method: 'POST',
                     headers: {
@@ -1309,7 +1309,7 @@
 
                         <div class="next-to-pack-container">
                             <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
-                                Start Shipment
+                                ${invoiceObj.delivery_mode === 'at_store' ? 'Confirm Order' : 'Start Shipment'}
                             </button>
                         </div>
                     </div>

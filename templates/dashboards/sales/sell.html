@@ -884,7 +884,6 @@
             border-bottom: 1px solid #999999;
             padding: 2px;
             width: 100%;
-            max-width: 500px;
             box-sizing: border-box;
             /* Ensures padding doesn't affect the final width */
             position: relative;
@@ -928,6 +927,7 @@
             font-family: Arial, sans-serif;
             border-radius: 5px 5px 0px 0px;
             font-weight: 600;
+            width: 100%;
         }
 
         /* --- Main Content Area (for flexbox layout) --- */
@@ -970,7 +970,7 @@
             background-color: #ffffff;
             /* border-radius: 4px; */
             overflow: hidden;
-            width: fit-content;
+            width: 100%;
             border: 1px solid #3f4751;
         }
 
@@ -981,11 +981,12 @@
             padding: 0 15px;
             font-size: 20px;
             cursor: pointer;
+            width: 40%;
             transition: background-color 0.2s;
         }
 
         .quantity-control .item-quantity {
-            width: 50px;
+            width: 50%;
             background-color: #d6d6d6;
             border: none;
             color: #000000;
@@ -1707,11 +1708,11 @@
                         <label for="modalBasePrice">Product Price (₹):</label>
                         <input type="number" class="form-control" id="modalBasePrice" min="0" step="0.01" required>
                     </div>
-                    <div class="form-group mb-3">
+                    <div class="form-group mb-3" style="display: none;">
                         <label for="modalQuantity">Quantity:</label>
                         <input type="number" class="form-control" id="modalQuantity" min="1" value="1" required>
                     </div>
-                    <div class="form-group mb-3">
+                    <div class="form-group mb-3" style="display: none;">
                         <label for="modalFinalPrice">Product Total (₹):</label>
                         <input type="number" class="form-control" id="modalFinalPrice" readonly>
                     </div>

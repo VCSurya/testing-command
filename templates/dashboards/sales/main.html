@@ -7,9 +7,12 @@
     <title>Sales Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --primary: #1e2857;
@@ -93,7 +96,7 @@
                 left: 0;
             }
 
-             .profile-menu {
+            .profile-menu {
                 display: none;
             }
 
@@ -146,7 +149,46 @@
             }
         }
     </style>
+    <style>
+        /* Custom font, deep color palette, and refined card styling */
+        :root {
+            --color-primary-dark: #1e3a8a;
+            /* Deep Navy Blue */
+            --color-accent-gold: #fbbf24;
+            /* Amber/Gold for highlight */
+        }
 
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f5f7;
+            /* Very light background */
+            color: #1f2937;
+        }
+
+        .kpi-card {
+            background: #ffffff;
+            border-radius: 0.75rem;
+            /* rounded-xl */
+            padding: 1.5rem;
+            /* p-6 */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Soft, elevated shadow */
+            box-shadow: 0 10px 20px -5px rgba(30, 58, 138, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px -5px rgba(30, 58, 138, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-row-hover:hover {
+            background-color: #fafafa;
+        }
+
+        .gold-border {
+            border-left: 5px solid var(--color-accent-gold);
+        }
+    </style>
 </head>
 
 <body>
@@ -162,13 +204,15 @@
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link active" href="/sales/dashboard"><i
+                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/ready-to-go-orders"><i class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                        <a class="nav-link" href="/sales/ready-to-go-orders"><i
+                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
@@ -193,6 +237,8 @@
                         <button class="btn mobile-toggle me-3" id="sidebarToggle">
                             <i class="bi bi-list fs-4"></i>
                         </button>
+                        <i data-lucide="building-2"
+                            class="w-7 h-7 sm:w-8 sm:h-8 mr-3 sm:mr-4 text-amber-400 text-blue-700"></i>
                         <h4 class="mb-0">Sales Overview</h4>
                     </div>
                     <div class="dropdown profile-menu">
@@ -207,7 +253,17 @@
 
                 <div class="container-fluid px-4" style="padding-top: 100px;">
 
+                    <div id="sales-dashboard-component">
+                        <!-- Initial Loader -->
+                        <div id="loader"
+                            class="p-8 text-center text-xl text-gray-500 bg-white shadow-lg rounded-xl max-w-lg mx-auto mt-20">
+                            <i data-lucide="loader-circle" class="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3"></i>
+                            Fetching Data...
+                        </div>
+                    </div>
+
                 </div>
+
             </div>
         </div>
     </div>
@@ -253,6 +309,368 @@
                 });
             });
         });
+    </script>
+
+    <script>
+
+        const fetchSalesData = async (userId) => {
+            try {
+                // Simulate network delay if you want (optional)
+                // await new Promise(resolve => setTimeout(resolve, 1500));
+
+                const response = await fetch(`/sales/dasebored-data`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const apiResponse = await response.json();
+
+                return apiResponse;
+
+            } catch (error) {
+                console.error("Failed to fetch sales data:", error);
+                return null;
+            }
+        };
+
+
+        /**
+         * Formats a number into currency string.
+         * @param {number} amount
+         */
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        };
+
+        /**
+         * Formats a number with comma separators.
+         * @param {number} count
+         */
+        const formatNumber = (count) => {
+            return new Intl.NumberFormat('en-US').format(count);
+        };
+
+        /**
+         * Generates the HTML for a single data row.
+         * The content stacks vertically on mobile (default) and uses a 4-column table grid on tablet/desktop (sm:).
+         * @param {object} data
+         * @returns {string} HTML string for the row
+         */
+        const renderRow = (data) => {
+            const rowClass = data.status === "Selling Orders" ? 'bg-blue-50/50 gold-border table-row-hover' : 'table-row-hover';
+
+            return `
+                <div class="border-b border-gray-200 last:border-b-0 transition-colors ${rowClass} p-3 sm:p-0">
+                    
+                    <!-- DESKTOP/TABLET VIEW (sm: and up) -->
+                    <div class="hidden sm:grid grid-cols-12 gap-4 py-2 px-1 items-center min-w-full">
+                        <!-- Status Column (Col 3) -->
+                        <div class="col-span-3 flex items-center">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${data.bg} border border-opacity-50">
+                                <i data-lucide="${data.icon}" class="w-5 h-5 ${data.color}"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-lg font-semibold text-gray-800">${data.status}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Total Count Column (Col 3) -->
+                        <div class="col-span-3 text-right">
+                            <span class="text-3xl font-extrabold text-gray-900">${formatNumber(data.totalCount)}</span>
+                        </div>
+
+                        <!-- Total Amount Column (Col 3) -->
+                        <div class="col-span-3 text-right">
+                            <span class="text-3xl font-extrabold text-gray-900">${formatCurrency(data.totalAmount)}</span>
+                        </div>
+
+                        <!-- Today's Performance Column (Col 3) -->
+                        <div class="col-span-3 text-right">
+                            <div class="flex flex-col">
+                                <span class="text-lg font-bold text-gray-800">${formatNumber(data.todayCount)}</span>
+                                <span class="text-sm text-gray-500 font-medium">${formatCurrency(data.todayAmount)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- MOBILE VIEW (default, hidden on sm: and up) -->
+                    <div class="sm:hidden flex flex-col">
+                        <!-- Mobile Status Header -->
+                        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${data.bg} border border-opacity-50">
+                                    <i data-lucide="${data.icon}" class="w-4 h-4 ${data.color}"></i>
+                                </div>
+                                <span class="text-base font-bold text-gray-800">${data.status}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Mobile Metric Breakdown: Total vs. Today, stacked horizontally -->
+                        <div class="grid grid-cols-2 gap-4 pt-3">
+                            <div class="flex flex-col">
+                                <span class="text-sm uppercase text-gray-500 font-medium">Total</span>
+                                <span class="text-xl font-extrabold text-gray-900">${formatNumber(data.totalCount)}</span>
+                                <span class="text-sm text-gray-500">${formatCurrency(data.totalAmount)}</span>
+                            </div>
+                            <div class="flex flex-col border-l pl-4 border-gray-100">
+                                <span class="text-sm uppercase text-gray-500 font-medium">Today</span>
+                                <span class="text-xl font-extrabold text-gray-900">${formatNumber(data.todayCount)}</span>
+                                <span class="text-sm text-gray-500">${formatCurrency(data.todayAmount)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        /**
+         * Generates the HTML for the special Canceled Orders count row.
+         * MODIFIED for mobile stacking.
+         * @param {number} inProcessCanceledCount - The count of canceled orders pending confirmation.
+         * @returns {string} HTML string for the row
+         */
+        const renderCanceledSpecialRow = (inProcessCanceledCount) => {
+            return `
+                <div class="bg-red-50 border-l-4 border-red-500 rounded-b-xl shadow-inner mt-2 p-0 sm:p-0">
+                    
+                    <!-- DESKTOP/TABLET VIEW (sm: and up) -->
+                    <div class="hidden sm:grid grid-cols-12 gap-4 py-4 items-center pl-4 pr-3 min-w-full">
+                        
+                        <!-- Status Column (Col 3) -->
+                        <div class="col-span-3 flex items-center">
+                            <i data-lucide="shield-alert" class="w-6 h-6 mr-3 text-red-700"></i>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-red-800">Canceled (Pending Confirmation)</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Count Column (Col 3) -->
+                        <div class="col-span-3 text-right">
+                            <span class="text-3xl font-extrabold text-red-700">${formatNumber(inProcessCanceledCount)}</span>
+                        </div>
+
+                        <!-- Empty Columns for alignment (Col 6) -->
+                        <div class="col-span-6"></div>
+                    </div>
+                    
+                    <!-- MOBILE VIEW (default, hidden on sm: and up) -->
+                    <div class="sm:hidden flex flex-col p-2">
+                         <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i data-lucide="shield-alert" class="w-5 h-5 mr-3 text-red-700"></i>
+                                <span class="text-base font-bold text-red-800">Canceled (Pending Confirmation)</span>
+                            </div>
+                        </div>
+                        <div class="text-center pt-3 mt-3 border-t border-red-200">
+                             <span class="text-sm uppercase text-red-500 font-medium">Count</span>
+                             <span class="block text-3xl font-extrabold text-red-700">${formatNumber(inProcessCanceledCount)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the complete dashboard into the specified container element.
+         * This function serves as the universal component renderer.
+         * @param {string} containerId The ID of the div where the dashboard should be rendered.
+         */
+        const renderSalesDashboard = async (containerId) => {
+            const container = document.getElementById(containerId);
+            if (!container) return console.error(`Container ID #${containerId} not found.`);
+
+            // Ensure the loader is visible while fetching data
+            container.innerHTML = `
+                <div class="p-8 text-center text-xl text-gray-500 bg-white shadow-lg rounded-xl max-w-lg mx-auto mt-20">
+                    <i data-lucide="loader-circle" class="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3"></i>
+                    Fetching Sales Data...
+                </div>
+            `;
+            // Initialize lucide for the loader icon
+            lucide.createIcons();
+
+
+            try {
+                const apiData = await fetchSalesData();
+
+                // --- DATA MAPPING AND CALCULATION ---
+
+                // Calculate AOV (Average Order Value) to estimate sums for missing status amounts (like draft/running)
+                const totalCount = apiData.total_sales_orders.count || 1;
+                const totalSum = apiData.total_sales_orders.sum || 0;
+                // Avoid division by zero
+                const aov = totalCount > 0 ? totalSum / totalCount : 0;
+
+                // Construct data arrays for the detailed ledger
+                const orderData = [
+                    {
+                        status: "Pending Orders",
+                        icon: "clock",
+                        color: "text-yellow-600",
+                        bg: "bg-yellow-50",
+                        totalCount: apiData.pending_orders.count,
+                        totalAmount: apiData.pending_orders.sum,
+                        todayCount: 0, // Not provided by API, defaulting to 0
+                        todayAmount: 0, // Not provided by API, defaulting to 0
+                        description: "Orders awaiting approval or next step."
+                    },
+                    {
+                        status: "Completed Orders",
+                        icon: "check-circle",
+                        color: "text-green-700",
+                        bg: "bg-green-50",
+                        totalCount: apiData.completed_orders.count,
+                        totalAmount: apiData.completed_orders.sum,
+                        todayCount: 0, // Not provided by API, defaulting to 0
+                        todayAmount: 0, // Not provided by API, defaulting to 0
+                        description: "Orders successfully fulfilled and closed."
+                    },
+                    {
+                        status: "Selling Orders",
+                        icon: "trending-up",
+                        color: "text-amber-600",
+                        bg: "bg-amber-50",
+                        totalCount: apiData.running_orders.count,
+                        // Estimated amount based on AOV, as API only provides count
+                        totalAmount: apiData.running_orders.count * aov,
+                        todayCount: apiData.today_orders.count, // Assuming all today's orders are running
+                        todayAmount: apiData.today_orders.sum,
+                        description: "Revenue-generating orders in progress."
+                    },
+                    {
+                        status: "Draft Orders",
+                        icon: "file-text",
+                        color: "text-slate-600",
+                        bg: "bg-slate-50",
+                        totalCount: apiData.draft_orders.count,
+                        // Estimated amount based on AOV, as API only provides count
+                        totalAmount: apiData.draft_orders.count * aov,
+                        todayCount: apiData.today_draft_orders.count,
+                        // Estimated amount based on AOV, as API only provides count
+                        todayAmount: apiData.today_draft_orders.count * aov,
+                        description: "Orders created but not yet submitted."
+                    },
+                    {
+                        status: "Canceled Orders",
+                        icon: "x-circle",
+                        color: "text-red-600",
+                        bg: "bg-red-50",
+                        totalCount: apiData.cancelled_orders.total,
+                        // Placeholder amount as API doesn't provide sum for canceled orders
+                        totalAmount: apiData.cancelled_orders.total * 500,
+                        todayCount: 0, // Not provided by API, defaulting to 0
+                        todayAmount: 0, // Not provided by API, defaulting to 0
+                        description: "Orders that have been terminated."
+                    }
+                ];
+
+                // Map the specific canceled metric
+                const inProcessCanceledCount = apiData.cancelled_orders.pending_confirmation;
+
+                // --- RENDERING ---
+
+                // 1. Generate Status Rows HTML
+                const statusRowsHtml = orderData.map(renderRow).join('');
+                const canceledSpecialRowHtml = renderCanceledSpecialRow(inProcessCanceledCount);
+
+                // 2. Main HTML Structure (Classic & Attactive Design)
+                container.innerHTML = `
+                    <!-- Main container: responsive padding and constrained width -->
+                    <div class="p-0 md:p-8 max-w-8xl mx-auto">
+                        <!-- Main KPI Cards (Revenue and Total Volume) -->
+                        <section id="kpi-overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10">
+                            
+                            
+                            <!-- Total Orders (Volume) - Volume Count -->
+                            <div class="kpi-card border-b-4 border-slate-400">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium uppercase text-slate-500">Total Orders</span>
+                                    <i data-lucide="package" class="w-6 h-6 text-slate-400"></i>
+                                </div>
+                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.total_sales_orders.count)}</p>
+                            </div>
+
+                            <!-- Total Selling Orders (Amount) - Primary Focus, Gold Accent -->
+                            <div class="kpi-card border-b-4 border-amber-500">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium uppercase text-amber-600">Total Revenue</span>
+                                    <i data-lucide="dollar-sign" class="w-6 h-6 text-amber-500"></i>
+                                </div>
+                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatCurrency(apiData.total_sales_orders.sum)}</p>
+                            </div>
+
+                            
+                            <!-- Today's Selling Orders (Count) - Quick Activity Check -->
+                            <div class="kpi-card border-b-4 border-blue-600">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium uppercase text-blue-600">Today's Sales</span>
+                                    <i data-lucide="bar-chart-3" class="w-6 h-6 text-blue-600"></i>
+                                </div>
+                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.today_orders.count)}</p>
+                            </div>
+
+                            <!-- Today's Revenue (Amount) - Secondary Focus, Green Accent -->
+                            <div class="kpi-card border-b-4 border-green-600">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium uppercase text-green-700">Today's Revenue</span>
+                                    <i data-lucide="badge-dollar-sign" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatCurrency(apiData.today_orders.sum)}</p>
+                            </div>
+                            
+                        </section>
+
+                        <!-- Detailed Status Breakdown Section -->
+                        <section id="status-breakdown">
+                            <!-- Removed overflow-x-auto. Design is now fully stacking on mobile. -->
+                            <div class="bg-white p-0 rounded-xl shadow-xl">
+                                
+                                <!-- Table Header - Hidden on small screens (mobile) -->
+                                <div class="hidden sm:grid grid-cols-12 gap-4 text-xs font-bold uppercase text-gray-600 py-3 px-3 bg-gray-100 rounded-t-xl border-b border-gray-200">
+                                    <div class="col-span-3">Status & Priority</div>
+                                    <div class="col-span-3 text-right">Total Count (All Time)</div>
+                                    <div class="col-span-3 text-right">Total Amount (All Time)</div>
+                                    <div class="col-span-3 text-right">Today's Activity</div>
+                                </div>
+
+                                <div id="status-rows-content">
+                                    ${statusRowsHtml}
+                                </div>
+
+                                <!-- Dedicated row for the specialized canceled metric -->
+                                ${canceledSpecialRowHtml}
+                            </div>
+                        </section>
+                    </div>
+                `;
+
+                // 3. Initialize Lucide icons after rendering HTML
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Error fetching or rendering sales data:", error);
+                container.innerHTML = `
+                    <div class="p-8 text-center text-xl text-red-500 bg-red-50 border border-red-200 shadow-lg rounded-xl max-w-lg mx-auto mt-20">
+                        <i data-lucide="alert-triangle" class="w-8 h-8 text-red-600 mx-auto mb-3"></i>
+                        Failed to load dashboard data. Please check the API response structure.
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        };
+
+        /**
+         * Initialization: Call the component function on page load.
+         */
+        window.onload = () => {
+            renderSalesDashboard('sales-dashboard-component');
+        };
+
     </script>
 </body>
 

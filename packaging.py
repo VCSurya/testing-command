@@ -400,6 +400,16 @@ class PackagingModel:
             self.cursor.execute(update_query, (data.get('track_order_id'),))
             self.conn.commit()  # commit on connection, not cursor
             
+            update_query = """
+
+            UPDATE invoices
+            SET cancel_order_status = 1
+            WHERE invoices.id = (SELECT invoice_id from live_order_track WHERE id = %s );
+            """
+            self.cursor.execute(update_query, (data.get('track_order_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+
             insert_query = """
                 
                 INSERT INTO cancelled_orders (
