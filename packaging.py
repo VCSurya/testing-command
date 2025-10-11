@@ -25,6 +25,72 @@ class PackagingModel:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
+    def get_dasebored_data(self,user_id):
+        query = f"""
+            
+            SELECT 
+                -- Total Draft Packing Order
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 0 
+                        AND payment_confirm_status = 1 
+                    THEN 1 END) AS total_draft_packing_order,
+
+                -- Total Proceed Packing Order From User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 1 
+                        AND packing_proceed_by = {user_id} 
+                    THEN 1 END) AS total_proceed_packing_order_from_user,
+
+                -- Replaced Canceled orders from cancelled_orders table
+                COALESCE(co.total_canceled_orders, 0) AS total_canceled_orders,
+                COALESCE(co.pending_canceled_orders, 0) AS pending_canceled_orders,
+                COALESCE(co.confirmed_canceled_orders, 0) AS confirmed_canceled_orders,
+
+                -- Total Order Which Is Packed But Not Transport
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 1 
+                        AND packing_proceed_by = {user_id}
+                        AND transport_proceed_for_builty = 0 
+                    THEN 1 END) AS total_packed_but_not_transport,
+
+                -- Total Today Order Packed By User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 1 
+                        AND packing_proceed_by = {user_id}
+                        AND DATE(packing_date_time) = CURRENT_DATE 
+                    THEN 1 END) AS total_today_order_packed_by_user
+
+            FROM live_order_track
+
+            LEFT JOIN (
+                SELECT
+                    cancelled_by,
+                    COUNT(*) AS total_canceled_orders,
+                    COUNT(CASE WHEN confirm_by_saler = 0 THEN 1 END) AS pending_canceled_orders,
+                    COUNT(CASE WHEN confirm_by_saler = 1 THEN 1 END) AS confirmed_canceled_orders
+                FROM cancelled_orders
+                WHERE cancelled_by = {user_id}
+                GROUP BY cancelled_by
+            ) co ON co.cancelled_by = {user_id};
+
+        """
+
+        
+        self.cursor.execute(query,)
+        result = self.cursor.fetchone()
+        self.conn.close()
+
+        return result
+
+
+
     def merge_orders_products(self,data):
 
         merged = {}
@@ -225,7 +291,7 @@ class PackagingModel:
 
                     AND inv.completed = 0
 
-                    AND inv.delivery_mode = "transport"
+                    AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
 
                     AND lot.payment_confirm_status = 1
 
@@ -364,11 +430,13 @@ class PackagingModel:
 
                         AND lot.packing_proceed_for_transport = 1
 
+                        AND lot.transport_proceed_for_builty = 0 
+
                     WHERE lot.packing_proceed_by = %s
                     
                     AND inv.completed = 0
 
-                    AND inv.delivery_mode = "transport"
+                    AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
 
                     AND lot.payment_confirm_status = 1
 
@@ -491,7 +559,22 @@ class PackagingModel:
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
-    
+
+@packaging_bp.route('/packaging/packing-dasebored-orders', methods=['GET'])
+@login_required('Packaging')
+def packaging_dasebored():
+    try:
+        my_pack = PackagingModel()
+        orders = my_pack.get_dasebored_data(session.get('user_id'))        
+        print(orders)
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()   
 
 @packaging_bp.route('/packaging/packing-orders-list', methods=['GET'])
 @login_required('Packaging')

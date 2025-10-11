@@ -178,7 +178,7 @@ class TransportModel:
 
                     WHERE lot.transport_proceed_for_builty = 0
                         AND inv.completed = 0
-                        AND inv.delivery_mode = 'transport'
+                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
 
                     ORDER BY inv.created_at DESC;
        
@@ -273,7 +273,7 @@ class TransportModel:
 
                     WHERE lot.transport_proceed_by = %s
                         AND inv.completed = 0
-                        AND inv.delivery_mode = 'transport'
+                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
 
                     ORDER BY inv.created_at DESC;
        
