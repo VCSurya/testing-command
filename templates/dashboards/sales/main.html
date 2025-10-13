@@ -368,7 +368,7 @@
                 <div class="border-b border-gray-200 last:border-b-0 transition-colors ${rowClass} p-3 sm:p-0">
                     
                     <!-- DESKTOP/TABLET VIEW (sm: and up) -->
-                    <div class="hidden sm:grid grid-cols-12 gap-4 py-2 px-1 items-center min-w-full">
+                    <div class="hidden sm:grid grid-cols-7 gap-4 py-2 px-1 items-center min-w-full">
                         <!-- Status Column (Col 3) -->
                         <div class="col-span-3 flex items-center">
                             <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${data.bg} border border-opacity-50">
@@ -384,18 +384,6 @@
                             <span class="text-3xl font-extrabold text-gray-900">${formatNumber(data.totalCount)}</span>
                         </div>
 
-                        <!-- Total Amount Column (Col 3) -->
-                        <div class="col-span-3 text-right">
-                            <span class="text-3xl font-extrabold text-gray-900">${formatCurrency(data.totalAmount)}</span>
-                        </div>
-
-                        <!-- Today's Performance Column (Col 3) -->
-                        <div class="col-span-3 text-right">
-                            <div class="flex flex-col">
-                                <span class="text-lg font-bold text-gray-800">${formatNumber(data.todayCount)}</span>
-                                <span class="text-sm text-gray-500 font-medium">${formatCurrency(data.todayAmount)}</span>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- MOBILE VIEW (default, hidden on sm: and up) -->
@@ -413,14 +401,7 @@
                         <!-- Mobile Metric Breakdown: Total vs. Today, stacked horizontally -->
                         <div class="grid grid-cols-2 gap-4 pt-3">
                             <div class="flex flex-col">
-                                <span class="text-sm uppercase text-gray-500 font-medium">Total</span>
                                 <span class="text-xl font-extrabold text-gray-900">${formatNumber(data.totalCount)}</span>
-                                <span class="text-sm text-gray-500">${formatCurrency(data.totalAmount)}</span>
-                            </div>
-                            <div class="flex flex-col border-l pl-4 border-gray-100">
-                                <span class="text-sm uppercase text-gray-500 font-medium">Today</span>
-                                <span class="text-xl font-extrabold text-gray-900">${formatNumber(data.todayCount)}</span>
-                                <span class="text-sm text-gray-500">${formatCurrency(data.todayAmount)}</span>
                             </div>
                         </div>
                     </div>
@@ -439,7 +420,7 @@
                 <div class="bg-red-50 border-l-4 border-red-500 rounded-b-xl shadow-inner mt-2 p-0 sm:p-0">
                     
                     <!-- DESKTOP/TABLET VIEW (sm: and up) -->
-                    <div class="hidden sm:grid grid-cols-12 gap-4 py-4 items-center pl-4 pr-3 min-w-full">
+                    <div class="hidden sm:grid grid-cols-7 gap-1 py-4 items-center pl-4 pr-3 min-w-full">
                         
                         <!-- Status Column (Col 3) -->
                         <div class="col-span-3 flex items-center">
@@ -509,40 +490,6 @@
                 // Construct data arrays for the detailed ledger
                 const orderData = [
                     {
-                        status: "Pending Orders",
-                        icon: "clock",
-                        color: "text-yellow-600",
-                        bg: "bg-yellow-50",
-                        totalCount: apiData.pending_orders.count,
-                        totalAmount: apiData.pending_orders.sum,
-                        todayCount: 0, // Not provided by API, defaulting to 0
-                        todayAmount: 0, // Not provided by API, defaulting to 0
-                        description: "Orders awaiting approval or next step."
-                    },
-                    {
-                        status: "Completed Orders",
-                        icon: "check-circle",
-                        color: "text-green-700",
-                        bg: "bg-green-50",
-                        totalCount: apiData.completed_orders.count,
-                        totalAmount: apiData.completed_orders.sum,
-                        todayCount: 0, // Not provided by API, defaulting to 0
-                        todayAmount: 0, // Not provided by API, defaulting to 0
-                        description: "Orders successfully fulfilled and closed."
-                    },
-                    {
-                        status: "Selling Orders",
-                        icon: "trending-up",
-                        color: "text-amber-600",
-                        bg: "bg-amber-50",
-                        totalCount: apiData.running_orders.count,
-                        // Estimated amount based on AOV, as API only provides count
-                        totalAmount: apiData.running_orders.count * aov,
-                        todayCount: apiData.today_orders.count, // Assuming all today's orders are running
-                        todayAmount: apiData.today_orders.sum,
-                        description: "Revenue-generating orders in progress."
-                    },
-                    {
                         status: "Draft Orders",
                         icon: "file-text",
                         color: "text-slate-600",
@@ -550,22 +497,23 @@
                         totalCount: apiData.draft_orders.count,
                         // Estimated amount based on AOV, as API only provides count
                         totalAmount: apiData.draft_orders.count * aov,
-                        todayCount: apiData.today_draft_orders.count,
-                        // Estimated amount based on AOV, as API only provides count
-                        todayAmount: apiData.today_draft_orders.count * aov,
                         description: "Orders created but not yet submitted."
                     },
                     {
-                        status: "Canceled Orders",
-                        icon: "x-circle",
-                        color: "text-red-600",
-                        bg: "bg-red-50",
-                        totalCount: apiData.cancelled_orders.total,
-                        // Placeholder amount as API doesn't provide sum for canceled orders
-                        totalAmount: apiData.cancelled_orders.total * 500,
-                        todayCount: 0, // Not provided by API, defaulting to 0
-                        todayAmount: 0, // Not provided by API, defaulting to 0
-                        description: "Orders that have been terminated."
+                        status: "In Process... ",
+                        icon: "trending-up",
+                        color: "text-amber-600",
+                        bg: "bg-amber-50",
+                        totalCount: apiData.running_orders.count,
+                        description: "Revenue-generating orders in progress."
+                    },
+                    {
+                        status: "Completed Orders",
+                        icon: "check-circle",
+                        color: "text-green-700",
+                        bg: "bg-green-50",
+                        totalCount: apiData.completed_orders.count,
+                        description: "Orders successfully fulfilled and closed."
                     }
                 ];
 
@@ -631,11 +579,9 @@
                             <div class="bg-white p-0 rounded-xl shadow-xl">
                                 
                                 <!-- Table Header - Hidden on small screens (mobile) -->
-                                <div class="hidden sm:grid grid-cols-12 gap-4 text-xs font-bold uppercase text-gray-600 py-3 px-3 bg-gray-100 rounded-t-xl border-b border-gray-200">
+                                <div class="hidden sm:grid grid-cols-7 gap-4 text-xs font-bold uppercase text-gray-600 py-3 px-3 bg-gray-100 rounded-t-xl border-b border-gray-200">
                                     <div class="col-span-3">Status & Priority</div>
-                                    <div class="col-span-3 text-right">Total Count (All Time)</div>
-                                    <div class="col-span-3 text-right">Total Amount (All Time)</div>
-                                    <div class="col-span-3 text-right">Today's Activity</div>
+                                    <div class="col-span-3 text-right">Count</div>
                                 </div>
 
                                 <div id="status-rows-content">

@@ -23,6 +23,51 @@ class BuiltyModel:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
+    def get_dasebored_data(self,user_id):
+        query = f"""
+            
+            SELECT 
+                -- Total Draft Builty Order
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+               		AND cancel_order_status = 0 
+               		AND packing_proceed_for_transport = 1 
+               		AND payment_confirm_status = 1
+      		   		AND transport_proceed_for_builty = 1
+                    AND builty_received = 0
+          		THEN 1 END) AS total_draft_builty_order,
+
+                -- Total Proceed Builty Order From User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 1
+      					AND transport_proceed_for_builty = 1
+                      	AND builty_received = 1
+                        AND builty_proceed_by = 90
+                THEN 1 END) AS total_proceed_builty_order_from_user,
+
+                -- Total Today Order Builty By User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+      					AND sales_proceed_for_packing = 1
+                        AND packing_proceed_for_transport = 1 
+      					AND transport_proceed_for_builty = 1
+                      	AND builty_received =1
+      					AND builty_proceed_by = 90
+                        AND DATE(builty_date_time) = CURRENT_DATE 
+                THEN 1 END) AS total_today_builty_order_by_user
+
+            FROM live_order_track;
+            
+        """
+
+        self.cursor.execute(query,)
+        result = self.cursor.fetchone()
+        self.conn.close()
+
+        return result
+
     def merge_orders_products(self,data):
 
         merged = {}
@@ -176,6 +221,7 @@ class BuiltyModel:
                         AND lot.sales_proceed_for_packing = 1
                         AND lot.packing_proceed_for_transport = 1
                         AND lot.transport_proceed_for_builty = 1
+                        AND lot.builty_received = 0
 
                     LEFT JOIN users up ON lot.packing_proceed_by = up.id
                     LEFT JOIN users ut ON lot.transport_proceed_by = ut.id
@@ -184,7 +230,7 @@ class BuiltyModel:
 
                     WHERE lot.builty_received = 0
                         AND inv.completed = 0
-                        AND inv.delivery_mode = 'transport'
+                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post') 
 
                     ORDER BY inv.created_at DESC;
        
@@ -285,6 +331,21 @@ def builty_my_pack_list():
 
     finally:
         my_pack.close()
+
+@builty_bp.route('/builty/builty-dasebored-orders', methods=['GET'])
+@login_required('Builty')
+def builty_dasebored():
+    try:
+        my_pack = BuiltyModel()
+        orders = my_pack.get_dasebored_data(session.get('user_id'))
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()  
 
 @builty_bp.route('/builty/cancel_order', methods=['POST'])
 @login_required('Builty')

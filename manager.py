@@ -278,10 +278,17 @@ def confirm_verification():
         WHERE id = %s
         """
 
+        query_ = """
+        UPDATE invoices
+        set completed = 1
+        WHERE id = (SELECT invoice_id FROM live_order_track WHERE id = %s);
+        """
+
         cursor = conn.cursor(dictionary=True)
         
         try:
             cursor.execute(query,(session.get('user_id'),data.get('live_order_track_id'),))
+            cursor.execute(query_,(data.get('live_order_track_id'),))
             conn.commit()
         finally:
             cursor.close()
@@ -536,7 +543,7 @@ def add_event():
     
 
 
-    # cancelled orders routes
+# cancelled orders routes
 
 
 @manager_bp.route('/manager/cancelled-orders-list', methods=['GET'])

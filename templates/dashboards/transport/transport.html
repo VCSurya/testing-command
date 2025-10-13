@@ -7,6 +7,8 @@
     <title>Transport</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         :root {
             --primary: #1e2857;
@@ -139,6 +141,46 @@
             }
         }
     </style>
+    <style>
+        .dashboard-card {
+            /* Smooth transitions for all elements */
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* Soft, elevated shadow */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            /* Subtle border for classic look */
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            /* Deeper lift on hover */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            /* More dramatic shadow for premium feel */
+        }
+
+        /* Cool 'Floating Glow' animation for active indicators */
+        @keyframes float-glow {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+                /* Subtle box shadow to create a soft "glow" effect */
+                box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.2);
+            }
+
+            50% {
+                transform: translateY(-3px) scale(1.03);
+                /* Slight lift */
+                box-shadow: 0 0 15px 5px rgba(100, 116, 139, 0.4);
+                /* Deeper glow at the peak */
+            }
+        }
+
+        /* Apply this class to icons that should show animation */
+        .icon-float-glow {
+            animation: float-glow 3s ease-in-out infinite;
+        }
+    </style>
 
 </head>
 
@@ -163,7 +205,8 @@
                                 class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
+                        <a class="nav-link" href="/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My
+                            Orders</a>
                     </li>
                 </ul>
             </div>
@@ -192,7 +235,25 @@
                 </div>
 
                 <div class="container-fluid px-4" style="padding-top: 100px;">
-
+                    <!-- Start: Main Reusable Dashboard Div -->
+                    <div id="packing-dashboard-container">
+                        <!-- Dashboard Grid -->
+                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                            <!-- Stats cards will be injected here by JavaScript -->
+                            <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
+                                <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Fetching Data...
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End: Main Reusable Dashboard Div -->
                 </div>
             </div>
         </div>
@@ -239,6 +300,182 @@
                 });
             });
         });
+    </script>
+    <script>
+        // --- DATA MAPPING AND CONFIGURATION ---
+
+        // Map the JSON keys to display properties, colors, and icons.
+        // Colors updated for a richer, classic palette.
+
+        const statConfig = {
+            total_proceed_transport_order_from_user: {
+                title: "Total Dispatched Orders",
+                icon: "zap", // Still implies active/urgent tasks
+                color: "bg-indigo-600",
+                shadow: "shadow-indigo-600/60",
+                description: "All orders dispatched for transport by you."
+            },
+            total_draft_transport_order: {
+                title: "Transport Drafts",
+                icon: "repeat", // Represents pending/looping process
+                color: "bg-gray-500",
+                shadow: "shadow-gray-500/60",
+                description: "Orders saved as drafts, awaiting dispatch."
+            },
+            total_transport_but_builty_not_recived: {
+                title: "In Transit (No Builty)",
+                icon: "truck", // Transport in progress
+                color: "bg-emerald-600",
+                shadow: "shadow-emerald-600/60",
+                description: "Orders dispatched but builty not yet received."
+            },
+            total_today_order_transport_by_user: {
+                title: "Today's Dispatches",
+                icon: "check-circle",
+                color: "bg-green-700",
+                shadow: "shadow-green-700/60",
+                description: "Total orders you've dispatched today."
+            },
+            pending_canceled_orders: {
+                title: "Pending Transport Cancellations",
+                icon: "alert-triangle",
+                color: "bg-yellow-600",
+                shadow: "shadow-yellow-600/60",
+                description: "Canceled transport orders awaiting confirmation."
+            },
+            confirmed_canceled_orders: {
+                title: "Confirmed Transport Cancellations",
+                icon: "slash",
+                color: "bg-red-400",
+                shadow: "shadow-red-400/60",
+                description: "Transport cancellations that are finalized."
+            }
+        };
+
+        // Utility function to get Lucide-like SVG icons
+        function getIconSVG(name, color = "currentColor", size = 24, strokeWidth = 2) {
+            const icons = {
+                // New high-priority icons
+                'zap': `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`, // Lightning
+                'repeat': `<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`, // Repeat/Transition
+                'x-octagon': `<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`, // Octagon for cancellation
+
+                // Existing icons
+                'package': `<path d="M12.89 1.13l9 9a3 3 0 0 1 0 4.24l-9 9a3 3 0 0 1-4.24 0l-9-9a3 3 0 0 1 0-4.24l9-9a3 3 0 0 1 4.24 0z"/><path d="M12 2v20"/><path d="M3.5 12h17"/><path d="M12 2l8 8"/><path d="M4 12l8-8"/>`,
+                'file-text': `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>`,
+                'truck': `<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M10 18h10a2 2 0 0 0 2-2V8h-2"/><path d="M15 18h-1"/><path d="M19 18h-1"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/>`,
+                'check-circle': `<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`,
+                'clock': `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
+                'alert-triangle': `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+                'slash': `<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>`,
+            };
+
+            const path = icons[name] || icons['package']; // Default to package icon
+            return `
+                <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" class="feather feather-${name}">
+                    ${path}
+                </svg>
+            `;
+        }
+
+
+        // --- API SIMULATION & DATA FETCHING ---
+
+        // Function to simulate the API call with the provided JSON data
+        async function fetchPackingData() {
+            // In a real application, you would replace this with:
+            const response = await fetch('/transport/transport-dasebored-orders');
+            const data = await response.json();
+
+            return data;
+        }
+
+        // --- RENDERING FUNCTION ---
+
+        function createStatCard(key, value) {
+            const config = statConfig[key];
+            if (!config) return '';
+
+            // Add a higher-contrast text color for the value
+            const valueColor = key.includes('canceled') ? 'text-red-700' : 'text-gray-900';
+
+            // Apply the cool animation class (icon-float-glow) to specific cards for impact
+            const animationClass = (key === "total_proceed_packing_order_from_user" || key === "total_packed_but_not_transport" || key === "total_draft_packing_order") ? 'icon-float-glow' : '';
+
+            // Card structure updated to put Title on top, and Value/Icon side-by-side
+            return `
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    
+                    <!-- Title now takes the full top row -->
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${config.title}</h3>
+
+                    <!-- Value and Icon are now in a row below the title -->
+                    <div class="flex items-center justify-between">
+                        
+                        <!-- Value - Increased size and bolded -->
+                        <div class="text-5xl font-extrabold ${valueColor}">
+                            ${value}
+                        </div>
+                        
+                        <!-- Icon container with animation -->
+                        <div class="p-3 rounded-full ${config.color} text-white shadow-xl ${config.shadow} ${animationClass}" style="animation-delay: ${Math.random() * 0.5}s;">
+                            ${getIconSVG(config.icon, 'white', 20, 2)}
+                        </div>
+                    </div>
+
+                    <!-- Description/Detail -->
+                    <p class="text-xs text-gray-400 mt-4">${config.description}</p>
+                </div>
+            `;
+        }
+
+        async function renderDashboard() {
+            const gridContainer = document.getElementById('stats-grid');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            // Show loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('hidden');
+            }
+
+            try {
+                const data = await fetchPackingData();
+                let htmlContent = '';
+
+                // Define the desired order of display
+                const displayOrder = [
+                    "total_draft_transport_order",
+                    "total_proceed_transport_order_from_user",
+                    "total_today_order_transport_by_user",
+                    "pending_canceled_orders",
+                    "confirmed_canceled_orders",
+                    "total_transport_but_builty_not_recived"
+                ];
+
+                displayOrder.forEach(key => {
+                    const value = data[key] !== undefined ? data[key] : 'N/A';
+                    htmlContent += createStatCard(key, value);
+                });
+
+                gridContainer.innerHTML = htmlContent;
+
+            } catch (error) {
+                console.error("Error fetching packing data:", error);
+                gridContainer.innerHTML = `
+                    <div class="col-span-full text-center py-10 text-red-500 font-semibold">
+                        ⚠️ Failed to load dashboard data. Please try again.
+                    </div>
+                `;
+            } finally {
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize the dashboard when the window loads
+        window.onload = renderDashboard;
     </script>
 </body>
 

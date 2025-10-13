@@ -79,10 +79,10 @@ class Dasebored:
         
         (SELECT COUNT(*) FROM live_order_track 
             JOIN invoices ON invoices.id = live_order_track.invoice_id 
-            WHERE live_order_track.sales_proceed_for_packing = 1 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0) AS running_order_count,
+            WHERE live_order_track.sales_proceed_for_packing = 1 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS running_order_count,
         
         (SELECT COUNT(*) FROM live_order_track 
-            JOIN invoices ON invoices.id = live_order_track.invoice_id 
+            JOIN invoices ON invoices.id = live_order_track.invoice_id      
             WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS draft_order_count,
         
         (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id}) AS total_cancelled_orders,
@@ -2009,6 +2009,34 @@ class EditBill:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
+    def insert_live_order_track(self, invoice_id):
+        
+        try:
+            # Prepare the SQL query to insert the invoice data
+            insert_query = """
+                INSERT INTO live_order_track (invoice_id)
+                VALUES (%s)
+            """
+
+            # Extract values from the invoice_data dictionary
+            values = (
+                invoice_id,
+            )
+
+            # Execute the query
+            cursor = self.conn.cursor()
+            cursor.execute(insert_query, values)
+            self.conn.commit()
+
+            return {'success': True}
+
+        except mysql.connector.Error as e:
+            self.conn.rollback()
+            return {'error': str(e)}
+
+        finally:
+            cursor.close()
+
     def verify_invoice_for_edit(self, invoice_id):
 
         query = "SELECT sales_proceed_for_packing FROM live_order_track WHERE invoice_id = %s"
@@ -2081,7 +2109,7 @@ class EditBill:
             # Prepare invoice data
             gst_included = 1 if invoice_data.get('gst_included') == 'on' else 0
             left_to_paid = invoice_data['grand_total'] - invoice_data['paid_amount']
-            invoice_id = invoice_data['invoice_id'][10:]  # Assuming ID starts after 10th char
+            invoice_id = invoice_data['invoice_id']
 
             # Step 1: Update invoice record
             update_invoice_query = """
@@ -2130,7 +2158,11 @@ class EditBill:
 
             if invoice_data['delivery_mode'] == "porter" or invoice_data['delivery_mode'] == "at_store":
                 cursor.execute("DELETE FROM live_order_track WHERE invoice_id = %s;", (invoice_id,))
-
+                result = self.insert_live_order_track(invoice_id)
+                if result['success'] != True:
+                    self.conn.rollback()
+                    return {"status": False, 'error': result['error']}
+            
             # Step 3: Insert new invoice items
             insert_item_query = """
                 INSERT INTO invoice_items (
@@ -2218,10 +2250,17 @@ def update_invoice_into_database():
         sales_note = request.form.get('sales_note', '')
         IncludeGST = request.form.get('IncludeGST', 'off')
         event_id = request.form.get('event_id', None)
-        invoice_id = request.form.get('invoice_number')
+        invoice_number = request.form.get('invoice_number')
 
-        if not invoice_id or invoice_id == "":
+        if not invoice_number or invoice_number == "":
             return jsonify({'error': 'Somthing is Missing in the bill'}), 400
+        
+        result = get_invoice_id(invoice_number)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
 
         if payment_mode == "not_paid":
             paid_amount = 0
