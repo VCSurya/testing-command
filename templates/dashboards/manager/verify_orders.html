@@ -1517,12 +1517,19 @@
                             </div>
                             
                             </div>
-                             <div class="next-to-pack-container">
+                             
+                        ` : `
+                        
+                        <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
+                        
+                        <div class="next-to-pack-container">
                                 <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">
                                     DONE
                                 </button>
-                            </div>
-                        ` : ''}
+                        </div>
+                        
+                        `}
+
                         
                     </div>
 

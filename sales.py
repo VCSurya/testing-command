@@ -544,7 +544,7 @@ def save_invoice_into_database():
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
             'event_id': event_id,
-            'completed': 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
+            'completed': 0,
         }
 
         # Save to database
@@ -1261,9 +1261,7 @@ class MyOrders:
 
             AND (
 
-                inv.completed = 1
-
-                OR (inv.completed = 0 AND lot.invoice_id IS NOT NULL)
+                inv.completed = 0
                 
             )
 
@@ -1478,21 +1476,71 @@ class MyOrders:
 
             # Get live_order_track_id using invoiceNumber
             select_query = """
-            SELECT id FROM live_order_track WHERE invoice_id = ( SELECT id FROM invoices WHERE invoice_number = %s );
+
+                SELECT
+                    lot.id,
+                    i.delivery_mode,
+                    i.payment_mode
+                FROM
+                    live_order_track AS lot
+                JOIN
+                    invoices AS i ON i.id = lot.invoice_id
+                WHERE
+                    i.invoice_number = %s;
+
             """
             self.cursor.execute(select_query, (invoiceNumber,))
             result = self.cursor.fetchone()
             live_order_track_id = result['id'] if result else None
+            delivery_mode = result['delivery_mode'] if result else None
+            payment_mode = result['payment_mode'] if result else None
+            user_id = session.get('user_id')
 
-            update_query = """
-            UPDATE live_order_track
-            SET sales_proceed_for_packing = 1,
-                sales_date_time = NOW()
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (live_order_track_id,))
-            self.conn.commit()
+            if delivery_mode in ("transport", "post"):
+                update_query = """
+                    UPDATE live_order_track
+                    SET sales_proceed_for_packing = 1,
+                        sales_date_time = NOW()
+                    WHERE id = %s;
+                """
+                self.cursor.execute(update_query, (live_order_track_id,))
+                self.conn.commit()
 
+            else:
+                payment_verify_by = user_id if payment_mode != "not_paid" else None
+                payment_date_time = "NOW()" if payment_mode != "not_paid" else None
+                payment_confirm_status = 1 if payment_mode != "not_paid" else 0
+
+                # Construct query with placeholders
+                update_query = """
+                    UPDATE live_order_track
+                    SET 
+                        sales_proceed_for_packing = 1,
+                        sales_date_time = NOW(),
+                        packing_proceed_for_transport = 1, 
+                        packing_date_time = NOW(),
+                        packing_proceed_by = %s,
+                        transport_proceed_for_builty = 1,
+                        transport_date_time = NOW(),
+                        transport_proceed_by = %s,
+                        builty_proceed_by = %s,
+                        builty_received = 1,
+                        builty_date_time = NOW(),
+                        payment_verify_by = %s,
+                        payment_date_time = {payment_date_time},
+                        payment_confirm_status = %s
+                    WHERE id = %s;
+                """.format(payment_date_time=payment_date_time if payment_date_time else "NULL")
+
+                self.cursor.execute(update_query, (
+                    user_id, user_id, user_id,
+                    payment_verify_by,
+                    payment_confirm_status,
+                    live_order_track_id
+                ))
+                self.conn.commit()
+
+            
             return {"success": True, "message": "Order successfully shipped"}
 
         except Exception as e:
@@ -2331,7 +2379,7 @@ def update_invoice_into_database():
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
             'event_id': event_id,
-            'completed': 1 if (delivery_mode == "at_store" or delivery_mode == "porter") and (payment_type == "full_payment") else 0,
+            'completed': 0,
         }
 
         # Save to database
