@@ -27,12 +27,17 @@
         :root {
             --primary: #1e2857;
             --secondary: #1e094d;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --info: #7209b7;
+            --dark: #2b2d42;
             --light: #f8f9fa;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f5f7;
+            color: #1f2937;
         }
 
         /* Sidebar styles */
@@ -89,8 +94,10 @@
         }
 
         .logo-text {
+            font-family: 'Inter', sans-serif;
             font-weight: 700;
             letter-spacing: 1px;
+            font-size: 1.3em;
         }
 
         .nav-link {
@@ -149,9 +156,6 @@
                 padding: 0;
             }
 
-            .profile-menu {
-                display: none;
-            }
 
             .main-content {
                 width: 100% !important;
@@ -636,11 +640,7 @@
                 left: 0;
             }
 
-            .main-content {
-                width: 100% !important;
-                margin-left: 0 !important;
-            }
-
+        
             .mobile-toggle {
                 display: block;
             }
@@ -1223,7 +1223,7 @@
             cursor: pointer;
         }
 
-        .sr-only-checkbox {
+        .sr-only-checkbox { 
             position: absolute;
             width: 1px;
             height: 1px;
@@ -1283,7 +1283,53 @@
             }
         }
     </style>
+    <style>
+        .user-card {
+            display: flex;
+            align-items: center;
+            background: #e6dbff23;
+            padding: 15px 20px;
+            border-radius: 12px;
+            gap: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            width: 88%;
+            position: absolute;
+            bottom: 20px;
+        }
 
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+
+        .user-status {
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+    </style>
 </head>
 
 <body>
@@ -1305,6 +1351,7 @@
                 </div>
 
                 <ul class="nav flex-column">
+
                     <li class="nav-item">
                         <a class="nav-link " href="/sales/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
@@ -1314,7 +1361,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/ready-to-go-orders"><i
-                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                                class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
@@ -1330,13 +1377,22 @@
                         </a>
                     </li>
                 </ul>
+
+                <div class="user-card">
+                    <div class="user-avatar align-items-center d-flex justify-content-center">
+                        <i class="fas fa-user me"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ session.get('username', 'Sales Manager') }}</div>
+                        <div class="user-status">Sales</div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
-
-
-                <div class="header-container d-flex justify-content-between align-items-center">
+                <div class="header-container d-flex align-items-center">
 
                     <div class="d-flex align-items-center justify-content-between p-0">
                         <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
@@ -1344,23 +1400,12 @@
                         </button>
                         <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Billing</h4>
                     </div>
-
-
-                    <div class="dropdown profile-menu">
-                        <button class="btn d-flex align-items-center" type="button" id="dropdownMenuButton"
-                            style="border: 1px solid rgb(207, 207, 207);">
-                            <i class="fas fa-user me-2"></i>
-                            <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
-                            </span>
-                        </button>
-                    </div>
                 </div>
 
                 <div class="container-fluid px">
                     <!-- Billing System Container -->
                     <div class="billing-container">
                         <form id="billingForm">
-
 
                             <!-- Customer Information -->
                             <div class="form-group" id="section">
@@ -1426,7 +1471,7 @@
                             </div>
 
 
-                            
+
                             <div class="form-group" id="eventSelectionGroup" style="display: none;">
                                 <div class="section-header">
                                     <span for="customerSelect" class="icon"><i class="fa-solid fa-bullhorn"></i></span>
@@ -1460,7 +1505,6 @@
                                     <div class="dropdown-wrapper">
                                         <div class="select-container">
                                             <select class="form-select" id="deliveryMode" name="delivery_mode" required>
-                                                <option value="" disabled selected>Select an option</option>
                                                 <option value="at_store">At Store</option>
                                                 <option value="porter">Porter</option>
                                                 <option value="transport">Transport</option>
@@ -1469,8 +1513,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="form-group" id="transportCompanyGroup" style="display: none;margin-top: 20px;">
+
+                                <div class="form-group" id="transportCompanyGroup"
+                                    style="display: none;margin-top: 20px;">
                                     <!-- <label for="transportCompany">Transport Company Name:</label> -->
                                     <input type="text" class="form-control" id="transportCompany"
                                         name="transport_company" placeholder="Enter Transport Company Name">
@@ -1478,130 +1523,132 @@
                             </div>
                             <br>
 
-                        <div id="paymentSection" style="display: none;">
-                            <div class="form-group" id="section">
+                            <div id="paymentSection" style="display: none;">
+                                <div class="form-group" id="section">
 
-                                <div class="section-header">
-                                    <span for="customerSelect" class="icon"><i class="fas fa-credit-card"
-                                            style="font-size: 1em; color: #002042;"></i></span>
-                                    PAYMENT SECTION
-                                </div>
+                                    <div class="section-header">
+                                        <span for="customerSelect" class="icon"><i class="fas fa-credit-card"
+                                                style="font-size: 1em; color: #002042;"></i></span>
+                                        PAYMENT SECTION
+                                    </div>
 
-                                <br>
-                                <!-- Form Fields Container -->
-                                <div style="display: flex; flex-direction: column; gap: 18px;">
+                                    <br>
+                                    <!-- Form Fields Container -->
+                                    <div style="display: flex; flex-direction: column; gap: 18px;">
 
-                                    <!-- Flex container for dropdowns to make them responsive -->
-                                    <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-                                        <!-- Payment Method Dropdown -->
-                                        <div style="flex: 1; min-width: 150px;">
-                                            <label for="paymentMode"
+                                        <!-- Flex container for dropdowns to make them responsive -->
+                                        <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                                            <!-- Payment Method Dropdown -->
+                                            <div style="flex: 1; min-width: 150px;">
+                                                <label for="paymentMode"
+                                                    style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
+                                                    Method</label>
+                                                <select class="form-select" id="paymentMode" name="payment_mode"
+                                                    required
+                                                    style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
+                                                    <option value="cash">Cash</option>
+                                                    <option value="online">Online</option>
+                                                    <option value="card">Debit/Credit Card</option>
+                                                    <option value="not_paid">Not Paid</option>
+                                                </select>
+                                            </div>
+                                            <!-- Payment Type Dropdown -->
+                                            <div style="flex: 1; min-width: 150px;" id="paymentTypeGroup">
+                                                <label for="paymentType"
+                                                    style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
+                                                    Type</label>
+                                                <select class="form-select" id="paymentType" name="payment_type"
+                                                    required
+                                                    style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
+                                                    <option disabled selected>Select Payment Type</option>
+                                                    <option value="full_payment">Full Payment</option>
+                                                    <option value="half_payment">Half Payment</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Flex container for amount inputs to make them responsive -->
+                                        <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+
+                                            <!-- Paid Amount Input -->
+                                            <div style="flex: 1; min-width: 150px;display: none;" id="paidAmountGroup">
+                                                <label for="paid-amount"
+                                                    style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Paid
+                                                    Amount</label>
+                                                <input
+                                                    style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; box-sizing: border-box;"
+                                                    type="number" class="form-control" id="paidAmount"
+                                                    name="paid_amount" placeholder="e.g., 1000" value="0" min="0"
+                                                    max="0" step="0.01" oninput="validatePaidAmount(this)">
+                                            </div>
+
+                                            <!-- Left to Pay (disabled) -->
+                                            <div style="flex: 1; min-width: 150px;display: none;" id="leftToPayGroup">
+                                                <label for="leftToPayDisplay"
+                                                    style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Left
+                                                    to Pay</label>
+
+                                                <input type="text" class="form-control" id="leftToPayDisplay" readonly
+                                                    disabled
+                                                    style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #edf2f7; font-size: 16px; color: #718096; box-sizing: border-box; cursor: not-allowed;">
+                                                <input type="hidden" name="left_to_pay_display" id="leftToPayInput"
+                                                    value="0">
+
+                                            </div>
+                                        </div>
+
+                                        <!-- GST Toggle Switch Wrapper -->
+                                        <div class="gst-wrapper">
+                                            <div class="gst-container">
+                                                <span class="gst-text">Include GST (18%)</span>
+                                                <label for="gst-toggle-switch" class="toggle-switch-label">
+                                                    <input type="checkbox" id="gst-toggle-switch"
+                                                        class="sr-only-checkbox" name="IncludeGST">
+                                                    <div class="toggle-track"></div>
+                                                    <div class="toggle-thumb"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Notes Textarea -->
+                                        <div>
+                                            <label for="notes"
                                                 style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
-                                                Method</label>
-                                            <select class="form-select" id="paymentMode" name="payment_mode" required
-                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
-                                                <option>Select a method...</option>
-                                                <option value="cash">Cash</option>
-                                                <option value="online">Online</option>
-                                                <option value="not_paid">Not Paid</option>
-                                            </select>
-                                        </div>
-                                        <!-- Payment Type Dropdown -->
-                                        <div style="flex: 1; min-width: 150px;" id="paymentTypeGroup">
-                                            <label for="paymentType"
-                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
-                                                Type</label>
-                                            <select class="form-select" id="paymentType" name="payment_type" required
-                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234A5568%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; box-sizing: border-box;">
-                                                <option disabled selected>Select Payment Type</option>
-                                                <option value="full_payment">Full Payment</option>
-                                                <option value="half_payment">Half Payment</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Flex container for amount inputs to make them responsive -->
-                                    <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-
-                                        <!-- Paid Amount Input -->
-                                        <div style="flex: 1; min-width: 150px;display: none;" id="paidAmountGroup">
-                                            <label for="paid-amount"
-                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Paid
-                                                Amount</label>
-                                            <input
-                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; box-sizing: border-box;"
-                                                type="number" class="form-control" id="paidAmount" name="paid_amount"
-                                                placeholder="e.g., 1000" value="0" min="0" max="0" step="0.01"
-                                                oninput="validatePaidAmount(this)">
+                                                Note (Optional)</label>
+                                            <textarea id="otherPaymentNote" name="payment_note" rows="3"
+                                                placeholder="Add any notes regarding this payment..."
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
                                         </div>
 
-                                        <!-- Left to Pay (disabled) -->
-                                        <div style="flex: 1; min-width: 150px;display: none;" id="leftToPayGroup">
-                                            <label for="leftToPayDisplay"
-                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Left
-                                                to Pay</label>
-
-                                            <input type="text" class="form-control" id="leftToPayDisplay" readonly
-                                                disabled
-                                                style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #edf2f7; font-size: 16px; color: #718096; box-sizing: border-box; cursor: not-allowed;">
-                                            <input type="hidden" name="left_to_pay_display" id="leftToPayInput"
-                                                value="0">
-
+                                        <!-- Notes Textarea -->
+                                        <div>
+                                            <label for="notes"
+                                                style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Sales
+                                                Note (Optional)</label>
+                                            <textarea id="salesNote" name="sales_note" rows="3"
+                                                placeholder="Add any notes regarding this payment..."
+                                                style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
                                         </div>
-                                    </div>
 
-                                    <!-- GST Toggle Switch Wrapper -->
-                                    <div class="gst-wrapper">
-                                        <div class="gst-container">
-                                            <span class="gst-text">Include GST (18%)</span>
-                                            <label for="gst-toggle-switch" class="toggle-switch-label">
-                                                <input type="checkbox" id="gst-toggle-switch" class="sr-only-checkbox"
-                                                    name="IncludeGST">
-                                                <div class="toggle-track"></div>
-                                                <div class="toggle-thumb"></div>
-                                            </label>
+                                        <!-- Grand Total Display -->
+                                        <div
+                                            style="background-color: #edf2f7; border-radius: 8px; padding: 16px; text-align: center; margin-top: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #4a5568; font-weight: 500;">
+                                                GRAND TOTAL</p>
+                                            <p style="margin: 8px 0 0 0; font-size: 32px; color: #1a202c; font-weight: 700;"
+                                                id="finalGrandTotal">
+                                                ₹00.00
+                                            </p>
                                         </div>
-                                    </div>
 
-                                    <!-- Notes Textarea -->
-                                    <div>
-                                        <label for="notes"
-                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Payment
-                                            Note (Optional)</label>
-                                        <textarea id="otherPaymentNote" name="payment_note" rows="3"
-                                            placeholder="Add any notes regarding this payment..."
-                                            style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
+                                        <!-- Submit Button -->
+                                        <button type="submit" id="printBtn"
+                                            style="width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #2c5282; color: #ffffff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center;">
+                                            Confirm Order
+                                        </button>
                                     </div>
-
-                                    <!-- Notes Textarea -->
-                                    <div>
-                                        <label for="notes"
-                                            style="display: block; font-size: 14px; color: #4a5568; margin-bottom: 8px; font-weight: 500;">Sales
-                                            Note (Optional)</label>
-                                        <textarea id="salesNote" name="sales_note" rows="3"
-                                            placeholder="Add any notes regarding this payment..."
-                                            style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: #ffffff; font-size: 16px; color: #2d3748; resize: vertical; box-sizing: border-box;"></textarea>
-                                    </div>
-
-                                    <!-- Grand Total Display -->
-                                    <div
-                                        style="background-color: #edf2f7; border-radius: 8px; padding: 16px; text-align: center; margin-top: 8px;">
-                                        <p style="margin: 0; font-size: 14px; color: #4a5568; font-weight: 500;">
-                                            GRAND TOTAL</p>
-                                        <p style="margin: 8px 0 0 0; font-size: 32px; color: #1a202c; font-weight: 700;"
-                                            id="finalGrandTotal">
-                                            ₹00.00
-                                        </p>
-                                    </div>
-
-                                    <!-- Submit Button -->
-                                    <button type="submit" id="printBtn"
-                                        style="width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #2c5282; color: #ffffff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center;">
-                                        Confirm Order
-                                    </button>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1902,7 +1949,7 @@
 
                 const shouldReloadValue = document.getElementById('popupCloseBtnRelode').value;
                 const shouldReload = shouldReloadValue === "true";
-                
+
                 if (shouldReload) {
                     location.href = '/sales/ready-to-go-orders';
                 }
@@ -2530,7 +2577,7 @@
                         const pdfFile = new File([pdfBlob], `${selectedText}_${invoiceNumber}.pdf`, {
                             type: 'application/pdf'
                         });
-
+                        
                         // Check if Web Share API supports files
                         if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
                             navigator.share({
@@ -2617,13 +2664,14 @@
                     return;
                 }
 
-                // if (customers.length === 0) {
-                //     alert('Please Select The Customer!.');
-                //     return;
-                // }
+                const deliveryMode = document.getElementById('deliveryMode').value;
+                const transportCompany = document.getElementById('transportCompany').value.trim();
 
-                // console.log(customers);
-
+                if (deliveryMode === 'transport' && transportCompany === '') {
+                alert('Please enter the transport company name.');
+                return;
+                }
+                
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
@@ -2655,10 +2703,10 @@
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        return response.json(); // Expecting JSON response with invoice_id
+                        return response.json(); // Expecting JSON response with invoice_number
                     })
                     .then(data => {
-                        if (data.success && data.invoice_number && data.invoice_id) {
+                        if (data.success && data.invoice_number) {
 
                             document.getElementById('popupCloseBtnRelode').value = "true"; // Explicitly as a string
                             // Show success message and share button
@@ -2672,7 +2720,7 @@
                                     <div class="alert alert-success d-flex justify-content-between align-items-center">
                                         <div>
                                             <i class="fas fa-file-pdf text-danger"></i>
-                                            <strong>${data.invoice_number}${data.invoice_id}</strong>
+                                            <strong>${data.invoice_number}</strong>
                                         </div>
                                         <button type="button" id="copyBtn" onclick="copyLink();">
                                             <i class="fas fa-copy"></i> <span id="copyText">Copy Link</span>
@@ -2680,14 +2728,21 @@
                                     </div>
                                 `;
 
-                                document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number + data.invoice_id;
+                                document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number;
 
 
 
                             }, 1000); // Optional delay for smooth transition
 
                         } else {
-                            throw new Error(data.error || 'Failed to save invoice');
+                            // throw new Error(data.error || 'Failed to save invoice');
+                            loadingDots.style.display = 'none';
+                            responseContent.style.display = 'block';
+                            modalFooter.style.display = 'none';
+                            responseContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                Failed to process invoice: ${data.error || 'Failed to save invoice'}
+                            </div>`;
                         }
                     })
                     .catch(error => {
@@ -2701,14 +2756,6 @@
                 </div>`;
                     });
             }
-
-
-
-            // Function to regenerate PDF for existing invoice (useful for invoice management page)
-            function regeneratePDF(invoiceId) {
-                window.open(`/sales/generate_pdf/${invoiceId}`, '_blank');
-            }
-
 
             // Helper functions for UI feedback
             function showLoadingSpinner() {

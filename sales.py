@@ -578,7 +578,6 @@ def save_invoice_into_database():
             # Return success with invoice ID
             return jsonify({
                 'success': True,
-                'invoice_id': result['invoice_id'],
                 'invoice_number': result['invoice_number']
             }), 200
         else:
@@ -625,7 +624,11 @@ def generate_bill_pdf(invoice_id):
             WHERE id = %s;
         """, (invoice_id,))
         invoice_data = cursor.fetchone()
-
+        
+        if not invoice_data:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Invoice not found'}), 404
 
         # Get invoice details
         cursor.execute("""
@@ -638,10 +641,6 @@ def generate_bill_pdf(invoice_id):
 
         invoice_data = cursor.fetchone()
 
-        if not invoice_data:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Invoice not found'}), 404
 
         # Get invoice products
         cursor.execute("""
@@ -1042,67 +1041,10 @@ class MyOrders:
             # change created_at date formate
             item['created_at'] = item['created_at'].strftime(
                 "%d/%m/%Y %I:%M %p")
-
-            # passed tracking status with date
-            trackingStatus = 0
-            trackingDates = []
-
-            if item['sales_proceed_for_packing']:
-
-                if item['sales_date_time']:
-                    trackingDates.append(
-                        item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                else:
-                    trackingDates.append('')
-                trackingStatus = 1
-
-                if item['payment_confirm_status']:
-
-                    if item['payment_date_time']:
-                        trackingDates.append(
-                            item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                    else:
-                        trackingDates.append('')
-                    trackingStatus = 2
-
-                    if item['packing_proceed_for_transport']:
-
-                        if item['packing_proceed_for_transport']:
-                            trackingDates.append(
-                                item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                        else:
-                            trackingDates.append('')
-                        trackingStatus = 3
-
-                        if item['transport_proceed_for_builty']:
-
-                            if item['transport_proceed_for_builty']:
-                                trackingDates.append(
-                                    item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                            else:
-                                trackingDates.append('')
-                            trackingStatus = 4
-
-                            if item['builty_received']:
-
-                                if item['builty_received']:
-                                    trackingDates.append(
-                                        item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                                else:
-                                    trackingDates.append('')
-                                trackingStatus = 5
-
-                                if item['verify_by_manager']:
-
-                                    if item['verify_by_manager']:
-                                        trackingDates.append(
-                                            item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                                    else:
-                                        trackingDates.append('')
-                                    trackingStatus = 6
-
-            item['trackingStatus'] = trackingStatus
-            item['trackingDates'] = trackingDates
+            
+            item['delivery_mode'] = item['delivery_mode'].replace('_', ' ').capitalize()
+            item['payment_mode'] = item['payment_mode'].replace('_', ' ').capitalize()
+            item['transport_company_name'] = item['transport_company_name'].capitalize() if item['transport_company_name'] else ''
 
             # merge products
             order_id = item["id"]
@@ -1123,6 +1065,8 @@ class MyOrders:
             else:
                 # If it already exists, just append the product info
                 merged[order_id]["products"].append(product_info)
+
+            merged[order_id].pop("id", None)
 
         return list(merged.values())
 
@@ -1289,8 +1233,6 @@ class MyOrders:
 
                 inv.invoice_number,
 
-                inv.customer_id,
-
                 inv.grand_total,
 
                 inv.payment_mode,
@@ -1303,8 +1245,6 @@ class MyOrders:
 
                 inv.sales_note,
 
-                inv.invoice_created_by_user_id,
-
                 inv.payment_note,
 
                 inv.gst_included,
@@ -1313,8 +1253,6 @@ class MyOrders:
 
                 inv.delivery_mode,
             
-                b.id AS buddy_id, 
-
                 b.name AS customer,
 
                 b.address,
@@ -1325,14 +1263,6 @@ class MyOrders:
 
                 b.mobile,
             
-                u.id AS users_id,
-
-                u.username,
-            
-                ii.id AS invoices_items_id,
-
-                ii.product_id,
-
                 ii.quantity,
 
                 ii.price,
@@ -1340,46 +1270,8 @@ class MyOrders:
                 ii.gst_tax_amount,
 
                 ii.total_amount,
-
-                ii.created_at,
             
-                p.id AS products_id,
-
-                p.name,
-            
-                lot.id AS live_order_track_id,
-
-                lot.sales_proceed_for_packing,
-
-                lot.sales_date_time,
-
-                lot.packing_proceed_for_transport,
-
-                lot.packing_date_time,
-
-                lot.packing_proceed_by,
-
-                lot.transport_proceed_for_builty,
-
-                lot.transport_date_time,
-
-                lot.transport_proceed_by,
-
-                lot.builty_proceed_by,
-
-                lot.builty_received,
-
-                lot.builty_date_time,
-
-                lot.payment_confirm_status,
-
-                lot.cancel_order_status,
-
-                lot.verify_by_manager,
-
-                lot.verify_by_manager_id,
-
-                lot.verify_manager_date_time
+                p.name
             
             FROM invoices inv
 
@@ -1400,7 +1292,6 @@ class MyOrders:
             AND lot.cancel_order_status = 0
 
             AND lot.sales_proceed_for_packing = 0
-
             
             ORDER BY inv.created_at DESC;
  
