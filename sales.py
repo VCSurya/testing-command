@@ -1481,12 +1481,18 @@ def cancel_order():
         return jsonify({"success": False, "message": "Internal server error"}), 500
 
 
-@sales_bp.route('/sales/delete_invoice/<string:invoice_id>', methods=['DELETE'])
+@sales_bp.route('/sales/delete_invoice/<string:invoice_number>', methods=['DELETE'])
 @login_required('Sales')
-def delete_invoice(invoice_id):
+def delete_invoice(invoice_number):
     try:
-        invoice_number = invoice_id[:10]
-        invoice_id = int(invoice_id[10:])
+
+        result = get_invoice_id(invoice_number)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
+
 
         # Get invoice data from database
         conn = get_db_connection()
@@ -2149,8 +2155,8 @@ def edit_invoice(invoice_number):
         if result['status']:
             invoice_id = result['invoice_id']
         else:
-            return jsonify({'error': 'Invoice not found'}), 404
-
+            return render_template('dashboards/sales/ready_to_go.html'), 200
+        
         my_obj = EditBill()
         response = my_obj.verify_invoice_for_edit(invoice_id)
 
@@ -2283,14 +2289,14 @@ def update_invoice_into_database():
                 # Return success with invoice ID
                 return jsonify({
                     'success': True,
-                    'invoice_id': invoice_id
+                    'invoice_number': invoice_number
                 }), 200
             
             else:
                 # Return success with invoice ID
                 return jsonify({
                     'success': False,
-                    'invoice_id': invoice_id
+                    'invoice_number': invoice_number
                 }), 200
 
 
@@ -2319,7 +2325,7 @@ def update_invoice_into_database():
         # Return success with invoice ID
         return jsonify({
             'success': False,
-            'invoice_id': invoice_id
+            'invoice_number': invoice_number
         }), 200
 
     except Exception as e:

@@ -1363,10 +1363,11 @@
 
                                 <button class="glass-btn" title="Edit Bill" onclick="
                                     event.stopPropagation();
-                                    window.open('${window.location.origin}/sales/edit-invoice/${invoiceObj.number}', '_blank');
+                                    window.location.href = '${window.location.origin}/sales/edit-invoice/${invoiceObj.number}';
                                 ">
                                     <i class="bi bi-pencil-square" style="font-size:1.1em;"></i>
                                 </button>
+
 
                                 <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${invoiceObj.number}', this)">
                                     <i class="fa-solid fa-trash"></i>
