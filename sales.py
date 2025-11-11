@@ -1042,9 +1042,67 @@ class MyOrders:
             item['created_at'] = item['created_at'].strftime(
                 "%d/%m/%Y %I:%M %p")
             
-            item['delivery_mode'] = item['delivery_mode'].replace('_', ' ').capitalize()
-            item['payment_mode'] = item['payment_mode'].replace('_', ' ').capitalize()
-            item['transport_company_name'] = item['transport_company_name'].capitalize() if item['transport_company_name'] else ''
+            # passed tracking status with date
+            trackingStatus = 0
+            trackingDates = []
+            print(item['sales_proceed_for_packing'])
+            if item['sales_proceed_for_packing']:
+
+                if item['sales_date_time']:
+                    trackingDates.append(
+                        item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                else:
+                    trackingDates.append('')
+                trackingStatus = 1
+
+                if item['payment_confirm_status']:
+
+                    if item['payment_date_time']:
+                        trackingDates.append(
+                            item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                    else:
+                        trackingDates.append('')
+                    trackingStatus = 2
+
+                    if item['packing_proceed_for_transport']:
+
+                        if item['packing_proceed_for_transport']:
+                            trackingDates.append(
+                                item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        else:
+                            trackingDates.append('')
+                        trackingStatus = 3
+
+                        if item['transport_proceed_for_builty']:
+
+                            if item['transport_proceed_for_builty']:
+                                trackingDates.append(
+                                    item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            else:
+                                trackingDates.append('')
+                            trackingStatus = 4
+
+                            if item['builty_received']:
+
+                                if item['builty_received']:
+                                    trackingDates.append(
+                                        item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                else:
+                                    trackingDates.append('')
+                                trackingStatus = 5
+
+                                if item['verify_by_manager']:
+
+                                    if item['verify_by_manager']:
+                                        trackingDates.append(
+                                            item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    else:
+                                        trackingDates.append('')
+                                    trackingStatus = 6
+
+            item['trackingStatus'] = trackingStatus
+            item['trackingDates'] = trackingDates
+
 
             # merge products
             order_id = item["id"]
@@ -1070,148 +1128,72 @@ class MyOrders:
 
         return list(merged.values())
 
-    def fetch_my_orders(self, user_id, start_shipment):
+    def fetch_my_orders(self, user_id):
         query = f"""
             SELECT 
 
                 inv.id,
-
                 inv.invoice_number,
-
                 inv.customer_id,
-
                 inv.grand_total,
-
                 inv.payment_mode,
-
                 inv.paid_amount,
-
                 inv.left_to_paid,
-
                 inv.transport_company_name,
-
                 inv.sales_note,
-
                 inv.invoice_created_by_user_id,
-
                 inv.payment_note,
-
                 inv.gst_included,
-
                 inv.created_at,
-
                 inv.delivery_mode,
-            
                 b.id AS buddy_id, 
-
                 b.name AS customer,
-
                 b.address,
-
                 b.state,
-
                 b.pincode,
-
                 b.mobile,
-            
                 u.id AS users_id,
-
                 u.username,
-            
                 ii.id AS invoices_items_id,
-
                 ii.product_id,
-
                 ii.quantity,
-
                 ii.price,
-
                 ii.gst_tax_amount,
-
                 ii.total_amount,
-
                 ii.created_at,
-            
                 p.id AS products_id,
-
                 p.name,
-            
                 lot.id AS live_order_track_id,
-
                 lot.sales_proceed_for_packing,
-
                 lot.sales_date_time,
-
                 lot.packing_proceed_for_transport,
-
                 lot.packing_date_time,
-
                 lot.packing_proceed_by,
-
                 lot.transport_proceed_for_builty,
-
                 lot.transport_date_time,
-
                 lot.transport_proceed_by,
-
                 lot.builty_proceed_by,
-
                 lot.builty_received,
-
                 lot.builty_date_time,
-
                 lot.payment_confirm_status,
                 lot.payment_date_time,
-
                 lot.cancel_order_status,
-
                 lot.verify_by_manager,
-
                 lot.verify_by_manager_id,
-
                 lot.verify_manager_date_time
             
             FROM invoices inv
-
             LEFT JOIN buddy b ON inv.customer_id = b.id
-
             LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
             LEFT JOIN products p ON ii.product_id = p.id
-
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
 
-                AND lot.cancel_order_status = 0
-
-                AND lot.sales_proceed_for_packing = {start_shipment}
-
-                AND (
-
-                    lot.packing_proceed_for_transport = 0 
-
-                    OR lot.transport_proceed_for_builty = 0 
-
-                    OR lot.builty_received = 0 
-
-                    OR lot.payment_confirm_status = 0 
-
-                    OR lot.verify_by_manager = 0
-
-                )
-
             WHERE inv.invoice_created_by_user_id = %s
-
-            AND (
-
-                inv.completed = 0
-                
-            )
-
-            ORDER BY inv.created_at DESC;
-
- 
+            AND lot.cancel_order_status = 0
+            AND lot.sales_proceed_for_packing = 1
+            AND inv.completed = 0
+            ORDER BY inv.created_at DESC; 
         """
 
         self.cursor.execute(query, (user_id,))
@@ -1271,29 +1253,22 @@ class MyOrders:
 
                 ii.total_amount,
             
-                p.name
+                p.name,
+
+                lot.sales_proceed_for_packing
             
             FROM invoices inv
-
             LEFT JOIN buddy b ON inv.customer_id = b.id
-
             LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
             LEFT JOIN products p ON ii.product_id = p.id
-
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
 
             WHERE inv.invoice_created_by_user_id = %s
-
-            AND inv.completed = 0
-
             AND lot.cancel_order_status = 0
-
             AND lot.sales_proceed_for_packing = 0
-            
-            ORDER BY inv.created_at DESC;
+            AND inv.completed = 0   
+            ORDER BY inv.created_at DESC; 
  
         """
 
@@ -1539,11 +1514,10 @@ def sales_my_orders_list():
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = MyOrders()
-        orders = my_orders.fetch_my_orders(user_id, 1)
+        orders = my_orders.fetch_my_orders(user_id)
         my_orders.close()
         if not orders:
             return jsonify([]), 200
-        # Format the orders for JSON response
 
         return jsonify(orders)
 

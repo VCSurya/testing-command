@@ -1392,14 +1392,14 @@
                 <div class="header-container d-flex align-items-center">
 
                     <div class="d-flex align-items-center justify-content-between p-0">
-                        <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Back" onclick="history.back()">
+                        <button class="btn btn-outline-primary me-2 p-0" id="sidebarToggle" title="Back" onclick="history.back()">
                             <i class="bi bi-arrow-bar-left fs-2 text-white"></i>
 
 
                         </button>
                         
                         <h4 class="mb-0 fw-semibold text-end" style="font-size: 1.8em; color: #2c3e50;">
-                            <span style="color: #007bff;">{{data.id}}</span> - <span
+                            <span style="color: #007bff;">{{data.id}}</span>-<span
                                 style="font-weight: 600;">Edit</span>
                         </h4>
                     </div>
@@ -1668,7 +1668,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="printPopupModalLabel">Print Bill</h5>
+                    <h5 class="modal-title" id="printPopupModalLabel">Invoice Updated Successfully</h5>
                     <input type="hidden" id="popupCloseBtnRelode" value="false">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
                         id="popupCloseBtn"></button>
@@ -1685,7 +1685,7 @@
                 </div>
                 <div class="modal-footer" id="printPopupFooter" style="display: none;">
                     <input type="hidden" id="invoiceNumber_for_sharing" name="invoiceNumber_value_for_sharing" value="">
-                    <button type="button" class="btn btn-primary" id="shareBtn"><i class="bi bi-share"></i>
+                    <button type="button" class="btn btn-primary" id="shareBtn" style="width: 100%;"><i class="bi bi-share"></i>
                         Share</button>
 
                 </div>
@@ -1904,22 +1904,6 @@
                 }
             });
 
-            // Payment mode select change handler
-            document.getElementById('paymentMode').addEventListener('change', function () {
-                const paymentTypeGroup = document.getElementById('paymentTypeGroup');
-                const paidAmountGroup = document.getElementById('paidAmountGroup');
-                const leftToPayGroup = document.getElementById('leftToPayGroup');
-
-                if (this.value === 'not_paid') {
-                    paymentTypeGroup.style.display = 'none';
-                    paidAmountGroup.style.display = 'none';
-                    leftToPayGroup.style.display = 'none';
-                } else {
-                    paymentTypeGroup.style.display = 'block';
-                    leftToPayGroup.style.display = 'none';
-                }
-            });
-
             function setPaymentTypeEvents(paymentTypeValue) {
                 const paidAmountGroup = document.getElementById('paidAmountGroup');
                 const paidAmountField = document.getElementById('paidAmount');
@@ -1937,6 +1921,25 @@
                     paidAmountField.required = true;
                 }
             }
+
+            // Payment mode select change handler
+            document.getElementById('paymentMode').addEventListener('change', function () {
+                const paymentTypeGroup = document.getElementById('paymentTypeGroup');
+                const paidAmountGroup = document.getElementById('paidAmountGroup');
+                const leftToPayGroup = document.getElementById('leftToPayGroup');
+
+
+                if (this.value === 'not_paid') {
+                    paymentTypeGroup.style.display = 'none';
+                    paidAmountGroup.style.display = 'none';
+                    leftToPayGroup.style.display = 'none';
+
+                } else {
+                    paymentTypeGroup.style.display = 'block';
+                    setPaymentTypeEvents(document.getElementById('paymentType').value);
+                }
+            });
+
 
 
             if (invoiceData.payment_type === 'full_payment') {

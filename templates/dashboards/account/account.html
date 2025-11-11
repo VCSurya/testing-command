@@ -7,6 +7,12 @@
     <title>Account</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+
+
     <style>
         :root {
             --primary: #1e2857;
@@ -19,30 +25,68 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: #f5f7fa;
         }
 
-        .sidebar {
+        /* Sidebar styles */
+        .row.g-0 {
             height: 100vh;
-            position: sticky;
-            top: 0;
-            overflow-y: auto;
-            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+            display: flex;
+        }
+
+        #sidebarToggle {
+            background-color: var(--secondary);
             color: white;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--secondary);
+        }
+
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            min-width: 30vh;
+            max-width: 40vh;
+            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1050;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #sidebar.active {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+            padding: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            width: 100%;
+            /* z-index: 1050; */
+
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, Opera */
         }
 
         .sidebar-logo {
-            padding: 1.5rem 0;
+            padding: 0 0 10px 0;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .logo-text {
+            font-family: 'Inter', sans-serif;
             font-weight: 700;
             letter-spacing: 1px;
+            font-size: 1.3em;
         }
 
         .nav-link {
@@ -60,23 +104,80 @@
             transform: translateX(5px);
         }
 
+        /* Header */
         .header-container {
             background-color: white;
-            border-radius: 0px 0px 12px 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            /* border-radius: 12px; */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
-
-            position: fixed;
-            top: 0;
-            left: 16.8%;
-            right: 0;
-            z-index: 1030;
-            width: 83%;
+            /* margin-bottom: 1.5rem; */
         }
 
+        /* Responsive */
         .mobile-toggle {
             display: none;
         }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-width: 44px;
+            min-height: 44px;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+
+        .main-content-wrapper {
+            padding-top: 40px;
+            min-height: 100vh;
+        }
+
 
         @media (max-width: 991.98px) {
             .sidebar {
@@ -139,6 +240,93 @@
             }
         }
     </style>
+    <style>
+        .user-card {
+            display: flex;
+            align-items: center;
+            background: #e6dbff23;
+            padding: 15px 20px;
+            border-radius: 12px;
+            gap: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            width: 88%;
+            position: absolute;
+            bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+
+        .user-status {
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+    </style>
+    <style>
+        .dashboard-card {
+            /* Smooth transitions for all elements */
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* Soft, elevated shadow */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            /* Subtle border for classic look */
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            /* Deeper lift on hover */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            /* More dramatic shadow for premium feel */
+        }
+
+        /* Cool 'Floating Glow' animation for active indicators */
+        @keyframes float-glow {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+                /* Subtle box shadow to create a soft "glow" effect */
+                box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.2);
+            }
+
+            50% {
+                transform: translateY(-3px) scale(1.03);
+                /* Slight lift */
+                box-shadow: 0 0 15px 5px rgba(100, 116, 139, 0.4);
+                /* Deeper glow at the peak */
+            }
+        }
+
+        /* Apply this class to icons that should show animation */
+        .icon-float-glow {
+            animation: float-glow 3s ease-in-out infinite;
+        }
+    </style>
 
 </head>
 
@@ -150,9 +338,16 @@
         <div class="row g-0">
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
-                <div class="sidebar-logo mb-4">
-                    <h3 class="logo-text">Account<span class="text-warning">Pro</span></h3>
+                <div class="sidebar-logo mb-4 d-flex">
+                    <i class="bi bi-list fs-4 text-white" id="hideButton"></i>
+                    <div
+                        style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
+                        <h3 class="logo-text text-white">
+                            Account<span class="text-warning">Pro</span>
+                        </h3>
+                    </div>
                 </div>
+
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link active" href="/dashboard"><i
@@ -162,34 +357,57 @@
                         <a class="nav-link " href="/account/verify-payment"><i
                                 class="bi bi-clipboard-check me-2"></i>Verify Payment</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>Log out
+                        </a>
+                    </li>
                 </ul>
-            </div>
 
-            <!-- Main Content -->
-            <div class="col-lg-10 p-0 main-content">
-                <div class="header-container d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <button class="btn mobile-toggle me-3" id="sidebarToggle">
-                            <i class="bi bi-list fs-4"></i>
-                        </button>
-                        <h4 class="mb-0">Account Panel</h4>
+                <div class="user-card">
+                    <div class="user-avatar align-items-center d-flex justify-content-center">
+                        <i class="fas fa-user me"></i>
                     </div>
-                    <div class="dropdown profile-menu" style="border: 1px solid rgb(90, 90, 90); border-radius: 10px;">
-                        <button class="btn dropdown-toggle d-flex align-items-center" type="button"
-                            id="dropdownMenuButton" data-bs-toggle="dropdown">
-                            <span class="d-none d-md-inline"><i class="bi bi-person"></i>
-                                {{ session.get('username', 'Builty') }}
-                            </span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/logout"><i
-                                        class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
+                    <div class="user-info">
+                        <div class="user-name">{{ session.get('username', 'Sales Manager') }}</div>
+                        <div class="user-status">Account</div>
                     </div>
                 </div>
 
-                <div class="container-fluid px-4" style="padding-top: 100px;">
+            </div>
 
+
+            <!-- Main Content -->
+            <div class="col-lg-10 p-0 main-content">
+                <div class="header-container d-flex align-items-center">
+
+                    <div class="d-flex align-items-center justify-content-between p-0">
+                        <button class="btn btn-outline-primary me-3 p-0" id="sidebarToggle" title="Menu">
+                            <i class="bi bi-list fs-5"></i>
+                        </button>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Account Station</h4>
+                    </div>
+                </div>
+                <div class="container-fluid px-4" style="padding-top: 40px;">
+                    <!-- Start: Main Reusable Dashboard Div -->
+                    <div id="packing-dashboard-container">
+                        <!-- Dashboard Grid -->
+                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                            <!-- Stats cards will be injected here by JavaScript -->
+                            <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
+                                <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Fetching Data...
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End: Main Reusable Dashboard Div -->
                 </div>
             </div>
         </div>
@@ -199,43 +417,189 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Sidebar toggle functionality
-            const sidebarToggle = document.getElementById('sidebarToggle');
+
+            const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            const hideButton = document.getElementById('hideButton');
 
-            function toggleSidebar() {
-                sidebar.classList.toggle('show');
-                overlay.classList.toggle('show');
-            }
-
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
-            }
-
-            if (overlay) {
-                overlay.addEventListener('click', toggleSidebar);
-            }
-
-            // Close sidebar on window resize if screen becomes large
-            window.addEventListener('resize', function () {
-                if (window.innerWidth > 992 && sidebar.classList.contains('show')) {
-                    sidebar.classList.remove('show');
-                    overlay.classList.remove('show');
-                }
-            });
-
-
-            // Add smooth scrolling
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+            // Toggle sidebar open/close
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                    document.body.classList.toggle('sidebar-open');
+                    overlay.classList.toggle('show');
                 });
-            });
+            }
+
+            // Hide sidebar function (reusable)
+            function hideSidebar() {
+                sidebar.classList.remove('active', 'show');
+                document.body.classList.remove('sidebar-open');
+                overlay.classList.remove('show');
+            }
+
+            // Hide when clicking on overlay
+            if (overlay) {
+                overlay.addEventListener('click', hideSidebar);
+            }
+
+            // Hide when clicking on the hide button
+            if (hideButton) {
+                hideButton.addEventListener('click', hideSidebar);
+            }
         });
+    </script>
+    <script>
+        // --- DATA MAPPING AND CONFIGURATION ---
+
+        // Map the JSON keys to display properties, colors, and icons.
+        // Colors updated for a richer, classic palette.
+        const statConfig = {
+            total_proceed_payment_order_from_user: {
+                title: "Total Dispatched Orders",
+                icon: "zap", // Active/urgent task indicator
+                color: "bg-indigo-600",
+                shadow: "shadow-indigo-600/60",
+                description: "Total orders you have dispatched successfully and builty recived."
+            },
+            total_draft_payment_order: {
+                title: "Draft Payment Orders",
+                icon: "repeat", // Pending/ready to proceed
+                color: "bg-gray-500",
+                shadow: "shadow-gray-500/60",
+                description: "Successfully dispatched orders, payment not received."
+            },
+            total_today_payment_order_by_user: {
+                title: "Today's Dispatched Orders",
+                icon: "check-circle",
+                color: "bg-green-700",
+                shadow: "shadow-green-700/60",
+                description: "Today orders you have dispatched successfully and builty recived."
+            }
+        };
+
+        // Utility function to get Lucide-like SVG icons
+        function getIconSVG(name, color = "currentColor", size = 24, strokeWidth = 2) {
+            const icons = {
+                // New high-priority icons
+                'zap': `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`, // Lightning
+                'repeat': `<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`, // Repeat/Transition
+                'x-octagon': `<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>`, // Octagon for cancellation
+
+                // Existing icons
+                'package': `<path d="M12.89 1.13l9 9a3 3 0 0 1 0 4.24l-9 9a3 3 0 0 1-4.24 0l-9-9a3 3 0 0 1 0-4.24l9-9a3 3 0 0 1 4.24 0z"/><path d="M12 2v20"/><path d="M3.5 12h17"/><path d="M12 2l8 8"/><path d="M4 12l8-8"/>`,
+                'file-text': `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>`,
+                'truck': `<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M10 18h10a2 2 0 0 0 2-2V8h-2"/><path d="M15 18h-1"/><path d="M19 18h-1"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/>`,
+                'check-circle': `<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`,
+                'clock': `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
+                'alert-triangle': `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+                'slash': `<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>`,
+            };
+
+            const path = icons[name] || icons['package']; // Default to package icon
+            return `
+                <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" class="feather feather-${name}">
+                    ${path}
+                </svg>
+            `;
+        }
+
+
+        // --- API SIMULATION & DATA FETCHING ---
+
+        // Function to simulate the API call with the provided JSON data
+        async function fetchPackingData() {
+            // In a real application, you would replace this with:
+            const response = await fetch('/account/account-dasebored-orders');
+            const data = await response.json();
+
+            return data;
+        }
+
+        // --- RENDERING FUNCTION ---
+
+        function createStatCard(key, value) {
+            const config = statConfig[key];
+            if (!config) return '';
+
+            // Add a higher-contrast text color for the value
+            const valueColor = key.includes('canceled') ? 'text-red-700' : 'text-gray-900';
+
+            // Apply the cool animation class (icon-float-glow) to specific cards for impact
+            const animationClass = (key === "total_proceed_packing_order_from_user" || key === "total_packed_but_not_transport" || key === "total_draft_packing_order") ? 'icon-float-glow' : '';
+
+            // Card structure updated to put Title on top, and Value/Icon side-by-side
+            return `
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                    
+                    <!-- Title now takes the full top row -->
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${config.title}</h3>
+
+                    <!-- Value and Icon are now in a row below the title -->
+                    <div class="flex items-center justify-between">
+                        
+                        <!-- Value - Increased size and bolded -->
+                        <div class="text-5xl font-extrabold ${valueColor}">
+                            ${value}
+                        </div>
+                        
+                        <!-- Icon container with animation -->
+                        <div class="p-3 rounded-full ${config.color} text-white shadow-xl ${config.shadow} ${animationClass}" style="animation-delay: ${Math.random() * 0.5}s;">
+                            ${getIconSVG(config.icon, 'white', 20, 2)}
+                        </div>
+                    </div>
+
+                    <!-- Description/Detail -->
+                    <p class="text-xs text-gray-400 mt-4">${config.description}</p>
+                </div>
+            `;
+        }
+
+        async function renderDashboard() {
+            const gridContainer = document.getElementById('stats-grid');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            // Show loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('hidden');
+            }
+
+            try {
+                const data = await fetchPackingData();
+                let htmlContent = '';
+
+                // Define the desired order of display
+                const displayOrder = [
+                    "total_draft_payment_order",
+                    "total_proceed_payment_order_from_user",
+                    "total_today_payment_order_by_user"
+                ];
+
+                displayOrder.forEach(key => {
+                    const value = data[key] !== undefined ? data[key] : 'N/A';
+                    htmlContent += createStatCard(key, value);
+                });
+
+                gridContainer.innerHTML = htmlContent;
+
+            } catch (error) {
+                console.error("Error fetching packing data:", error);
+                gridContainer.innerHTML = `
+                    <div class="col-span-full text-center py-10 text-red-500 font-semibold">
+                        ⚠️ Failed to load dashboard data. Please try again.
+                    </div>
+                `;
+            } finally {
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize the dashboard when the window loads
+        window.onload = renderDashboard;
     </script>
 </body>
 

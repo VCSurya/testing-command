@@ -43,7 +43,7 @@ class BuiltyModel:
                         AND packing_proceed_for_transport = 1
       					AND transport_proceed_for_builty = 1
                       	AND builty_received = 1
-                        AND builty_proceed_by = 90
+                        AND builty_proceed_by = {user_id}
                 THEN 1 END) AS total_proceed_builty_order_from_user,
 
                 -- Total Today Order Builty By User
@@ -54,7 +54,7 @@ class BuiltyModel:
                         AND packing_proceed_for_transport = 1 
       					AND transport_proceed_for_builty = 1
                       	AND builty_received =1
-      					AND builty_proceed_by = 90
+      					AND builty_proceed_by = {user_id}
                         AND DATE(builty_date_time) = CURRENT_DATE 
                 THEN 1 END) AS total_today_builty_order_by_user
 

@@ -1662,7 +1662,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="printPopupModalLabel">Print Bill</h5>
+                    <h5 class="modal-title" id="printPopupModalLabel">Invoice Created Successfully</h5>
                     <input type="hidden" id="popupCloseBtnRelode" value="false">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
                         id="popupCloseBtn"></button>
@@ -1908,6 +1908,24 @@
                 }
             });
 
+            function setPaymentTypeEvents(paymentTypeValue) {
+                const paidAmountGroup = document.getElementById('paidAmountGroup');
+                const paidAmountField = document.getElementById('paidAmount');
+                const leftToPayGroup = document.getElementById('leftToPayGroup');
+
+                if (paymentTypeValue === 'full_payment') {
+                    paidAmountGroup.style.display = 'none';
+                    leftToPayGroup.style.display = 'none';
+                    paidAmountField.value = grandTotal.toFixed(2);
+                    paidAmountField.required = false;
+                } else if (paymentTypeValue === 'half_payment') {
+                    paidAmountGroup.style.display = 'block';
+                    leftToPayGroup.style.display = 'block';
+                    paidAmountField.value = invoiceData.paid_amount;
+                    paidAmountField.required = true;
+                }
+            }
+
             // Payment mode select change handler
             document.getElementById('paymentMode').addEventListener('change', function () {
                 const paymentTypeGroup = document.getElementById('paymentTypeGroup');
@@ -1920,9 +1938,11 @@
                     leftToPayGroup.style.display = 'none';
                 } else {
                     paymentTypeGroup.style.display = 'block';
-                    leftToPayGroup.style.display = 'none';
+                    setPaymentTypeEvents(document.getElementById('paymentType').value);
                 }
             });
+
+
 
             // Payment type select change handler
             document.getElementById('paymentType').addEventListener('change', function () {

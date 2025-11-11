@@ -226,6 +226,40 @@ class AccountModel:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
 
+    def get_dasebored_data(self,user_id):
+        query = f"""
+            
+            SELECT 
+                -- Total Draft Builty Order
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+               		AND cancel_order_status = 0 
+               		AND payment_confirm_status = 0
+          		THEN 1 END) AS total_draft_payment_order,
+
+                -- Total Proceed Builty Order From User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+                        AND cancel_order_status = 0 
+                        AND payment_verify_by = {user_id}
+                THEN 1 END) AS total_proceed_payment_order_from_user,
+
+                -- Total Today Order Builty By User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND payment_confirm_status = 1 
+      					AND payment_verify_by = {user_id}
+                        AND DATE(builty_date_time) = CURRENT_DATE 
+                THEN 1 END) AS total_today_payment_order_by_user
+
+            FROM live_order_track;
+            
+        """
+
+        self.cursor.execute(query,)
+        result = self.cursor.fetchone()
+        self.conn.close()
+
+        return result
+
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -286,4 +320,17 @@ def payment_recived():
 
 
 
+@account_bp.route('/account/account-dasebored-orders', methods=['GET'])
+@login_required('Account')
+def builty_dasebored():
+    try:
+        my_pack = AccountModel()
+        orders = my_pack.get_dasebored_data(session.get('user_id'))
+        return jsonify(orders)
 
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()  

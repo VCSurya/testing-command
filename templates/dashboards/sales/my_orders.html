@@ -34,32 +34,70 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: #f5f7fa;
             background-attachment: fixed;
             min-height: 100vh;
         }
 
-        .sidebar {
+        /* Sidebar styles */
+        .row.g-0 {
             height: 100vh;
-            position: sticky;
-            top: 0;
-            overflow-y: auto;
-            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+            display: flex;
+        }
+
+        #sidebarToggle {
+            background-color: var(--secondary);
             color: white;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--secondary);
+        }
+
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            min-width: 30vh;
+            max-width: 40vh;
+            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1050;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #sidebar.active {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+            padding: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            width: 100%;
+            /* z-index: 1050; */
+
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, Opera */
         }
 
         .sidebar-logo {
-            padding: 1.5rem 0;
+            padding: 0 0 10px 0;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .logo-text {
+            font-family: 'Inter', sans-serif;
             font-weight: 700;
             letter-spacing: 1px;
+            font-size: 1.3em;
         }
 
         .nav-link {
@@ -77,25 +115,77 @@
             transform: translateX(5px);
         }
 
+        /* Header */
         .header-container {
             background-color: white;
-            border-radius: 0px 0px 12px 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            /* border-radius: 12px; */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
-            position: fixed;
-            top: 0;
-            left: 16.8%;
-            right: 0;
-            z-index: 1030;
-            width: 83%;
+            /* margin-bottom: 1.5rem; */
         }
 
+        /* Responsive */
         .mobile-toggle {
             display: none;
         }
 
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-width: 44px;
+            min-height: 44px;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+
         .main-content-wrapper {
-            padding-top: 100px;
+            padding-top: 40px;
             min-height: 100vh;
         }
 
@@ -285,7 +375,7 @@
                 width: 260px !important;
             }
 
-             .profile-menu {
+            .profile-menu {
                 display: none;
             }
 
@@ -548,7 +638,6 @@
             justify-content: center;
             padding: 20px;
             box-sizing: border-box;
-            background-color: #f9f9f9;
         }
 
         /* Stepper container */
@@ -809,7 +898,53 @@
             }
         }
     </style>
+ <style>
+        .user-card {
+            display: flex;
+            align-items: center;
+            background: #e6dbff23;
+            padding: 15px 20px;
+            border-radius: 12px;
+            gap: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            width: 88%;
+            position: absolute;
+            bottom: 20px;
+        }
 
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+
+        .user-status {
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+    </style>
 
 </head>
 
@@ -821,23 +956,32 @@
         <div class="row g-0">
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
-                <div class="sidebar-logo mb-4">
-                    <h3 class="logo-text">Sales<span class="text-warning">Pro</span></h3>
+                <div class="sidebar-logo mb-4 d-flex">
+                    <i class="bi bi-list fs-4 text-white" id="hideButton"></i>
+                    <div
+                        style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
+                        <h3 class="logo-text text-white">
+                            Sales<span class="text-warning">Pro</span>
+                        </h3>
+                    </div>
                 </div>
+
                 <ul class="nav flex-column">
+
                     <li class="nav-item">
                         <a class="nav-link " href="/sales/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
+                        <a class="nav-link " href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/ready-to-go-orders"><i
-                                class="bi bi-clipboard-check me-2"></i>Ready To Go</a>
+                                class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
+                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My
+                            Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link " href="/sales/cancel-orders">
@@ -850,24 +994,28 @@
                         </a>
                     </li>
                 </ul>
+
+                <div class="user-card">
+                    <div class="user-avatar align-items-center d-flex justify-content-center">
+                        <i class="fas fa-user me"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ session.get('username', 'Sales Manager') }}</div>
+                        <div class="user-status">Sales</div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
-                <div class="header-container d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <button class="btn mobile-toggle me-3" id="sidebarToggle">
-                            <i class="bi bi-list fs-4"></i>
+                <div class="header-container d-flex align-items-center">
+
+                    <div class="d-flex align-items-center justify-content-between p-0">
+                        <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
+                            <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0">My Orders</h4>
-                    </div>
-                    <div class="dropdown profile-menu">
-                        <button class="btn d-flex align-items-center" type="button" id="dropdownMenuButton"
-                            style="border: 1px solid rgb(207, 207, 207);">
-                            <i class="fas fa-user me-2"></i>
-                            <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
-                            </span>
-                        </button>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">My Orders</h4>
                     </div>
                 </div>
 
@@ -879,7 +1027,8 @@
                                 placeholder="Search by Invoice ID...">
                             <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
                                 <option value="all" selected>All</option>
-                                <option value="1">Packing</option>
+                                <option value="1">Payment</option>
+                                <option value="2">Packing</option>
                                 <option value="2">Transport</option>
                                 <option value="3">Builty</option>
                                 <option value="4">Verified</option>
@@ -1190,26 +1339,80 @@
                                 </div>
                                 ` : ''}
                         </div>
-                        <div><strong>Payment Status:</strong> <span style="color:${invoiceObj.payment_status === 'Paid' ? 'var(--success-green)' : 'var(--warning)'};font-weight:600;">${invoiceObj.payment_status}</span>
-                            <span> (${invoiceObj.payment_mode}) </span>
-                        </div>
-                        <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
                         
+                                              ${invoiceObj.amount_paid === invoiceObj.grand_total
+                            ? `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
+                                </div>
+                                <div>
+                                <strong>Payment Mode:</strong>
+                                <span>
+                                    ${invoiceObj.payment_mode
+                                    ? invoiceObj.payment_mode
+                                        .replace(/_/g, ' ')                 // replace underscores
+                                        .toLowerCase()                      // make all lowercase
+                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                    : ''
+                                    }
+                                </span>
+                                </div>
+                            `
+                            : invoiceObj.amount_paid > 0
+                            ? `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
+                                </div>
+                                <div>
+                                <strong>Payment Mode:</strong>
+                                <span>
+                                    ${invoiceObj.payment_mode
+                                    ? invoiceObj.payment_mode
+                                        .replace(/_/g, ' ')
+                                        .toLowerCase()
+                                        .replace(/\b\w/g, c => c.toUpperCase())
+                                    : ''
+                                    }
+                                </span>
+                                </div>
+                            `
+                            : `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
+                                </div>
+                            `
+                        }
 
-                       ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
+                        
+                        
+                       <div title="${invoiceObj.delivery_mode}">
+                        <strong>Delivery Mode:</strong>
+                        ${invoiceObj.delivery_mode
+                            ? invoiceObj.delivery_mode
+                                .replace(/_/g, ' ')                // replace underscores with spaces
+                                .toLowerCase()                     // make everything lowercase first
+                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                            : ''
+                        }${invoiceObj.transport_company_name ? ` - ${invoiceObj.transport_company_name}` : ''}
+                        </div>
+                        
+                                               ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
                         
                             <div class="tracking-wrapper">
                             <div class="tracking-stepper">
                                 <div class="tracking-steps">
 
-                                ${['Sell', 'Payment','Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                                ${['Sell', 'Payment', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
                                 <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                     <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                     <div class="label-group">
                                         <div class="label">
                                             ${i === 0 && invoiceObj.trackingStatus === 0
-                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                            : step}
+                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                        : step}
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                     </div>
@@ -1221,9 +1424,36 @@
                             </div>
                             </div>
 
-                        ` : ''}
-                        
-                        <table>
+                        ` : `
+                            <div class="tracking-wrapper">
+                                <div class="tracking-stepper">
+                                    <div class="tracking-steps">
+
+                                    ${['Sell', 'Payment', 'Order Complete', 'Transport', 'Builty', 'Verified']
+                                        .map((step, i) => ({ step, i })) // map with index
+                                        .filter(s => !['Transport', 'Builty'].includes(s.step)) // ❌ remove Transport & Builty
+                                        .map(({ step, i }) => `
+                                        <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                                            <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
+                                            <div class="label-group">
+                                                <div class="label">
+                                                    ${i === 0 && invoiceObj.trackingStatus === 0
+                                                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                                                        : step}
+                                                </div>
+                                                <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                            </div>
+                                            <div class="bar"></div>
+                                        </div>
+                                        `).join('')}
+
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+
+
+                        <table style="margin-top:10px;">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -1234,42 +1464,78 @@
                             </thead>
                             <tbody>
                                 ${invoiceObj.products.map(p => {
-                            const name = p && typeof p.name === 'string' ? p.name : '';
-                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                        const name = p && typeof p.name === 'string' ? p.name : '';
+                        const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                            const base_price = p && typeof p.price === 'number' ? p.price : '';
-                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                            const total_price = base_price + tax_price;
+                        const base_price = p && typeof p.price === 'number' ? p.price : '';
+                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                        const total_price = base_price + tax_price;
 
-                            return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                        }).join('')}
+                        return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                    }).join('')}
                             </tbody>
                         </table>
-
+                        
                         <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
                             
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                <div>
-                                    <strong>Paid:</strong>
-                                    ₹${invoiceObj.amount_paid.toLocaleString()}
+                            ${invoiceObj.amount_paid === invoiceObj.grand_total
+                            ? `
+                                <div class="amounts-container3">
+                                    <div style="color: var(--success-green);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
                                 </div>
-                            </div>
+                            `
+                            : invoiceObj.amount_paid > 0
+                                ? `
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
+                                    <div style="color: var(--warning);">
+                                        <strong>Paid:</strong>
+                                        ₹${invoiceObj.amount_paid.toLocaleString()}
+                                    </div>
+                                </div>
 
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                <div>
-                                    <strong>Left to Pay:</strong>
-                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
+                                    <div style="color: var(--warning);">
+                                        <strong>Left to Pay:</strong>
+                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="amounts-container3">
-                                <div>
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
+
+                                <div class="amounts-container3">
+                                    <div style="color: var(--warning);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
                                 </div>
-                            </div>
+                            `
+                                : `
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
+                                    <div style="color: var(--danger);">
+                                        <strong>Paid:</strong>
+                                        ₹${invoiceObj.amount_paid.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
+                                    <div style="color: var(--danger);">
+                                        <strong>Left to Pay:</strong>
+                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div class="amounts-container3">
+                                    <div style="color: var(--danger);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
+                                </div>
+                            `
+                            }
+
                         </div>
-
+                        
                         <div class="note-container">
                             
                             ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
@@ -1303,31 +1569,36 @@
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
 
-            // Sidebar toggle functionality
-            const sidebarToggle = document.getElementById('sidebarToggle');
+            const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            const hideButton = document.getElementById('hideButton');
 
-            function toggleSidebar() {
-                sidebar.classList.toggle('show');
-                overlay.classList.toggle('show');
+            // Toggle sidebar open/close
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                    document.body.classList.toggle('sidebar-open');
+                    overlay.classList.toggle('show');
+                });
             }
 
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
+            // Hide sidebar function (reusable)
+            function hideSidebar() {
+                sidebar.classList.remove('active', 'show');
+                document.body.classList.remove('sidebar-open');
+                overlay.classList.remove('show');
             }
 
+            // Hide when clicking on overlay
             if (overlay) {
-                overlay.addEventListener('click', toggleSidebar);
+                overlay.addEventListener('click', hideSidebar);
             }
 
-            // Close sidebar on window resize if screen becomes large
-            window.addEventListener('resize', function () {
-                if (window.innerWidth > 992 && sidebar.classList.contains('show')) {
-                    sidebar.classList.remove('show');
-                    overlay.classList.remove('show');
-                }
-            });
+            // Hide when clicking on the hide button
+            if (hideButton) {
+                hideButton.addEventListener('click', hideSidebar);
+            }
 
 
             if (trackingStatusFilter) {
