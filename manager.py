@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
-from utils import get_db_connection, login_required, encrypt_password, decrypt_password
+from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -261,6 +261,9 @@ def confirm_verification():
         
         data = request.json
         
+        if data is None or 'InvoiceNumber' not in data or not data.get('InvoiceNumber'):
+            return jsonify({'success': False, 'message': 'Invalid input data'}),400
+
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'message': 'Database connection error'})
@@ -268,9 +271,18 @@ def confirm_verification():
         if not session.get('user_id'):
             return jsonify({'success': False, 'message': 'User Not Found!'})
 
-        if not data.get('live_order_track_id'):
-            return jsonify({'success': False, 'message': 'Somthing goes wrong!'})
 
+        _query = f"""
+        SELECT id FROM `live_order_track` WHERE invoice_id = (SELECT id FROM `invoices` WHERE invoice_number = '{data.get('InvoiceNumber')}');
+        """
+        cursor_ = conn.cursor(dictionary=True)
+        
+        cursor_.execute(_query)
+        live_order_track = cursor_.fetchone()   
+        if not live_order_track:
+            return jsonify({'success': False, 'message': 'Live Order Track Not Found!'}),500
+        
+        live_order_track_id = live_order_track.get('id')
 
         query = """
         UPDATE live_order_track
@@ -287,8 +299,8 @@ def confirm_verification():
         cursor = conn.cursor(dictionary=True)
         
         try:
-            cursor.execute(query,(session.get('user_id'),data.get('live_order_track_id'),))
-            cursor.execute(query_,(data.get('live_order_track_id'),))
+            cursor.execute(query,(session.get('user_id'),live_order_track_id))
+            cursor.execute(query_,(live_order_track_id,))
             conn.commit()
         finally:
             cursor.close()
@@ -581,7 +593,6 @@ def cancelled_order_list():
                 ut.id AS tu_id, 
                 ut.username AS tu_name, 
 
-                ub.id AS bu_id, 
                 ub.username AS bu_name, 
 
                 upay.id AS payu_id, 
