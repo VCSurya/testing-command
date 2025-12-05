@@ -3,6 +3,7 @@ from utils import get_db_connection, login_required, encrypt_password,decrypt_pa
 import mysql.connector
 from datetime import datetime
 import pytz
+from utils import get_invoice_id
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -213,12 +214,11 @@ class AccountModel:
 
     def payment_recived(self,data):
         try:
+            print(data)
             update_query = """
-            UPDATE live_order_track
-            SET payment_confirm_status = 1, payment_note = %s, payment_verify_by  = %s,payment_date_time = NOW()
-            WHERE id = %s;
+            UPDATE live_order_track SET payment_confirm_status = 1, payment_note = %s, payment_verify_by  = %s,left_to_paid_mode = %s,payment_date_time = NOW() WHERE invoice_id = %s;
             """
-            self.cursor.execute(update_query, (data.get('accountNote'),session.get('user_id'),data.get('lot_id'),))
+            self.cursor.execute(update_query, (data['accountNote'],session.get('user_id'),data['paymentMethod'],data['inv_id'],))
             self.conn.commit() 
             return {"success": True}
             
@@ -303,12 +303,22 @@ def payment_recived():
     try:
         data = request.get_json()
 
-        if not data.get('lot_id'):
+        if not data.get('inv_id') or not data.get('paymentMethod'):
             return jsonify({'error': 'Missing Some IMP Information!'}), 400
 
+        if data.get('paymentMethod') not in ['cash', 'card', 'online']:
+            return jsonify({'error': 'Invalid Payment Method!'}), 400
+
+        result = get_invoice_id(data.get('inv_id'))
+        invoice_id = None
+        if result['status']:
+            data['inv_id'] = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
+        
         pay_obj = AccountModel()
         response = pay_obj.payment_recived(data)
-
+        print(response)
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
 

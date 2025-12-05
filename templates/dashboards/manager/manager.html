@@ -419,8 +419,8 @@
                 padding-right: 20px;
             }
 
-            
-            #verification-dashboard-component{
+
+            #verification-dashboard-component {
                 margin-top: 60px;
             }
         }
@@ -439,7 +439,7 @@
                 margin-left: 270px;
                 padding-top: 32px;
             }
-            
+
         }
 
         /* Hide hamburger on desktop */
@@ -559,7 +559,7 @@
                     </p>
                     <div class="flex items-end justify-between mt-3">
                         <p id="metric-pending" class="text-6xl font-extrabold text-yellow-300">
-                            0
+                            {{ data.total_draft_verify_order | default(0) }}
                         </p>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-600" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -569,33 +569,14 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-2">Action required to move these orders forward.</p>
                 </div>
-
-                <!-- Card 2: Total Verified Orders From User (All Time) -->
-                <div id="total-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
-                    <p class="text-sm font-semibold text-blue-400 uppercase tracking-widest">
-                        Total Verified Orders (All Time)
-                    </p>
-                    <div class="flex items-end justify-between mt-3">
-                        <p id="metric-total-verified" class="text-6xl font-extrabold text-blue-300">
-                            0
-                        </p>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Cumulative count of all verified orders.</p>
-                </div>
-
-                <!-- Card 3: Total Today Order Verified By User -->
+                <!-- Card 2: Total Today Order Verified By User -->
                 <div id="today-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
                     <p class="text-sm font-semibold text-green-400 uppercase tracking-widest">
                         Today's Verified Orders
                     </p>
                     <div class="flex items-end justify-between mt-3">
                         <p id="metric-today-verified" class="text-6xl font-extrabold text-green-300">
-                            0
+                            {{ data.total_today_verified_order_by_user | default(0) }}
                         </p>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-600" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -605,7 +586,23 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-2">Orders verified successfully within the last 24 hours.</p>
                 </div>
-
+                <!-- Card 3: Total Verified Orders From User (All Time) -->
+                <div id="total-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
+                    <p class="text-sm font-semibold text-blue-400 uppercase tracking-widest">
+                        Total Verified Orders (All Time)
+                    </p>
+                    <div class="flex items-end justify-between mt-3">
+                        <p id="metric-total-verified" class="text-6xl font-extrabold text-blue-300">
+                            {{ data.total_proceed_verifyed_order_from_user | default(0) }}
+                        </p>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Cumulative count of all verified orders.</p>
+                </div>
             </div>
 
         </div>

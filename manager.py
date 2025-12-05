@@ -12,11 +12,73 @@ formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 # Create a Blueprint for manager routes
 manager_bp = Blueprint('manager', __name__)
 
+class ManagerModel:
+    def __init__(self):
+        self.conn = get_db_connection()
+        if not self.conn:
+            raise Exception("Database connection failed")
+        self.cursor = self.conn.cursor(dictionary=True)
+    
+    def get_dasebored_data(self,user_id):
+        query = f"""
+            
+            SELECT 
+                -- Total Draft Verify Order
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+               		AND cancel_order_status = 0 
+               		AND payment_confirm_status = 1
+                    AND packing_proceed_for_transport = 1
+                    AND transport_proceed_for_builty =1
+                    AND builty_received = 1
+                    AND verify_by_manager = 0
+          		THEN 1 END) AS total_draft_verify_order,
+
+                -- Total Proceed verifyed Order From User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND cancel_order_status = 0 
+                        AND payment_confirm_status = 1
+                        AND packing_proceed_for_transport = 1
+                        AND transport_proceed_for_builty = 1
+                        AND builty_received = 1
+                        AND verify_by_manager = 1
+                        AND verify_by_manager_id = 56
+                THEN 1 END) AS total_proceed_verifyed_order_from_user,
+
+                -- Total Today Verifyed Order By User
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND cancel_order_status = 0 
+                        AND payment_confirm_status = 1
+                        AND packing_proceed_for_transport = 1
+                        AND transport_proceed_for_builty = 1
+                        AND builty_received = 1
+                        AND verify_by_manager = 1
+                        AND verify_by_manager_id = 56
+                        AND DATE(builty_date_time) = CURRENT_DATE 
+                THEN 1 END) AS total_today_verifyed_order_by_user
+
+            FROM live_order_track;
+            
+        """
+
+        self.cursor.execute(query,)
+        result = self.cursor.fetchone()
+        self.conn.close()
+
+        return result
+
+    def close(self):
+        self.cursor.close()
+        self.conn.close() # type: ignore
+    
+
 # Manager Dashboard
 @manager_bp.route('/manager/dashboard')
 @login_required('Manager')
 def manager_dashboard():
-    return render_template('dashboards/manager/manager.html')
+    my_mang = ManagerModel()
+    orders = my_mang.get_dasebored_data(session.get('user_id'))
+    print(orders)
+    return render_template('dashboards/manager/manager.html', data=orders)
 
 # User Management Routes
 @manager_bp.route('/manager/users')
@@ -48,7 +110,7 @@ def get_users_data():
     try:
         cursor.execute("""
         SELECT id, name, username, role, created_by, updated_by
-        FROM users WHERE boss = 0 AND active = 1""")
+        FROM users WHERE boss = 0 AND active = 1 AND role != 'Manager' AND role != 'Admin'""")
 
         users = cursor.fetchall()
         return jsonify(users)
@@ -228,8 +290,8 @@ def verify_order_list():
                 AND lot.sales_proceed_for_packing = 1 
                 AND lot.packing_proceed_for_transport = 1 
                 AND lot.transport_proceed_for_builty = 1 
-                AND builty_received = 1 
-                AND payment_confirm_status = 1 
+                AND lot.builty_received = 1 
+                AND lot.payment_confirm_status = 1 
                 AND inv.completed = 0 
                 ORDER BY inv.created_at DESC;
         """
