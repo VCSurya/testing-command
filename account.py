@@ -247,7 +247,7 @@ class AccountModel:
                 COUNT(CASE WHEN sales_proceed_for_packing = 1 
                         AND payment_confirm_status = 1 
       					AND payment_verify_by = {user_id}
-                        AND DATE(builty_date_time) = CURRENT_DATE 
+                        AND DATE(payment_date_time) = CURRENT_DATE 
                 THEN 1 END) AS total_today_payment_order_by_user
 
             FROM live_order_track;
@@ -306,7 +306,7 @@ def payment_recived():
         if not data.get('inv_id') or not data.get('paymentMethod'):
             return jsonify({'error': 'Missing Some IMP Information!'}), 400
 
-        if data.get('paymentMethod') not in ['cash', 'card', 'online']:
+        if data.get('paymentMethod') not in ['cash', 'card', 'online','not_paid']:
             return jsonify({'error': 'Invalid Payment Method!'}), 400
 
         result = get_invoice_id(data.get('inv_id'))

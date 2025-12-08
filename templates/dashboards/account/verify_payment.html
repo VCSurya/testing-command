@@ -1236,7 +1236,7 @@
                 </div>
 
                 <!-- Payment Selection Element -->
-                <div class="space-y-2">
+                <div class="space-y-2" id="paymentMethodContainer" style="display:none;">
                     <label for="paymentMethod" class="block text-sm font-medium text-gray-700">Select Payment Method</label>
                     <select id="paymentMethod"
                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm">
@@ -1283,8 +1283,12 @@
         async function submitForm() {
             const accountNote = document.getElementById('account_note').value.trim();
             const invoice_id = document.getElementById('invoiceNumberDisplay').textContent.trim().replace('#', '');
-            const paymentMethod = document.getElementById('paymentMethod').value;
+            let paymentMethod = document.getElementById('paymentMethod').value;
             
+            if (document.getElementById("paymentMethodContainer").style.display === "none") {
+                paymentMethod = "not_paid";
+            }
+
             try {
                 const response = await fetch('/account/payment-recived', {
                     method: 'POST',
@@ -1451,11 +1455,13 @@
 
 
             let amount = grand_total;
+            document.getElementById("paymentMethodContainer").style.display = 'none';
 
             if (grand_total !== amount_paid) {
                 amount = grand_total - amount_paid;
+                document.getElementById("paymentMethodContainer").style.display = 'block';
             }
-
+            
             modal.classList.add('active');
             document.getElementById("invoiceNumberDisplay").textContent = '#' + invoice_id;
             document.getElementById("amountDueDisplay").textContent = '₹' + amount.toLocaleString();
