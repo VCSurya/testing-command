@@ -1080,7 +1080,7 @@
         }
     </style>
 
-       <style>
+    <style>
         .user-card {
             display: flex;
             align-items: center;
@@ -1135,7 +1135,7 @@
 
     <div class="container-fluid p-0">
         <div class="row g-0">
-            
+
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
                 <div class="sidebar-logo mb-4 d-flex">
@@ -1150,8 +1150,7 @@
 
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link " href="/dashboard"><i
-                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/ready-to-go-for-transport"><i
@@ -1183,7 +1182,7 @@
 
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
-                
+
                 <div class="header-container d-flex align-items-center">
 
                     <div class="d-flex align-items-center justify-content-between p-0">
@@ -1757,12 +1756,14 @@
             });
         });
         document.addEventListener('DOMContentLoaded', () => {
-            // Popup elements
+
+            // --------------------------
+            // DOM ELEMENTS
+            // --------------------------
             const imagePopup = document.getElementById('image-popup');
             const popupContent = document.getElementById('popup-content');
             const closePopupBtn = document.getElementById('close-popup-btn');
 
-            // Main content elements
             const mainContent = document.getElementById('main-content');
             const uploadBtn = document.getElementById('upload-btn');
             const fileInput = document.getElementById('file-input');
@@ -1771,7 +1772,6 @@
             const saveBtn = document.getElementById('save-btn');
             const statusMessage = document.getElementById('status-message');
 
-            // Camera elements
             const cameraContainer = document.getElementById('camera-container');
             const cameraView = document.getElementById('camera-view');
             const photoCanvas = document.getElementById('photo-canvas');
@@ -1779,78 +1779,75 @@
             const cancelCameraBtn = document.getElementById('cancel-camera-btn');
 
             let cameraStream = null;
-            let currentInvoiceId = null; // Variable to store the invoice ID
+            let currentInvoiceId = null;
 
-            // --- Popup Management ---
-            const openPopup = (invoiceId) => {
-                currentInvoiceId = invoiceId; // Store the passed invoice ID
-                console.log(`Opening popup for Invoice ID: ${currentInvoiceId}`);
+            // ------------------------------------------------------------
+            // MAKE POPUP GLOBAL
+            // ------------------------------------------------------------
+            window.openPopup = function (invoiceId) {
+                currentInvoiceId = invoiceId;
+
                 imagePopup.classList.remove('hidden');
-                setTimeout(() => {
-                    popupContent.classList.remove('scale-95', 'opacity-0');
-                }, 10);
-                // Fetch existing images for this invoice
-                fetchAndDisplayImages(currentInvoiceId);
-            };
-            // Expose the function to the global scope so inline onclick can call it
-            window.openPopup = openPopup;
+                setTimeout(() => popupContent.classList.remove('scale-95', 'opacity-0'), 10);
 
+                fetchAndDisplayImages(invoiceId);
+            };
+
+            // ------------------------------------------------------------
+            // CLOSE POPUP
+            // ------------------------------------------------------------
             const closePopup = () => {
                 stopCamera();
-                // Clear data on close
+
                 imagePreviewContainer.innerHTML = '';
                 updateSaveButtonState();
+
                 currentInvoiceId = null;
                 statusMessage.textContent = '';
+
                 popupContent.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    imagePopup.classList.add('hidden');
-                }, 200);
+
+                setTimeout(() => imagePopup.classList.add('hidden'), 200);
             };
 
-            closePopupBtn.addEventListener('click', closePopup);
-            imagePopup.addEventListener('click', (e) => {
-                if (e.target === imagePopup) {
-                    closePopup();
-                }
-            });
+            closePopupBtn.onclick = closePopup;
 
-            // --- Image Management ---
-            const updateSaveButtonState = () => {
+            imagePopup.onclick = e => {
+                if (e.target === imagePopup) closePopup();
+            };
+
+            // ------------------------------------------------------------
+            // SAVE BUTTON STATE
+            // ------------------------------------------------------------
+            function updateSaveButtonState() {
                 const wrappers = imagePreviewContainer.querySelectorAll('.preview-image-wrapper');
-                const imageCount = wrappers.length;
 
-                // Check if any image has dataset.id === "0"
-                const hasNewImage = Array.from(wrappers).some(wrapper => {
-                    const img = wrapper.querySelector('img');
+                const hasNew = [...wrappers].some(w => {
+                    const img = w.querySelector('img');
                     return img && img.dataset.id === "0";
                 });
 
-                // Enable/disable the save button based on the conditions
-                // saveBtn.disabled = imageCount === 0 || !hasNewImage;
-                if (imageCount === 0 || !hasNewImage) {
-                    saveBtn.style.display = 'none'; // Hide the button
-                } else {
-                    saveBtn.style.display = 'block'; // Show the button
-                }
+                saveBtn.style.display = (wrappers.length > 0 && hasNew) ? "block" : "none";
 
-
-                // Handle placeholder text
                 const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
-                if (imageCount > 0) {
+
+                if (wrappers.length > 0) {
                     if (placeholder) placeholder.remove();
                 } else {
                     if (!placeholder) {
                         imagePreviewContainer.innerHTML = `
-                        <p class="placeholder-text text-gray-400 text-center">
-                            Your images will appear here
-                        </p>`;
+                <p class="placeholder-text text-gray-400 text-center">
+                    Your images will appear here
+                </p>`;
                     }
                 }
-            };
+            }
 
+            // ------------------------------------------------------------
+            // ADD IMAGE PREVIEW
+            // ------------------------------------------------------------
+            function addImageToPreview(src, id, file = null) {
 
-            const addImageToPreview = (base64String, imageId) => {
                 const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
                 if (placeholder) placeholder.remove();
 
@@ -1858,187 +1855,221 @@
                 wrapper.classList.add('preview-image-wrapper');
 
                 const img = document.createElement('img');
-                img.src = base64String;
+                img.src = src;
                 img.classList.add('preview-image');
-                img.dataset.base64 = base64String;
-                img.dataset.id = imageId; // Store the image ID
+                img.dataset.id = id;
 
-                const removeBtn = document.createElement('button');
-                removeBtn.innerHTML = '&times;';
-                removeBtn.classList.add('remove-image-btn');
+                // open image in new tab when clicked
+                img.onclick = function () {
+                    window.open(src, "_blank");
+                };
 
-                removeBtn.onclick = async () => {
-                    if (imageId === '0') {
-                        // Just remove from DOM if not saved yet
+
+                if (file) img.file = file;
+
+                const btn = document.createElement('button');
+                btn.innerHTML = "&times;";
+                btn.classList.add("remove-image-btn");
+
+                btn.onclick = async () => {
+
+                    // new image only remove UI
+                    if (id === "0") {
                         wrapper.remove();
                         updateSaveButtonState();
                         return;
                     }
-                    const confirmDelete = window.confirm('Are you sure you want to remove this image?');
-                    if (!confirmDelete) return;
+
+                    if (!confirm("Delete this image?")) return;
+
                     try {
-                        const response = await fetch('/packaging/image/delete', {
-                            method: 'POST', // or 'DELETE' if your backend supports it
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ imageId }), // send image ID to backend
+                        const res = await fetch("/packaging/image/delete", {
+                            method: "POST",
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageId: id })
                         });
 
-                        if (!response.ok) {
-                            throw new Error('Failed to delete image');
-                        }
+                        if (!res.ok) throw new Error();
 
-                        // If successful, remove the image from the DOM
                         wrapper.remove();
                         updateSaveButtonState();
-                    } catch (error) {
-                        console.error('Error deleting image:', error);
-                        alert('Failed to delete image. Please try again.');
+
+                    } catch (err) {
+                        alert("Delete failed.");
                     }
                 };
 
                 wrapper.appendChild(img);
-                wrapper.appendChild(removeBtn);
+                wrapper.appendChild(btn);
                 imagePreviewContainer.appendChild(wrapper);
+
                 updateSaveButtonState();
-            };
+            }
 
-            // --- Fetch Existing Images ---
-            const fetchAndDisplayImages = async (invoiceId) => {
-                imagePreviewContainer.innerHTML = '<p class="placeholder-text text-gray-500">Loading existing images...</p>';
+            // ------------------------------------------------------------
+            // FETCH EXISTING IMAGES
+            // ------------------------------------------------------------
+            async function fetchAndDisplayImages(invoiceId) {
 
-                try {
-                    const response = await fetch(`/packaging/images/${invoiceId}`);
-                    const data = await response.json();
-
-                    if (data.success) {
-                        imagePreviewContainer.innerHTML = ''; // Clear loading text
-
-                        if (data.images && data.images.length > 0) {
-                            data.images.forEach(imageObj => {
-                                const base64String = imageObj.image_base64;
-                                addImageToPreview(base64String, imageObj.image_id);
-                            });
-                        } else {
-                            console.log('No existing images found for this invoice.');
-                            updateSaveButtonState(); // Optional: reset UI if needed
-                        }
-                    } else {
-                        throw new Error('Response returned with success = false');
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch images:', error);
-                    imagePreviewContainer.innerHTML = '<p class="placeholder-text text-red-500 text-center">Failed to load images. Please try again.</p>';
-                }
-            };
-
-            // --- File Upload Logic ---
-            uploadBtn.addEventListener('click', () => fileInput.click());
-
-            fileInput.addEventListener('change', (event) => {
-                const files = event.target.files;
-                if (!files) return;
-
-                for (const file of files) {
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            addImageToPreview(e.target.result, '0');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                }
-                fileInput.value = '';
-            });
-
-            // --- Camera Logic ---
-            const startCamera = async () => {
-                try {
-                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                        cameraView.srcObject = cameraStream;
-                        mainContent.classList.add('hidden');
-                        cameraContainer.classList.remove('hidden');
-                    } else {
-                        throw new Error('Camera not supported by this browser.');
-                    }
-                } catch (error) {
-                    console.error("Error accessing camera:", error);
-                    statusMessage.textContent = `Error: ${error.message}`;
-                    statusMessage.classList.add('text-red-500');
-                }
-            };
-
-            const stopCamera = () => {
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(track => track.stop());
-                    cameraStream = null;
-                }
-                mainContent.classList.remove('hidden');
-                cameraContainer.classList.add('hidden');
-            };
-
-            const takePicture = () => {
-                const context = photoCanvas.getContext('2d');
-                const { videoWidth, videoHeight } = cameraView;
-                photoCanvas.width = videoWidth;
-                photoCanvas.height = videoHeight;
-                context.translate(videoWidth, 0);
-                context.scale(-1, 1);
-                context.drawImage(cameraView, 0, 0, videoWidth, videoHeight);
-                const data = photoCanvas.toDataURL('image/png');
-                addImageToPreview(data, '0');
-                stopCamera();
-            };
-
-            cameraBtn.addEventListener('click', startCamera);
-            captureBtn.addEventListener('click', takePicture);
-            cancelCameraBtn.addEventListener('click', stopCamera);
-
-            // --- Save Logic ---
-            saveBtn.addEventListener('click', async () => {
-                const images = imagePreviewContainer.querySelectorAll('.preview-image');
-                console.log('Images to save:', images);
-                if (images.length === 0) {
-                    statusMessage.textContent = 'No images to save.';
-                    return;
-                }
-                // const base64Images = Array.from(images).map(img => img.dataset.base64);
-                const base64Images = Array.from(images).filter(img => img.dataset.id === '0').map(img => img.dataset.base64);
-                console.log('Base64 Images:', base64Images);
-                statusMessage.textContent = `Saving ${base64Images.length} images for Invoice ID: ${currentInvoiceId}...`;
-                statusMessage.classList.remove('text-red-500', 'text-green-500');
-                const payload = {
-                    invoiceId: currentInvoiceId,
-                    images: base64Images
-                };
+                imagePreviewContainer.innerHTML =
+                    '<p class="placeholder-text text-gray-500">Loading images...</p>';
 
                 try {
-                    const response = await fetch('/packaging/saveimages', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
+                    const res = await fetch(`/packaging/images/${invoiceId}`);
+                    const data = await res.json();
+
+                    imagePreviewContainer.innerHTML = "";
+
+                    // ✅ Check if no images found
+                    if (!data.success || !data.images || data.images.length === 0) {
+                        imagePreviewContainer.innerHTML =
+                            "<p class='placeholder-text text-green-500 text-center'>No images found, please upload the images.</p>";
+                    }
+
+                    // ✅ Display images
+                    data.images.forEach(imgObj => {
+                        addImageToPreview(imgObj.image_url, imgObj.image_id);
                     });
 
-                    if (Math.random() > 0.1) {
-                        console.log('Simulated Success:', payload);
-                        statusMessage.textContent = 'Images saved successfully!';
-                        statusMessage.classList.add('text-green-500');
+                } catch (err) {
+                    imagePreviewContainer.innerHTML =
+                        "<p class='text-red-500'>Failed to load images.</p>";
+                }
+            }
+
+
+            // ------------------------------------------------------------
+            // FILE UPLOAD
+            // ------------------------------------------------------------
+            uploadBtn.onclick = () => fileInput.click();
+
+            fileInput.onchange = e => {
+                const files = e.target.files;
+
+                for (const file of files) {
+                    if (!file.type.startsWith("image/")) continue;
+
+                    const reader = new FileReader();
+
+                    reader.onload = ev => {
+                        addImageToPreview(ev.target.result, "0", file);
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+
+                fileInput.value = "";
+            };
+
+            // ------------------------------------------------------------
+            // CAMERA
+            // ------------------------------------------------------------
+            async function startCamera() {
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: "user" }
+                    });
+
+                    cameraView.srcObject = cameraStream;
+
+                    mainContent.classList.add("hidden");
+                    cameraContainer.classList.remove("hidden");
+
+                } catch (err) {
+                    console.error(err);
+
+                    alert("Camera Error: " + err.name + "\n" + err.message);
+                }
+            }
+
+
+            function stopCamera() {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                }
+                mainContent.classList.remove("hidden");
+                cameraContainer.classList.add("hidden");
+            }
+
+            // convert canvas to File
+            function dataURLtoFile(dataurl, name) {
+                let arr = dataurl.split(',');
+                let mime = arr[0].match(/:(.*?);/)[1];
+                let bstr = atob(arr[1]);
+                let n = bstr.length;
+                let u8 = new Uint8Array(n);
+
+                while (n--) u8[n] = bstr.charCodeAt(n);
+
+                return new File([u8], name, { type: mime });
+            }
+
+            function takePicture() {
+                const ctx = photoCanvas.getContext("2d");
+
+                photoCanvas.width = cameraView.videoWidth;
+                photoCanvas.height = cameraView.videoHeight;
+
+                ctx.drawImage(cameraView, 0, 0);
+
+                const data = photoCanvas.toDataURL("image/png");
+
+                const file = dataURLtoFile(data, "camera.png");
+
+                addImageToPreview(data, "0", file);
+
+                stopCamera();
+            }
+
+            cameraBtn.onclick = startCamera;
+            captureBtn.onclick = takePicture;
+            cancelCameraBtn.onclick = stopCamera;
+
+            // ------------------------------------------------------------
+            // SAVE IMAGES
+            // ------------------------------------------------------------
+            saveBtn.onclick = async () => {
+
+                const files = [...document.querySelectorAll('.preview-image')]
+                    .filter(img => img.dataset.id === "0")
+                    .map(img => img.file)
+                    .filter(Boolean);
+
+                if (files.length === 0) {
+                    statusMessage.textContent = "No images to upload";
+                    return;
+                }
+
+                const form = new FormData();
+                form.append("invoiceId", currentInvoiceId);
+
+                files.forEach(f => form.append("images", f, f.name));
+
+                try {
+                    const res = await fetch("/packaging/saveimages", {
+                        method: "POST",
+                        body: form
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        statusMessage.textContent = "Saved successfully!";
                         setTimeout(closePopup, 1500);
                     } else {
-                        throw new Error('Simulated server error.');
+                        throw new Error();
                     }
-                } catch (error) {
-                    console.error('Failed to save images:', error);
-                    statusMessage.textContent = 'Failed to save images. Check console.';
-                    statusMessage.classList.add('text-red-500');
-                    console.log('Data that would be sent:', payload);
-                }
-            });
 
-            // Initial state
+                } catch (err) {
+                    statusMessage.textContent = "Upload failed.";
+                }
+            };
+
+            // ------------------------------------------------------------
+            // INIT
+            // ------------------------------------------------------------
             updateSaveButtonState();
+
         });
     </script>
 </body>

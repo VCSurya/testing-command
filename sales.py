@@ -1346,7 +1346,7 @@ class MyOrders:
                 SELECT
                     lot.id,
                     i.delivery_mode,
-                    i.payment_mode
+                    i.left_to_paid
                 FROM
                     live_order_track AS lot
                 JOIN
@@ -1359,9 +1359,9 @@ class MyOrders:
             result = self.cursor.fetchone()
             live_order_track_id = result['id'] if result else None
             delivery_mode = result['delivery_mode'] if result else None
-            payment_mode = result['payment_mode'] if result else None
+            left_to_paid = int(result['left_to_paid']) if result else None
             user_id = session.get('user_id')
-
+            
             if delivery_mode in ("transport", "post"):
                 update_query = """
                     UPDATE live_order_track
@@ -1373,9 +1373,9 @@ class MyOrders:
                 self.conn.commit()
 
             else:
-                payment_verify_by = user_id if payment_mode != "not_paid" else None
-                payment_date_time = "NOW()" if payment_mode != "not_paid" else None
-                payment_confirm_status = 1 if payment_mode != "not_paid" else 0
+                payment_verify_by = user_id if left_to_paid == 0 else None
+                payment_date_time = "NOW()" if left_to_paid == 0 else None
+                payment_confirm_status = 1 if left_to_paid == 0 else 0
 
                 # Construct query with placeholders
                 update_query = """
@@ -1394,12 +1394,17 @@ class MyOrders:
                         builty_date_time = NOW(),
                         payment_verify_by = %s,
                         payment_date_time = {payment_date_time},
-                        payment_confirm_status = %s
+                        payment_confirm_status = %s,
+                        verify_by_manager_id = %s,
+                        verify_manager_date_time = {payment_date_time},
+                        verify_by_manager = %s
                     WHERE id = %s;
                 """.format(payment_date_time=payment_date_time if payment_date_time else "NULL")
 
                 self.cursor.execute(update_query, (
                     user_id, user_id, user_id,
+                    payment_verify_by,
+                    payment_confirm_status,
                     payment_verify_by,
                     payment_confirm_status,
                     live_order_track_id
@@ -1411,6 +1416,7 @@ class MyOrders:
 
         except Exception as e:
             self.conn.rollback()
+            print(f"Error while shipping order: {e}")
             return {"success": False, "message": f"Something went wrong while shipping order: {str(e)}"}
 
     def close(self):

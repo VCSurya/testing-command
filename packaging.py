@@ -4,10 +4,16 @@ from utils import get_db_connection, login_required, encrypt_password,decrypt_pa
 import mysql.connector
 from datetime import datetime
 import pytz
+import os
+from werkzeug.utils import secure_filename
+import uuid
+from flask import send_from_directory
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
 formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
+
+UPLOAD_FOLDER = "uploads/packaging"
 
 # Create a Blueprint for packaging routes
 packaging_bp = Blueprint('packaging', __name__)
@@ -19,6 +25,9 @@ def packaging_dashboard():
     return render_template('dashboards/packaging/packaging.html')
 
 class PackagingModel:
+
+    UPLOAD_FOLDER = "uploads/packaging"
+
     def __init__(self):
         self.conn = get_db_connection()
         if not self.conn:
@@ -88,8 +97,6 @@ class PackagingModel:
         self.conn.close()
 
         return result
-
-
 
     def merge_orders_products(self,data):
 
@@ -509,34 +516,49 @@ class PackagingModel:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
 
-    def save_images(self, invoice_id, images):
+    def generate_unique_filename(self,invoice_id, original_filename):
+        ext = os.path.splitext(original_filename)[1]  # .jpg, .png, etc.
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        random_id = uuid.uuid4().hex[:8]
+        safe_name = secure_filename(f"inv_{invoice_id}_{timestamp}_{random_id}{ext}")
+        return safe_name
+
+    def save_images(self, invoice_id, files):
         try:
-            # Convert images to a format suitable for storage, e.g., base64 or binary
-            # Here we assume images is a list of base64 strings
-            for image in images:
+            os.makedirs(self.UPLOAD_FOLDER, exist_ok=True)
+
+            for file in files:
+                # Auto rename file to avoid collisions
+                filename = self.generate_unique_filename(invoice_id, file.filename)
+                save_path = os.path.join(self.UPLOAD_FOLDER, filename)
+
+                file.save(save_path)
+
+                db_path = f"/uploads/packaging/{filename}"
+
                 insert_query = """
-                    INSERT INTO packing_images (invoice_id, image_base64, uploaded_by)
+                    INSERT INTO packing_images (invoice_id, image_url, uploaded_by)
                     VALUES (%s, %s, %s)
                 """
-                self.cursor.execute(insert_query, (invoice_id[10:], image, session.get('user_id')))
+                self.cursor.execute(insert_query, (invoice_id[10:], db_path, session.get('user_id')))
 
-            self.conn.commit()  # commit on connection, not cursor
+            self.conn.commit()
             return {"success": True}
-        
+
         except Exception as e:
             self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
     def get_images(self, invoice_id):
         try:
             query = """
-            SELECT image_id, image_base64
-            FROM packing_images
-            WHERE invoice_id = %s
+                SELECT image_id, image_url
+                FROM packing_images
+                WHERE invoice_id = %s
             """
             self.cursor.execute(query, (invoice_id[10:],))
-            images = self.cursor.fetchall()
-
-            return images  # Extract base64 strings
+            rows = self.cursor.fetchall()
+            return {"success": True, "images": rows}
 
         except Exception as e:
             return {"success": False, "message": f"From Server Side: {e}"}
@@ -565,8 +587,7 @@ class PackagingModel:
 def packaging_dasebored():
     try:
         my_pack = PackagingModel()
-        orders = my_pack.get_dasebored_data(session.get('user_id'))        
-        print(orders)
+        orders = my_pack.get_dasebored_data(session.get('user_id'))
         return jsonify(orders)
 
     except Exception as e:
@@ -684,29 +705,32 @@ def my_orders():
     finally:
         my_pack.close()
 
+@packaging_bp.route("/uploads/packaging/<filename>")
+@login_required('Packaging')
+def uploaded_image(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @packaging_bp.route('/packaging/saveimages', methods=['POST'])
 @login_required('Packaging')
 def save_images():
     try:
-        data = request.get_json()
-        invoice_id = data.get('invoiceId')
-        images = data.get('images')
+        invoice_id = request.form.get("invoiceId")
+        files = request.files.getlist("images")
 
-        if not invoice_id or not images:
+        if not invoice_id or not files:
             return jsonify({"success": False, "message": "Invalid data!"}), 400
 
         packaging_model = PackagingModel()
-        
-        response = packaging_model.save_images(invoice_id, images)
+        result = packaging_model.save_images(invoice_id, files)
 
-        if response.get('success'):
-            return jsonify({"success": True, "message": "Images saved successfully!"}), 200
+        if result.get("success"):
+            return jsonify({"success": True, "message": "Images saved successfully!"})
 
-        return jsonify({"success": False, "message": "Failed to save images!"}), 500
+        return jsonify({"success": False, "message": "Failed!"}), 500
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": f"Server Error: {str(e)}"}), 500
+
 
 
 @packaging_bp.route('/packaging/images/<string:invoice_id>', methods=['GET'])
@@ -716,17 +740,10 @@ def get_images(invoice_id):
         packaging_model = PackagingModel()
         images = packaging_model.get_images(invoice_id)
 
-        if len(images) > 0:
-            return jsonify({"success": True, "images": images}), 200
-        
-        elif len(images) == 0:
-            return jsonify({"success": False, "message": "No images found!"}), 200
-        
-        else:
-            return jsonify({"success": False, "message": "Unexpected error occurred!"}), 500
+        return jsonify({"success": True, "images": images['images']}), 200
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @packaging_bp.route('/packaging/image/delete', methods=['POST'])
