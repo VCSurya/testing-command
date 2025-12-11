@@ -19,8 +19,8 @@ class ManagerModel:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
-    def get_dasebored_data(self,user_id):
-        query = f"""
+    def get_dashboard_data(self,user_id):
+        query_1 = f"""
             
             SELECT 
                 -- Total Draft Verify Order
@@ -41,7 +41,7 @@ class ManagerModel:
                         AND transport_proceed_for_builty = 1
                         AND builty_received = 1
                         AND verify_by_manager = 1
-                        AND verify_by_manager_id = 56
+                        AND verify_by_manager_id = {user_id}
                 THEN 1 END) AS total_proceed_verifyed_order_from_user,
 
                 -- Total Today Verifyed Order By User
@@ -52,7 +52,7 @@ class ManagerModel:
                         AND transport_proceed_for_builty = 1
                         AND builty_received = 1
                         AND verify_by_manager = 1
-                        AND verify_by_manager_id = 56
+                        AND verify_by_manager_id = {user_id}
                         AND DATE(builty_date_time) = CURRENT_DATE 
                 THEN 1 END) AS total_today_verifyed_order_by_user
 
@@ -60,12 +60,155 @@ class ManagerModel:
             
         """
 
-        self.cursor.execute(query,)
-        result = self.cursor.fetchone()
+        query_2 = """
+
+            SELECT 
+
+                -- Case totals
+
+                SUM(total_amount) AS today_paid_amount,
+            
+                -- Transaction counts
+
+                SUM(Cash_) AS Total_cash_transaction,
+
+                SUM(Online_) AS Total_online_transaction,
+
+                SUM(Card_) AS Total_card_transaction,
+            
+                -- Payment mode amounts
+
+                SUM(cash_amount) AS Total_cash_amount,
+
+                SUM(online_amount) AS Total_online_amount,
+
+                SUM(card_amount) AS Total_card_amount,
+            
+                -- Today's full revenue
+
+                (SELECT SUM(inv.grand_total)
+
+                FROM invoices inv
+
+                JOIN live_order_track lot ON lot.invoice_id = inv.id
+
+                WHERE DATE(inv.created_at) = CURRENT_DATE()
+
+                AND lot.sales_proceed_for_packing = 1
+
+                AND lot.cancel_order_status = 0
+
+                AND inv.cancel_order_status = 0
+
+                ) AS Today_revenue,
+            
+                -- Today Not-Paid Money
+
+                (SELECT SUM(inv.left_to_paid)
+
+                FROM invoices inv
+
+                JOIN live_order_track lot ON lot.invoice_id = inv.id
+
+                WHERE DATE(inv.created_at) = CURRENT_DATE()
+
+                AND lot.sales_proceed_for_packing = 1
+
+                AND lot.cancel_order_status = 0
+
+                AND inv.cancel_order_status = 0
+
+                AND lot.left_to_paid_mode = 'not_paid'
+
+                ) AS Today_not_paid_money
+            
+            FROM (
+
+                -- Case 2
+
+                SELECT 
+
+                    SUM(invoices.left_to_paid) AS total_amount,
+            
+                    -- transaction count
+
+                    SUM(live_order_track.left_to_paid_mode = 'cash') AS Cash_,
+
+                    SUM(live_order_track.left_to_paid_mode = 'online') AS Online_,
+
+                    SUM(live_order_track.left_to_paid_mode = 'card') AS Card_,
+            
+                    -- amount per mode
+
+                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'cash' THEN invoices.left_to_paid ELSE 0 END) AS cash_amount,
+
+                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'online' THEN invoices.left_to_paid ELSE 0 END) AS online_amount,
+
+                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'card' THEN invoices.left_to_paid ELSE 0 END) AS card_amount
+            
+                FROM invoices
+
+                JOIN live_order_track ON live_order_track.invoice_id = invoices.id
+
+                WHERE DATE(invoices.created_at) = CURRENT_DATE()
+
+                AND live_order_track.sales_proceed_for_packing = 1
+
+                AND live_order_track.cancel_order_status = 0
+
+                AND invoices.cancel_order_status = 0
+
+                AND live_order_track.left_to_paid_mode != 'not_paid'
+
+                AND DATE(live_order_track.payment_date_time) = CURRENT_DATE()
+            
+                UNION ALL
+            
+                -- Case 1
+
+                SELECT 
+
+                    SUM(invoices.paid_amount) AS total_amount,
+
+                    SUM(invoices.payment_mode = 'cash') AS Cash_,
+
+                    SUM(invoices.payment_mode = 'online') AS Online_,
+
+                    SUM(invoices.payment_mode = 'card') AS Card_,
+            
+                    SUM(CASE WHEN invoices.payment_mode = 'cash' THEN invoices.paid_amount ELSE 0 END) AS cash_amount,
+
+                    SUM(CASE WHEN invoices.payment_mode = 'online' THEN invoices.paid_amount ELSE 0 END) AS online_amount,
+
+                    SUM(CASE WHEN invoices.payment_mode = 'card' THEN invoices.paid_amount ELSE 0 END) AS card_amount
+            
+                FROM invoices
+
+                JOIN live_order_track ON live_order_track.invoice_id = invoices.id
+
+                WHERE DATE(invoices.created_at) = CURRENT_DATE()
+
+                AND live_order_track.sales_proceed_for_packing = 1
+
+                AND live_order_track.cancel_order_status = 0
+
+                AND invoices.cancel_order_status = 0
+
+            ) AS combined;
+            
+
+        """
+
+        self.cursor.execute(query_1)
+        result_1 = self.cursor.fetchone()
+        
+        self.cursor.execute(query_2)
+        result_2 = self.cursor.fetchone()
+
         self.conn.close()
 
-        return result
-
+        return result_1 | result_2
+    
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -76,7 +219,7 @@ class ManagerModel:
 @login_required('Manager')
 def manager_dashboard():
     my_mang = ManagerModel()
-    orders = my_mang.get_dasebored_data(session.get('user_id'))
+    orders = my_mang.get_dashboard_data(session.get('user_id'))
     print(orders)
     return render_template('dashboards/manager/manager.html', data=orders)
 
@@ -240,7 +383,7 @@ def verify_order_list():
                 ub.username AS bu_name, 
 
                 upay.id AS payu_id, 
-                upay.username AS payu_name, 
+                upay.username AS payu_name,
 
                 ii.id AS invoices_items_id, 
 
@@ -269,8 +412,8 @@ def verify_order_list():
                 lot.payment_confirm_status,
                 lot.cancel_order_status,
                 lot.verify_by_manager,
-                lot.payment_date_time
-
+                lot.payment_date_time,
+                lot.left_to_paid_mode
 
                 FROM invoices inv 
 
@@ -292,7 +435,8 @@ def verify_order_list():
                 AND lot.transport_proceed_for_builty = 1 
                 AND lot.builty_received = 1 
                 AND lot.payment_confirm_status = 1 
-                AND inv.completed = 0 
+                AND inv.completed = 0
+                AND lot.left_to_paid_mode != 'not_paid'
                 ORDER BY inv.created_at DESC;
         """
         conn = get_db_connection()

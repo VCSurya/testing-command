@@ -1486,6 +1486,8 @@
                     utrans:inv.tu_name,
                     ubuilty:inv.bu_name,
                     upay:inv.payu_name,
+                    left_to_paid_mode: inv.left_to_paid_mode,
+                    payment_date_time: inv.payment_date_time,
 
                 };
                 const li = document.createElement('li');
@@ -1529,7 +1531,7 @@
                                 ` : ''}
                         </div>
                         
-                                              ${invoiceObj.amount_paid === invoiceObj.grand_total
+                        ${invoiceObj.amount_paid === invoiceObj.grand_total
                             ? `
                                 <div>
                                 <strong>Payment Status:</strong>
@@ -1640,7 +1642,127 @@
                                 </div>
                             </div>
                         `}
+                        
+                        <div class="w-full flex flex-wrap justify-center gap-4">
 
+                            ${invoiceObj.amount_paid === invoiceObj.grand_total
+                                ? `
+
+                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+
+                                        <div class="flex justify-between items-start gap-4 text-gray-200">
+
+                                            <!-- Left -->
+                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
+                                                <div class="text-xl font-bold text-green-300 truncate" title="Acme Corp Payroll">
+                                                    Acme Corp Payroll
+                                                </div>
+                                                <div class="text-sm font-medium text-white-200">2025-12-09</div>
+                                            </div>
+
+                                            <!-- Right -->
+                                            <div class="font-extrabold text-3xl text-green-400 shrink-0">
+                                                ₹${invoiceObj.amount_paid.toLocaleString()}
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                    <strong>Payment Status:</strong>
+                                    <span style="color: var(--success-green); font-weight: 600;">Paid</span>
+                                    </div>
+                                    <div>
+                                    <strong>Payment Mode:</strong>
+                                    <span>
+                                        ${invoiceObj.payment_mode
+                                        ? invoiceObj.payment_mode
+                                            .replace(/_/g, ' ')                 // replace underscores
+                                            .toLowerCase()                      // make all lowercase
+                                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                        : ''
+                                        }
+                                    </span>
+                                    </div>
+                                `
+                                : invoiceObj.amount_paid > 0
+                                ? `
+                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+
+                                        <div class="flex justify-between items-start gap-4 text-gray-200">
+
+                                            <!-- Left -->
+                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
+                                                    ${invoiceObj.usale}
+                                                </div>
+                                                <div class="text-sm font-medium text-white-200">${invoiceObj.date}</div>
+                                            </div>
+
+                                            <!-- Right -->
+
+                                            <div  class="font-extrabold text-3xl shrink-0"">
+                                                <div class="text-sm font-medium text-white-200 shrink-0" style="float:right;padding-right:2px;">
+                                                    ${invoiceObj.payment_mode
+                                                    ? invoiceObj.payment_mode
+                                                        .replace(/_/g, ' ')                 // replace underscores
+                                                        .toLowerCase()                      // make all lowercase
+                                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                                    : ''
+                                                    }
+                                                </div>
+                                                <div class="font-extrabold text-3xl text-green-400 shrink-0">
+                                                    ₹${invoiceObj.amount_paid.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+
+                                        <div class="flex justify-between items-start gap-4 text-gray-200">
+
+                                            <!-- Left -->
+                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
+                                                    ${invoiceObj.usale}
+                                                </div>
+                                                <div class="text-sm font-medium text-white-200">${invoiceObj.date}</div>
+                                            </div>
+
+                                            <!-- Right -->
+
+                                            <div  class="font-extrabold text-3xl shrink-0"">
+                                                <div class="text-sm font-medium text-white-200 shrink-0" style="float:right;padding-right:2px;">
+                                                    ${invoiceObj.left_to_paid_mode
+                                                    ? invoiceObj.left_to_paid_mode
+                                                        .replace(/_/g, ' ')                 // replace underscores
+                                                        .toLowerCase()                      // make all lowercase
+                                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                                    : ''
+                                                    }
+                                                </div>
+                                                <div class="font-extrabold text-3xl text-green-400 shrink-0">
+                                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                `
+                                : `
+                                    <div>
+                                    <strong>Payment Status:</strong>
+                                    <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
+                                    </div>
+                                `
+                            }
+                        
+                        </div>
 
                         <table style="margin-top:10px;">
                             <thead>

@@ -482,7 +482,50 @@
             /* Slight border highlight on hover */
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#1e293b', // Slate 800
+                        'dark-card': '#20252e', // Slate 700
+                        'primary': '#60a5fa', // Blue 400
+                        'secondaryd': '#a78bfa', // Violet 400
+                        'text-light': '#f8fafc', // Slate 50
+                        'text-muted': '#94a3b8', // Slate 400
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Global smooth transitions for better UX */
+        .card-transition {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
+        .card-transition:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Custom scrollbar for a dark theme look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            /* Slate 600 */
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            /* Dark background */
+        }
+    </style>
 </head>
 
 <body>
@@ -606,6 +649,155 @@
             </div>
 
         </div>
+
+        <!-- Main Dashboard Container -->
+        <div class="w-full mx-auto space-y-8 mb-5">
+            <h1 class="text-3xl md:text-3xl font-extrabold text-primary border-b border-gray-700 pb-2">
+                Today's Financial Summary
+            </h1>
+
+            <!-- 1. Key Metrics Section: Revenue and Paid Total -->
+            <div id="key-metrics-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Data will be injected here -->
+            </div>
+            <div id="breakdown-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Data will be injected here -->
+            </div>
+
+        </div>
+
+        <script>
+
+            
+            const newMockEnvVars = {{ data | tojson | safe }};
+
+            // Data extracted from the image/context provided by the user
+            const data = {
+                todayRevenue: newMockEnvVars.Today_revenue || 0,
+                todayPaidTotal: newMockEnvVars.today_paid_amount || 0,
+                cash: { count:  newMockEnvVars.Total_cash_transaction || 0, amount: newMockEnvVars.Total_cash_amount || 0 },
+                online: { count: newMockEnvVars.Total_online_transaction || 0, amount: newMockEnvVars.Total_online_amount || 0 },
+                card: { count: newMockEnvVars.Total_card_transaction || 0, amount: newMockEnvVars.Total_card_amount || 0 }
+            };
+
+
+            /**
+             * Formats a number as currency (e.g., 18400 -> $18,400)
+             * @param {number} amount
+             * @returns {string} Formatted currency string
+             */
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'INR', // Assuming USD, change if needed
+                    minimumFractionDigits: 0
+                }).format(amount);
+            };
+
+            /**
+             * Creates the HTML structure for a single key metric card (Revenue/Paid Total).
+             * @param {string} title
+             * @param {number} amount
+             * @param {string} colorClass - Tailwind color class for the background/accent
+             * @returns {string} HTML string
+             */
+            const createKeyMetricCard = (title, amount, colorClass) => {
+                return `
+                <div class="bg-dark-card p-6 rounded-xl shadow-xl card-transition border-t-4 ${colorClass}">
+                    <p class="text-text-muted text-sm uppercase tracking-wider">${title}</p>
+                    <p class="text-4xl font-bold mt-2 text-text-light">
+                        ${formatCurrency(amount)}
+                    </p>
+                    <p class="text-text-muted text-xs mt-1">
+                        Total for today's operations.
+                    </p>
+                </div>
+            `;
+            };
+
+            /**
+             * Creates the HTML structure for a single payment method breakdown card.
+             * @param {string} method - Cash, Online, or Card
+             * @param {object} details - { count: number, amount: number }
+             * @returns {string} HTML string
+             */
+            const createBreakdownCard = (method, details) => {
+                const icon = getMethodIcon(method);
+                const color = getMethodColor(method);
+
+                return `
+                <div class="bg-dark-card px-6 rounded-xl shadow-lg card-transition border-l-4 ${color}">
+                    <div class="flex mt-2 items-center space-x-2">
+                        <div class="py-1 rounded-full bg-opacity-20 ${color} text-2xl">
+                            ${icon}
+                        </div>
+                        <h3 class="text-xl font-semibold text-text-light">${method}</h3>
+                    </div>
+
+                    <div class="mt-1 border-t border-gray-600 pb-2 pt-4 flex justify-between items-end">
+                        <div class="flex flex-col">
+                            <span class="text-text-muted text-xs uppercase">Total Amount</span>
+                            <span class="text-2xl font-bold text-text-light">${formatCurrency(details.amount)}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-text-muted text-xs uppercase">Transactions</span>
+                            <span class="text-xl font-bold text-secondary">${details.count}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            };
+
+            /** Helper to get an appropriate icon based on the method name (using inline SVG for cleanliness) */
+            const getMethodIcon = (method) => {
+                switch (method.toLowerCase()) {
+                    case 'cash':
+                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+                    case 'online':
+                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6"/><path d="M12 18v4"/><path d="M4.93 16.93l3.54-3.54"/><path d="M16.93 7.07l3.54-3.54"/><path d="M2 12h6"/><path d="M18 12h4"/><path d="M4.93 7.07l3.54 3.54"/><path d="M16.93 16.93l3.54 3.54"/></svg>`;
+                    case 'card':
+                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+                    default:
+                        return `?`;
+                }
+            };
+
+            /** Helper to get color classes */
+            const getMethodColor = (method) => {
+                switch (method.toLowerCase()) {
+                    case 'cash': return 'text-green-400 border-green-400';
+                    case 'online': return 'text-yellow-400 border-yellow-400';
+                    case 'card': return 'text-indigo-400 border-indigo-400';
+                    default: return 'text-primary border-primary';
+                }
+            };
+
+
+            /** Main function to render the dashboard */
+            const renderDashboard = () => {
+                const keyMetricsContainer = document.getElementById('key-metrics-container');
+                const breakdownContainer = document.getElementById('breakdown-container');
+
+                // 1. Render Key Metrics (Revenue and Paid Total)
+                const keyMetricsHtml = [
+                    createKeyMetricCard("Today Revenue", data.todayRevenue, "border-primary"),
+                    createKeyMetricCard("Today Received", data.todayPaidTotal, "border-secondaryd")
+                ].join('');
+                keyMetricsContainer.innerHTML = keyMetricsHtml;
+
+                // 2. Render Payment Breakdown (Cash, Online, Card)
+                const breakdownHtml = [
+                    createBreakdownCard("Cash", data.cash),
+                    createBreakdownCard("Online", data.online),
+                    createBreakdownCard("Card", data.card)
+                ].join('');
+                breakdownContainer.innerHTML = breakdownHtml;
+            };
+
+            // Initialize the dashboard rendering when the document is fully loaded
+            document.addEventListener('DOMContentLoaded', renderDashboard);
+        </script>
+
 
     </main>
 
