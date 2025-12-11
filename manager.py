@@ -272,6 +272,7 @@ def merge_orders_products(data):
             item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
             item['sales_date_time'] = item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p")
             item['packing_date_time'] = item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p")
+            item['payment_date_time'] = item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p")
             # passed tracking status with date            
             trackingStatus = 0
             trackingDates = []
@@ -311,7 +312,7 @@ def merge_orders_products(data):
                             if item['payment_confirm_status']:
                                 
                                 if item['payment_confirm_status']:
-                                    trackingDates.append(item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    trackingDates.append(item['payment_date_time'])
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
@@ -359,7 +360,7 @@ def verify_order_list():
                 inv.left_to_paid, 
                 inv.transport_company_name,
                 inv.invoice_created_by_user_id, 
-                inv.payment_note, 
+                inv.payment_note as payment_note_1, 
                 inv.gst_included, 
                 inv.created_at, 
                 inv.delivery_mode, 
@@ -413,7 +414,8 @@ def verify_order_list():
                 lot.cancel_order_status,
                 lot.verify_by_manager,
                 lot.payment_date_time,
-                lot.left_to_paid_mode
+                lot.left_to_paid_mode,
+                lot.payment_note as payment_note_2 
 
                 FROM invoices inv 
 

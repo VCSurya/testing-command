@@ -420,7 +420,7 @@
             }
 
 
-            #verification-dashboard-component {
+            #dashboard-grid {
                 margin-top: 60px;
             }
         }
@@ -591,7 +591,7 @@
         </div>
 
         <!-- Start of Reusable Component Wrapper -->
-        <div id="verification-dashboard-component" class="w-full max-w-7xl mx-auto p-2">
+        <!-- <div id="verification-dashboard-component" class="w-full max-w-7xl mx-auto p-2"> -->
             <!-- Dashboard Grid Container -->
             <div id="dashboard-grid" class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
 
@@ -648,7 +648,7 @@
                 </div>
             </div>
 
-        </div>
+        <!-- </div> -->
 
         <!-- Main Dashboard Container -->
         <div class="w-full mx-auto space-y-8 mb-5">
@@ -736,7 +736,6 @@
 
                     <div class="mt-1 border-t border-gray-600 pb-2 pt-4 flex justify-between items-end">
                         <div class="flex flex-col">
-                            <span class="text-text-muted text-xs uppercase">Total Amount</span>
                             <span class="text-2xl font-bold text-text-light">${formatCurrency(details.amount)}</span>
                         </div>
                         <div class="text-right">
@@ -748,19 +747,67 @@
             `;
             };
 
-            /** Helper to get an appropriate icon based on the method name (using inline SVG for cleanliness) */
+            
             const getMethodIcon = (method) => {
-                switch (method.toLowerCase()) {
-                    case 'cash':
-                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
-                    case 'online':
-                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6"/><path d="M12 18v4"/><path d="M4.93 16.93l3.54-3.54"/><path d="M16.93 7.07l3.54-3.54"/><path d="M2 12h6"/><path d="M18 12h4"/><path d="M4.93 7.07l3.54 3.54"/><path d="M16.93 16.93l3.54 3.54"/></svg>`;
-                    case 'card':
-                        return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
-                    default:
-                        return `?`;
+            const m = method?.toLowerCase();
+
+            switch (m) {
+
+                /* =======================
+                CASH PAYMENT ICON
+                ======================= */
+                case "cash":
+                    return `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M6 6v2M18 6v2"/>
+                    </svg>
+                `;
+
+                /* =======================
+                ONLINE PAYMENT ICON (Perfect)
+                - Uses Phone + Rupee/₹ symbol
+                - Represents UPI, online banking, PayPal, Stripe, etc.
+                ======================= */
+                case "online":
+                    return `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="2" width="12" height="20" rx="2"/>
+                        <path d="M9 8h6"/>
+                        <path d="M9 12h6"/>
+                        <path d="M12 16h3"/>
+                        <circle cx="12" cy="19" r="1" fill="currentColor"/>
+                    </svg>
+                `;
+
+                /* =======================
+                CARD PAYMENT ICON
+                ======================= */
+                case "card":
+                    return `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 10h20"/>
+                        <path d="M7 15h4"/>
+                    </svg>
+                `;
+
+                /* =======================
+                DEFAULT ICON
+                ======================= */
+                default:
+                    return `?`;
                 }
             };
+
+
 
             /** Helper to get color classes */
             const getMethodColor = (method) => {

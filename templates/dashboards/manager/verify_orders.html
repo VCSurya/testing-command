@@ -1477,7 +1477,8 @@
                     amount_paid: inv.paid_amount,
                     left_to_paid: inv.left_to_paid,
                     payment_mode: inv.payment_mode,
-                    payment_note: inv.payment_note,
+                    payment_note_1: inv.payment_note_1,
+                    payment_note_2: inv.payment_note_2,
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
                     live_order_track_id: inv.live_order_track_id,
@@ -1530,53 +1531,6 @@
                                 </div>
                                 ` : ''}
                         </div>
-                        
-                        ${invoiceObj.amount_paid === invoiceObj.grand_total
-                            ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                                    ? invoiceObj.payment_mode
-                                        .replace(/_/g, ' ')                 // replace underscores
-                                        .toLowerCase()                      // make all lowercase
-                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                    : ''
-                                    }
-                                </span>
-                                </div>
-                            `
-                            : invoiceObj.amount_paid > 0
-                            ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
-                                </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                                    ? invoiceObj.payment_mode
-                                        .replace(/_/g, ' ')
-                                        .toLowerCase()
-                                        .replace(/\b\w/g, c => c.toUpperCase())
-                                    : ''
-                                    }
-                                </span>
-                                </div>
-                            `
-                            : `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
-                                </div>
-                            `
-                        }
-
                         
                         
                        <div title="${invoiceObj.delivery_mode}">
@@ -1643,13 +1597,47 @@
                             </div>
                         `}
                         
-                        <div class="w-full flex flex-wrap justify-center gap-4">
+
+                        <table style="margin-top:10px;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${invoiceObj.products.map(p => {
+                        const name = p && typeof p.name === 'string' ? p.name : '';
+                        const qty = p && typeof p.qty === 'number' ? p.qty : '';
+
+                        const base_price = p && typeof p.price === 'number' ? p.price : '';
+                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                        const total_price = base_price + tax_price;
+
+                        return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                    }).join('')}
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px; margin-bottom: 10px;" >
+                                <div class="amounts-container3">
+                                    <div style="color: var(--success-green);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
+                                </div>
+                        </div>
+                        
+                        
+                        <div class="w-full flex flex-wrap gap-4">
 
                             ${invoiceObj.amount_paid === invoiceObj.grand_total
                                 ? `
 
                                     <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:50%;">
 
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
 
@@ -1689,7 +1677,7 @@
                                 : invoiceObj.amount_paid > 0
                                 ? `
                                     <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:49%;" >
 
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
 
@@ -1699,44 +1687,48 @@
                                                     ${invoiceObj.usale}
                                                 </div>
                                                 <div class="text-sm font-medium text-white-200">${invoiceObj.date}</div>
-                                            </div>
-
-                                            <!-- Right -->
-
-                                            <div  class="font-extrabold text-3xl shrink-0"">
-                                                <div class="text-sm font-medium text-white-200 shrink-0" style="float:right;padding-right:2px;">
-                                                    ${invoiceObj.payment_mode
-                                                    ? invoiceObj.payment_mode
-                                                        .replace(/_/g, ' ')                 // replace underscores
-                                                        .toLowerCase()                      // make all lowercase
-                                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                                    : ''
-                                                    }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-green-400 shrink-0">
+                                                
+                                                <!-- Right -->
+                                                
+                                                <div  class="font-extrabold text-3xl shrink-0"">
+                                                    <div class="text-sm font-medium text-green-400 shrink-0" style="float:right;padding-right:2px;">
+                                                        ${invoiceObj.payment_mode
+                                                    ? invoiceObj.payment_mode
+                                                    .replace(/_/g, ' ')                 // replace underscores
+                                                    .toLowerCase()                      // make all lowercase
+                                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                                    : ''
+                                                }
+                                                </div>
+                                                <div class="font-extrabold text-3xl text-white-200 shrink-0">
                                                     ₹${invoiceObj.amount_paid.toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>
+                                        <hr>
+                                        <div class="text-sm font-medium text-blue-200 mt-1">
+                                            Note: ${invoiceObj.payment_note_1}
+                                        </div>
                                     </div>
 
                                     <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:48%;">
+                                        flex flex-col justify-between transition hover:shadow-xl" style="width:49%;">
 
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
 
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
-                                                    ${invoiceObj.usale}
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.upay}">
+                                                    ${invoiceObj.upay}
                                                 </div>
-                                                <div class="text-sm font-medium text-white-200">${invoiceObj.date}</div>
+                                                <div class="text-sm font-medium text-white-200">${invoiceObj.payment_date_time}</div>
                                             </div>
 
                                             <!-- Right -->
 
                                             <div  class="font-extrabold text-3xl shrink-0"">
-                                                <div class="text-sm font-medium text-white-200 shrink-0" style="float:right;padding-right:2px;">
+                                                <div class="text-sm font-medium text-green-400 shrink-0" style="float:right;padding-right:2px;">
                                                     ${invoiceObj.left_to_paid_mode
                                                     ? invoiceObj.left_to_paid_mode
                                                         .replace(/_/g, ' ')                 // replace underscores
@@ -1745,10 +1737,14 @@
                                                     : ''
                                                     }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-green-400 shrink-0">
+                                                <div class="font-extrabold text-3xl text-white-200 shrink-0">
                                                     ₹${invoiceObj.left_to_paid.toLocaleString()}
                                                 </div>
                                             </div>
+                                        </div>
+                                        <hr>
+                                        <div class="text-sm font-medium text-blue-200 mt-1">
+                                            Note: ${invoiceObj.payment_note_2}
                                         </div>
                                     </div>
 
@@ -1762,106 +1758,6 @@
                                 `
                             }
                         
-                        </div>
-
-                        <table style="margin-top:10px;">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${invoiceObj.products.map(p => {
-                        const name = p && typeof p.name === 'string' ? p.name : '';
-                        const qty = p && typeof p.qty === 'number' ? p.qty : '';
-
-                        const base_price = p && typeof p.price === 'number' ? p.price : '';
-                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                        const total_price = base_price + tax_price;
-
-                        return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                    }).join('')}
-                            </tbody>
-                        </table>
-                        
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            ${invoiceObj.amount_paid === invoiceObj.grand_total
-                            ? `
-                                <div class="amounts-container3">
-                                    <div style="color: var(--success-green);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                            : invoiceObj.amount_paid > 0
-                                ? `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--warning);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--warning);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--warning);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                                : `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--danger);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--danger);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--danger);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                            }
-
-                        </div>
-                        
-                        <div class="note-container">
-                            
-                            ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
-                                <div class="note sales-note">
-                                
-                                <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-
                         </div>
 
                         <div class="next-to-pack-container">
