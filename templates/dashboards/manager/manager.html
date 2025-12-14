@@ -526,6 +526,27 @@
             /* Dark background */
         }
     </style>
+    <style>
+        /* Custom scrollbar for a dark theme (for both horizontal and vertical scrolling) */
+        .overflow-x-auto::-webkit-scrollbar,
+        .overflow-y-auto::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-thumb,
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            /* Gray-600 */
+            border-radius: 10px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-track,
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: #1f2937;
+            /* Gray-800 */
+        }
+    </style>
 </head>
 
 <body>
@@ -592,66 +613,66 @@
 
         <!-- Start of Reusable Component Wrapper -->
         <!-- <div id="verification-dashboard-component" class="w-full max-w-7xl mx-auto p-2"> -->
-            <!-- Dashboard Grid Container -->
-            <div id="dashboard-grid" class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Dashboard Grid Container -->
+        <div id="dashboard-grid" class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
 
-                <!-- Card 1: Total Pending Draft Verify Orders -->
-                <div id="pending-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
-                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-widest">
-                        Pending Draft Verify Orders
+            <!-- Card 1: Total Pending Draft Verify Orders -->
+            <div id="pending-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
+                <p class="text-sm font-semibold text-yellow-400 uppercase tracking-widest">
+                    Pending Draft Verify Orders
+                </p>
+                <div class="flex items-end justify-between mt-3">
+                    <p id="metric-pending" class="text-6xl font-extrabold text-yellow-300">
+                        {{ data.total_draft_verify_order | default(0) }}
                     </p>
-                    <div class="flex items-end justify-between mt-3">
-                        <p id="metric-pending" class="text-6xl font-extrabold text-yellow-300">
-                            {{ data.total_draft_verify_order | default(0) }}
-                        </p>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Action required to move these orders forward.</p>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
                 </div>
-                <!-- Card 2: Total Today Order Verified By User -->
-                <div id="today-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
-                    <p class="text-sm font-semibold text-green-400 uppercase tracking-widest">
-                        Today's Verified Orders
-                    </p>
-                    <div class="flex items-end justify-between mt-3">
-                        <p id="metric-today-verified" class="text-6xl font-extrabold text-green-300">
-                            {{ data.total_today_verified_order_by_user | default(0) }}
-                        </p>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M8 7V3m8 4V3m-9 8h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2zm10-7h.01M7 15h.01M11 15h.01M15 15h.01M11 11h.01M15 11h.01" />
-                        </svg>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Orders verified successfully within the last 24 hours.</p>
-                </div>
-                <!-- Card 3: Total Verified Orders From User (All Time) -->
-                <div id="total-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
-                    <p class="text-sm font-semibold text-blue-400 uppercase tracking-widest">
-                        Total Verified Orders (All Time)
-                    </p>
-                    <div class="flex items-end justify-between mt-3">
-                        <p id="metric-total-verified" class="text-6xl font-extrabold text-blue-300">
-                            {{ data.total_proceed_verifyed_order_from_user | default(0) }}
-                        </p>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Cumulative count of all verified orders.</p>
-                </div>
+                <p class="text-xs text-gray-500 mt-2">Action required to move these orders forward.</p>
             </div>
+            <!-- Card 2: Total Today Order Verified By User -->
+            <div id="today-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
+                <p class="text-sm font-semibold text-green-400 uppercase tracking-widest">
+                    Today's Verified Orders
+                </p>
+                <div class="flex items-end justify-between mt-3">
+                    <p id="metric-today-verified" class="text-6xl font-extrabold text-green-300">
+                        {{ data.total_today_verifyed_order_by_user | default(0) }}
+                    </p>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M8 7V3m8 4V3m-9 8h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2zm10-7h.01M7 15h.01M11 15h.01M15 15h.01M11 11h.01M15 11h.01" />
+                    </svg>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Orders verified successfully within the last 24 hours.</p>
+            </div>
+            <!-- Card 3: Total Verified Orders From User (All Time) -->
+            <div id="total-verified-card" class="dashboard-card bg-gray-800 p-8 rounded-xl">
+                <p class="text-sm font-semibold text-blue-400 uppercase tracking-widest">
+                    Total Verified Orders (All Time)
+                </p>
+                <div class="flex items-end justify-between mt-3">
+                    <p id="metric-total-verified" class="text-6xl font-extrabold text-blue-300">
+                        {{ data.total_proceed_verifyed_order_from_user | default(0) }}
+                    </p>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Cumulative count of all verified orders.</p>
+            </div>
+        </div>
 
         <!-- </div> -->
 
         <!-- Main Dashboard Container -->
-        <div class="w-full mx-auto space-y-8 mb-5">
+        <div class="w-full mx-auto space-y-8 mb-2">
             <h1 class="text-3xl md:text-3xl font-extrabold text-primary border-b border-gray-700 pb-2">
                 Today's Financial Summary
             </h1>
@@ -666,16 +687,39 @@
 
         </div>
 
+
+        <div class="p-0 sm:p-8 max-w-full" id="performers-data-container">
+
+            <h1 class="text-3xl md:text-3xl font-extrabold text-primary border-b border-gray-700 pb-2">
+                Today's Top Performers
+            </h1>
+
+            <div id="loader-container" class="flex flex-col items-center justify-center min-h-[10vh]">
+                <svg class="animate-spin w-12 h-12 text-blue-400" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <p class="mt-4 text-blue-300 font-semibold">Loading Performers Data...</p>
+            </div>
+
+            <!-- Performers data will be injected here -->
+            <div id="dashboard-container" class="flex space-x-6 overflow-x-auto pb-4 mt-4">
+            </div>
+
+        </div>
+
         <script>
 
-            
+
             const newMockEnvVars = {{ data | tojson | safe }};
 
             // Data extracted from the image/context provided by the user
             const data = {
                 todayRevenue: newMockEnvVars.Today_revenue || 0,
                 todayPaidTotal: newMockEnvVars.today_paid_amount || 0,
-                cash: { count:  newMockEnvVars.Total_cash_transaction || 0, amount: newMockEnvVars.Total_cash_amount || 0 },
+                cash: { count: newMockEnvVars.Total_cash_transaction || 0, amount: newMockEnvVars.Total_cash_amount || 0 },
                 online: { count: newMockEnvVars.Total_online_transaction || 0, amount: newMockEnvVars.Total_online_amount || 0 },
                 card: { count: newMockEnvVars.Total_card_transaction || 0, amount: newMockEnvVars.Total_card_amount || 0 }
             };
@@ -703,16 +747,16 @@
              */
             const createKeyMetricCard = (title, amount, colorClass) => {
                 return `
-                <div class="bg-dark-card p-6 rounded-xl shadow-xl card-transition border-t-4 ${colorClass}">
-                    <p class="text-text-muted text-sm uppercase tracking-wider">${title}</p>
-                    <p class="text-4xl font-bold mt-2 text-text-light">
-                        ${formatCurrency(amount)}
-                    </p>
-                    <p class="text-text-muted text-xs mt-1">
-                        Total for today's operations.
-                    </p>
-                </div>
-            `;
+            <div class="bg-dark-card p-6 rounded-xl shadow-xl card-transition border-t-4 ${colorClass}">
+                <p class="text-text-muted text-sm uppercase tracking-wider">${title}</p>
+                <p class="text-4xl font-bold mt-2 text-text-light">
+                    ${formatCurrency(amount)}
+                </p>
+                <p class="text-text-muted text-xs mt-1">
+                    Total for today's operations.
+                </p>
+            </div>
+        `;
             };
 
             /**
@@ -726,84 +770,84 @@
                 const color = getMethodColor(method);
 
                 return `
-                <div class="bg-dark-card px-6 rounded-xl shadow-lg card-transition border-l-4 ${color}">
-                    <div class="flex mt-2 items-center space-x-2">
-                        <div class="py-1 rounded-full bg-opacity-20 ${color} text-2xl">
-                            ${icon}
-                        </div>
-                        <h3 class="text-xl font-semibold text-text-light">${method}</h3>
+            <div class="bg-dark-card px-6 rounded-xl shadow-lg card-transition border-l-4 ${color}">
+                <div class="flex mt-2 items-center space-x-2">
+                    <div class="py-1 rounded-full bg-opacity-20 ${color} text-2xl">
+                        ${icon}
                     </div>
+                    <h3 class="text-xl font-semibold text-text-light">${method}</h3>
+                </div>
 
-                    <div class="mt-1 border-t border-gray-600 pb-2 pt-4 flex justify-between items-end">
-                        <div class="flex flex-col">
-                            <span class="text-2xl font-bold text-text-light">${formatCurrency(details.amount)}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-text-muted text-xs uppercase">Transactions</span>
-                            <span class="text-xl font-bold text-secondary">${details.count}</span>
-                        </div>
+                <div class="mt-1 border-t border-gray-600 pb-2 pt-4 flex justify-between items-end">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-bold text-text-light">${formatCurrency(details.amount)}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-text-muted text-xs uppercase">Transactions</span>
+                        <span class="text-xl font-bold text-secondary">${details.count}</span>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
             };
 
-            
+
             const getMethodIcon = (method) => {
-            const m = method?.toLowerCase();
+                const m = method?.toLowerCase();
 
-            switch (m) {
+                switch (m) {
 
-                /* =======================
-                CASH PAYMENT ICON
-                ======================= */
-                case "cash":
-                    return `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"/>
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M6 6v2M18 6v2"/>
-                    </svg>
-                `;
+                    /* =======================
+                    CASH PAYMENT ICON
+                    ======================= */
+                    case "cash":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M6 6v2M18 6v2"/>
+                </svg>
+            `;
 
-                /* =======================
-                ONLINE PAYMENT ICON (Perfect)
-                - Uses Phone + Rupee/₹ symbol
-                - Represents UPI, online banking, PayPal, Stripe, etc.
-                ======================= */
-                case "online":
-                    return `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="6" y="2" width="12" height="20" rx="2"/>
-                        <path d="M9 8h6"/>
-                        <path d="M9 12h6"/>
-                        <path d="M12 16h3"/>
-                        <circle cx="12" cy="19" r="1" fill="currentColor"/>
-                    </svg>
-                `;
+                    /* =======================
+                    ONLINE PAYMENT ICON (Perfect)
+                    - Uses Phone + Rupee/₹ symbol
+                    - Represents UPI, online banking, PayPal, Stripe, etc.
+                    ======================= */
+                    case "online":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="2" width="12" height="20" rx="2"/>
+                    <path d="M9 8h6"/>
+                    <path d="M9 12h6"/>
+                    <path d="M12 16h3"/>
+                    <circle cx="12" cy="19" r="1" fill="currentColor"/>
+                </svg>
+            `;
 
-                /* =======================
-                CARD PAYMENT ICON
-                ======================= */
-                case "card":
-                    return `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="5" width="20" height="14" rx="2"/>
-                        <path d="M2 10h20"/>
-                        <path d="M7 15h4"/>
-                    </svg>
-                `;
+                    /* =======================
+                    CARD PAYMENT ICON
+                    ======================= */
+                    case "card":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <path d="M2 10h20"/>
+                    <path d="M7 15h4"/>
+                </svg>
+            `;
 
-                /* =======================
-                DEFAULT ICON
-                ======================= */
-                default:
-                    return `?`;
+                    /* =======================
+                    DEFAULT ICON
+                    ======================= */
+                    default:
+                        return `?`;
                 }
             };
 
@@ -845,7 +889,6 @@
             document.addEventListener('DOMContentLoaded', renderDashboard);
         </script>
 
-
     </main>
 
 
@@ -855,11 +898,15 @@
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
 
+
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
             var sidebar = document.getElementById('sidebar');
             var sidebarToggle = document.getElementById('sidebarToggle');
             var topbarMenuBtn = document.getElementById('topbarMenuBtn');
+            const loader = document.getElementById('loader-container');
+            const dashboard = document.getElementById("dashboard-container");
+
             function openSidebar() {
                 document.body.classList.add('sidebar-open');
                 sidebar.classList.add('active');
@@ -890,6 +937,264 @@
                     }
                 }
             });
+
+            async function fetchTodayPerformers() {
+                try {
+                    const response = await fetch('/manager/today-performers', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include' // important if using login/session auth
+                    });
+
+                    // Handle HTTP-level errors (401, 403, 500, etc.)
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    // Handle API-level errors
+                    if (!result.success) {
+                        throw new Error(result.message || 'Failed to fetch today performers');
+                    } else {
+                        console.log('Today performers fetched successfully');
+                        loader.classList.add('hidden'); // Hide the loader
+                    }
+
+                    return result.data;
+
+                } catch (error) {
+                    console.error('Error fetching today performers:', error.message);
+                    return null;
+                }
+            }
+
+            (async () => {
+                const performers = await fetchTodayPerformers();
+
+                if (performers) {
+
+                    dashboard.innerHTML = `
+
+                        ${performers.Sales && performers.Sales.length > 0
+                            ?
+                            `
+                            <!-- SALES Department Card (Green) -->
+                            <div class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-green-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                    
+                                <div class="flex items-center mb-4">
+                                    <!-- DollarSign Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-green-400">
+                                        <line x1="12" x2="12" y1="2" y2="22" />
+                                        <path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">SALES</h2>
+                                </div>
+                                
+                                <!-- Internal scroll container for performer list -->
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                     ${performers.Sales.map(item => `
+                                        <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                        <div class="flex items-center">
+                                            <div class="w-2 h-2 rounded-full mr-3 bg-green-400"></div>
+                                            <span class="font-semibold text-gray-100">${item.username}</span>
+                                        </div>
+                                        <div class="text-xl font-bold">
+                                            <span class="text-green-400">${item.total}</span>
+                                            <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                        </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Packaging && performers.Packaging.length > 0
+                            ?
+                            `
+                            <!-- PACKING Department Card (Yellow) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-yellow-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Package Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-yellow-400">
+                                        <path d="m7.5 4.27 9 5.15" />
+                                        <path d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8Z" />
+                                        <path d="m3 12 8.5 4.5" />
+                                        <path d="M19 12 10.5 16.5" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">PACKING</h2>
+                                </div>
+                                
+                                <!-- Internal scroll container for performer list -->
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                     ${performers.Packaging.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-yellow-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-yellow-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Transport && performers.Transport.length > 0
+                            ?
+                            `
+                            <!-- TRANSPORT Department Card (Blue) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-blue-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Truck Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-blue-400">
+                                        <path d="M14 18V6" />
+                                        <path d="M10 18V6" />
+                                        <path d="M2 18h20" />
+                                        <path d="M3 18l3-11h12l3 11" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">TRANSPORT</h2>
+                                </div>
+
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Transport.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-blue-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-blue-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Account && performers.Account.length > 0
+                            ?
+                            `
+                            <div
+                            class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-indigo-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                            <div class="flex items-center mb-4">
+                                <!-- Briefcase Icon (Manually embedded SVG) -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    class="w-6 h-6 mr-3 text-indigo-400">
+                                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                </svg>
+                                <h2 class="text-xl font-bold text-white">ACCOUNTING</h2>
+                            </div>
+
+                            <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Account.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-indigo-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-indigo-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Builty && performers.Builty.length > 0
+                            ?
+                            `
+                            <!-- BUILTY Department Card (Pink) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-pink-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Users Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-pink-400">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">BUILTY</h2>
+                                </div>
+
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Builty.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-pink-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-pink-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                    `;
+                }
+            })();
+
         });
     </script>
 </body>

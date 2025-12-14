@@ -1346,7 +1346,8 @@ class MyOrders:
                 SELECT
                     lot.id,
                     i.delivery_mode,
-                    i.left_to_paid
+                    i.left_to_paid,
+                    i.payment_mode
                 FROM
                     live_order_track AS lot
                 JOIN
@@ -1359,6 +1360,7 @@ class MyOrders:
             result = self.cursor.fetchone()
             live_order_track_id = result['id'] if result else None
             delivery_mode = result['delivery_mode'] if result else None
+            payment_mode = result['payment_mode'] if result else None
             left_to_paid = int(result['left_to_paid']) if result else None
             user_id = session.get('user_id')
             
@@ -1376,6 +1378,7 @@ class MyOrders:
                 payment_verify_by = user_id if left_to_paid == 0 else None
                 payment_date_time = "NOW()" if left_to_paid == 0 else None
                 payment_confirm_status = 1 if left_to_paid == 0 else 0
+                left_to_paid_mode = payment_mode if left_to_paid == 0 else "not_paid"
 
                 # Construct query with placeholders
                 update_query = """
@@ -1397,7 +1400,8 @@ class MyOrders:
                         payment_confirm_status = %s,
                         verify_by_manager_id = %s,
                         verify_manager_date_time = {payment_date_time},
-                        verify_by_manager = %s
+                        verify_by_manager = %s,
+                        left_to_paid_mode = %s
                     WHERE id = %s;
                 """.format(payment_date_time=payment_date_time if payment_date_time else "NULL")
 
@@ -1407,6 +1411,7 @@ class MyOrders:
                     payment_confirm_status,
                     payment_verify_by,
                     payment_confirm_status,
+                    left_to_paid_mode,
                     live_order_track_id
                 ))
                 self.conn.commit()

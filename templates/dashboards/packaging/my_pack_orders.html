@@ -339,6 +339,9 @@
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
+            overflow: auto;
+            scrollbar-width: thin; /* for Firefox */
+            scrollbar-color: rgba(206, 206, 206, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {

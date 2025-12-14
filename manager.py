@@ -3,6 +3,7 @@ from utils import get_db_connection, get_invoice_id, login_required, encrypt_pas
 import mysql.connector
 from datetime import datetime
 import pytz
+from collections import defaultdict
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -53,7 +54,7 @@ class ManagerModel:
                         AND builty_received = 1
                         AND verify_by_manager = 1
                         AND verify_by_manager_id = {user_id}
-                        AND DATE(builty_date_time) = CURRENT_DATE 
+                        AND DATE(verify_manager_date_time) = CURRENT_DATE()
                 THEN 1 END) AS total_today_verifyed_order_by_user
 
             FROM live_order_track;
@@ -201,14 +202,122 @@ class ManagerModel:
 
         self.cursor.execute(query_1)
         result_1 = self.cursor.fetchone()
-        
         self.cursor.execute(query_2)
         result_2 = self.cursor.fetchone()
-
-        self.conn.close()
-
+        
         return result_1 | result_2
+
+    def get_today_performers_data(self):
+        query = """
+            WITH role_stats AS (
+
+                -- 1. Sales
+                SELECT 
+                    'Sales' AS role_name,
+                    u.username,
+                    COUNT(*) AS total
+                FROM invoices i
+                JOIN live_order_track lot ON lot.invoice_id = i.id
+                JOIN users u ON u.id = i.invoice_created_by_user_id
+                WHERE lot.sales_proceed_for_packing = 1
+                AND lot.cancel_order_status = 0
+                AND i.cancel_order_status = 0
+                AND DATE(lot.sales_date_time) = CURRENT_DATE()
+                AND u.role = 'Sales'
+                GROUP BY u.username
+
+                UNION ALL
+
+                -- 2. Packaging
+                SELECT 
+                    'Packaging' AS role_name,
+                    u.username,
+                    COUNT(*) AS total
+                FROM live_order_track lot
+                JOIN users u ON u.id = lot.packing_proceed_by
+                WHERE lot.sales_proceed_for_packing = 1
+                AND lot.packing_proceed_for_transport = 1
+                AND lot.cancel_order_status = 0
+                AND DATE(lot.packing_date_time) = CURRENT_DATE()
+                AND u.role = 'Packaging'
+                GROUP BY u.username
+
+                UNION ALL
+
+                -- 3. Transport
+                SELECT 
+                    'Transport' AS role_name,
+                    u.username,
+                    COUNT(*) AS total
+                FROM live_order_track lot
+                JOIN users u ON u.id = lot.transport_proceed_by
+                WHERE lot.sales_proceed_for_packing = 1
+                AND lot.packing_proceed_for_transport = 1
+                AND lot.transport_proceed_for_builty = 1
+                AND lot.cancel_order_status = 0
+                AND DATE(lot.transport_date_time) = CURRENT_DATE()
+                AND u.role = 'Transport'
+                GROUP BY u.username
+
+                UNION ALL
+
+                -- 4. Builty
+                SELECT 
+                    'Builty' AS role_name,
+                    u.username,
+                    COUNT(*) AS total
+                FROM live_order_track lot
+                JOIN users u ON u.id = lot.builty_proceed_by
+                WHERE lot.sales_proceed_for_packing = 1
+                AND lot.packing_proceed_for_transport = 1
+                AND lot.builty_received = 1
+                AND lot.cancel_order_status = 0
+                AND DATE(lot.builty_date_time) = CURRENT_DATE()
+                AND u.role = 'Builty'
+                GROUP BY u.username
+
+                UNION ALL
+
+                -- 5. Account
+                SELECT 
+                    'Account' AS role_name,
+                    u.username,
+                    COUNT(*) AS total
+                FROM live_order_track lot
+                JOIN users u ON u.id = lot.payment_verify_by
+                WHERE lot.sales_proceed_for_packing = 1
+                AND lot.payment_confirm_status = 1
+                AND lot.cancel_order_status = 0
+                AND DATE(lot.payment_date_time) = CURRENT_DATE()
+                AND u.role = 'Account'
+                GROUP BY u.username
+            )
+
+            SELECT role_name, username, total
+            FROM (
+                SELECT 
+                    role_name,
+                    username,
+                    total,
+                    RANK() OVER (PARTITION BY role_name ORDER BY total DESC) AS rnk
+                FROM role_stats
+            ) ranked
+            WHERE rnk = 1;
+
+        """
+        
+        self.cursor.execute(query,)
+        data = self.cursor.fetchall()
+
+        result = defaultdict(list)
     
+        for item in data:
+            result[item["role_name"]].append({
+                "username": item["username"],
+                "total": item["total"]
+            })
+        return dict(result)
+
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -220,7 +329,7 @@ class ManagerModel:
 def manager_dashboard():
     my_mang = ManagerModel()
     orders = my_mang.get_dashboard_data(session.get('user_id'))
-    print(orders)
+    my_mang.close()
     return render_template('dashboards/manager/manager.html', data=orders)
 
 # User Management Routes
@@ -240,6 +349,26 @@ def verify_orders():
 @login_required('Manager')
 def cancelled_orders():
     return render_template('dashboards/manager/cancelled.html')
+
+@manager_bp.route('/manager/today-performers')
+@login_required('Manager')
+def today_performers():
+    conn = get_db_connection()
+    
+    if not conn:
+        return jsonify({"success": False, "message": "Connection Error"})
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        
+        manager = ManagerModel()
+        performers = manager.get_today_performers_data()
+        manager.close()
+        return jsonify({"success": True, "data": performers})
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @manager_bp.route('/manager/users/data')

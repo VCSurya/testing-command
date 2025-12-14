@@ -607,6 +607,9 @@
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
+            overflow: auto;
+            scrollbar-width: thin; /* for Firefox */
+            scrollbar-color: rgba(206, 206, 206, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {
@@ -1618,142 +1621,174 @@
 
                         return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
                     }).join('')}
+                                <tr>
+                                    <th>Grand Total</th>
+                                    <th>₹${invoiceObj.grand_total.toLocaleString()}</th>
+                                </tr>
                             </tbody>
                         </table>
                         
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px; margin-bottom: 10px;" >
-                                <div class="amounts-container3">
-                                    <div style="color: var(--success-green);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                        </div>
-                        
-                        
-                        <div class="w-full flex flex-wrap gap-4">
+                        <div class="flex flex-col md:flex-row gap-4 mt-3">
+
 
                             ${invoiceObj.amount_paid === invoiceObj.grand_total
                                 ? `
 
-                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:50%;">
+                                    <div class="w-full px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                                flex flex-col justify-between transition hover:shadow-xl">
 
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
-
-                                            <!-- Left -->
-                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="Acme Corp Payroll">
-                                                    Acme Corp Payroll
-                                                </div>
-                                                <div class="text-sm font-medium text-white-200">2025-12-09</div>
-                                            </div>
-
-                                            <!-- Right -->
-                                            <div class="font-extrabold text-3xl text-green-400 shrink-0">
-                                                ₹${invoiceObj.amount_paid.toLocaleString()}
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                    <strong>Payment Status:</strong>
-                                    <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                    </div>
-                                    <div>
-                                    <strong>Payment Mode:</strong>
-                                    <span>
-                                        ${invoiceObj.payment_mode
-                                        ? invoiceObj.payment_mode
-                                            .replace(/_/g, ' ')                 // replace underscores
-                                            .toLowerCase()                      // make all lowercase
-                                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                        : ''
-                                        }
-                                    </span>
-                                    </div>
-                                `
-                                : invoiceObj.amount_paid > 0
-                                ? `
-                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:49%;" >
-
-                                        <div class="flex justify-between items-start gap-4 text-gray-200">
-
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
                                                 <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
                                                     ${invoiceObj.usale}
                                                 </div>
-                                                <div class="text-sm font-medium text-white-200">${invoiceObj.date}</div>
+                                                <div class="text-sm font-medium text-gray-300">
+                                                    ${invoiceObj.date}
                                                 </div>
-                                                
-                                                <!-- Right -->
-                                                
-                                                <div  class="font-extrabold text-3xl shrink-0"">
-                                                    <div class="text-sm font-medium text-green-400 shrink-0" style="float:right;padding-right:2px;">
-                                                        ${invoiceObj.payment_mode
-                                                    ? invoiceObj.payment_mode
-                                                    .replace(/_/g, ' ')                 // replace underscores
-                                                    .toLowerCase()                      // make all lowercase
-                                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                                    : ''
-                                                }
+                                            </div>
+
+                                            <!-- Right -->
+                                            <div class="text-right shrink-0">
+                                                <div class="text-sm font-medium text-green-400">
+                                                    ${invoiceObj.payment_mode
+                                                        ? invoiceObj.payment_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-white-200 shrink-0">
+                                                <div class="font-extrabold text-3xl text-white">
                                                     ₹${invoiceObj.amount_paid.toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>
-                                        <hr>
-                                        <div class="text-sm font-medium text-blue-200 mt-1">
-                                            Note: ${invoiceObj.payment_note_1}
-                                        </div>
-                                    </div>
 
-                                    <div class="px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
-                                        flex flex-col justify-between transition hover:shadow-xl" style="width:49%;">
+                                        
+                                        ${invoiceObj.payment_note_1 || "" ? `<div class="text-sm font-medium text-blue-200">
+                                            <hr class="my-2 border-gray-700">
+                                            Note: ${invoiceObj.payment_note_1}
+                                        </div>` : ''}
+
+                                    </div>
+                                `
+                                : invoiceObj.amount_paid > 0
+                                ? `
+                                    <div class="w-full md:w-1/2 px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                                flex flex-col justify-between transition hover:shadow-xl">
 
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
+                                            <!-- Left -->
+                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
+                                                    ${invoiceObj.usale}
+                                                </div>
+                                                <div class="text-sm font-medium text-gray-300">
+                                                    ${invoiceObj.date}
+                                                </div>
+                                            </div>
 
+                                            <!-- Right -->
+                                            <div class="text-right shrink-0">
+                                                <div class="text-sm font-medium text-green-400">
+                                                    ${invoiceObj.payment_mode
+                                                        ? invoiceObj.payment_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
+                                                </div>
+                                                <div class="font-extrabold text-3xl text-white">
+                                                    ₹${invoiceObj.amount_paid.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        ${invoiceObj.payment_note_1 || "" ? `<div class="text-sm font-medium text-blue-200">
+                                            <hr class="my-2 border-gray-700">
+                                            Note: ${invoiceObj.payment_note_1}
+                                        </div>` : ''}
+                                    </div>
+
+
+                                   <div class="w-full md:w-1/2 px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                                flex flex-col justify-between transition hover:shadow-xl">
+
+                                        <div class="flex justify-between items-start gap-4 text-gray-200">
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
                                                 <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.upay}">
                                                     ${invoiceObj.upay}
                                                 </div>
-                                                <div class="text-sm font-medium text-white-200">${invoiceObj.payment_date_time}</div>
+                                                <div class="text-sm font-medium text-gray-300">
+                                                    ${invoiceObj.payment_date_time}
+                                                </div>
                                             </div>
 
                                             <!-- Right -->
-
-                                            <div  class="font-extrabold text-3xl shrink-0"">
-                                                <div class="text-sm font-medium text-green-400 shrink-0" style="float:right;padding-right:2px;">
+                                            <div class="text-right shrink-0">
+                                                <div class="text-sm font-medium text-green-400">
                                                     ${invoiceObj.left_to_paid_mode
-                                                    ? invoiceObj.left_to_paid_mode
-                                                        .replace(/_/g, ' ')                 // replace underscores
-                                                        .toLowerCase()                      // make all lowercase
-                                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                                    : ''
+                                                        ? invoiceObj.left_to_paid_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
                                                     }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-white-200 shrink-0">
+                                                <div class="font-extrabold text-3xl text-white">
                                                     ₹${invoiceObj.left_to_paid.toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>
-                                        <hr>
-                                        <div class="text-sm font-medium text-blue-200 mt-1">
+
+                                        ${invoiceObj.payment_note_2 || "" ? `<div class="text-sm font-medium text-blue-200">
+                                            <hr class="my-2 border-gray-700">
                                             Note: ${invoiceObj.payment_note_2}
-                                        </div>
+                                        </div>` : ''}
                                     </div>
+
 
 
                                 `
                                 : `
-                                    <div>
-                                    <strong>Payment Status:</strong>
-                                    <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
+                                    <div class="w-full px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
+                                                flex flex-col justify-between transition hover:shadow-xl">
+
+                                        <div class="flex justify-between items-start gap-4 text-gray-200">
+                                            <!-- Left -->
+                                            <div class="flex-1 min-w-0 flex flex-col gap-1">
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.upay}">
+                                                    ${invoiceObj.upay}
+                                                </div>
+                                                <div class="text-sm font-medium text-gray-300">
+                                                    ${invoiceObj.payment_date_time}
+                                                </div>
+                                            </div>
+
+                                            <!-- Right -->
+                                            <div class="text-right shrink-0">
+                                                <div class="text-sm font-medium text-green-400">
+                                                    ${invoiceObj.left_to_paid_mode
+                                                        ? invoiceObj.left_to_paid_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
+                                                </div>
+                                                <div class="font-extrabold text-3xl text-white">
+                                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        ${invoiceObj.payment_note_2 || "" ? `<div class="text-sm font-medium text-blue-200">
+                                            <hr class="my-2 border-gray-700">
+                                            Note: ${invoiceObj.payment_note_2}
+                                        </div>` : ''}
                                     </div>
                                 `
                             }
@@ -1762,7 +1797,7 @@
 
                         <div class="next-to-pack-container">
                             <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
-                                Order Verifyed 
+                                Verify Order 
                             </button>
                         </div>
                     </div>
