@@ -1398,17 +1398,12 @@ class MyOrders:
                         payment_verify_by = %s,
                         payment_date_time = {payment_date_time},
                         payment_confirm_status = %s,
-                        verify_by_manager_id = %s,
-                        verify_manager_date_time = {payment_date_time},
-                        verify_by_manager = %s,
                         left_to_paid_mode = %s
                     WHERE id = %s;
                 """.format(payment_date_time=payment_date_time if payment_date_time else "NULL")
 
                 self.cursor.execute(update_query, (
                     user_id, user_id, user_id,
-                    payment_verify_by,
-                    payment_confirm_status,
                     payment_verify_by,
                     payment_confirm_status,
                     left_to_paid_mode,

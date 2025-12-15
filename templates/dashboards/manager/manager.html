@@ -561,7 +561,9 @@
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
             <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify
                         Order</span></a></li>
-            <li><a href="/manager/cancelled-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
+            <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
+                    <span>All Orders</span></a></li>
+            <li><a href="/manager/cancelled-orders" class="sidebar-link"><i class="bi bi-x-circle"></i>
                     <span>Cancelled</span></a></li>
             <li><a href="#" class="sidebar-link"><i class="bi bi-gear"></i> <span>Settings</span></a></li>
             <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
@@ -973,8 +975,9 @@
 
             (async () => {
                 const performers = await fetchTodayPerformers();
-
-                if (performers) {
+                console.log('Performers Data:', performers);
+                console.log('Performers Length:', performers.length);
+                if (!performance || Object.keys(performance).length === 0) {
 
                     dashboard.innerHTML = `
 
@@ -1190,6 +1193,30 @@
 
                             : ""
                         }
+
+                    `;
+                }else{
+                    dashboard.innerHTML = `
+                        <div class="flex flex-col items-center justify-center gap-1 
+                            p-4 sm:p-6 md:p-8 
+                            border-1 border-dashed border-gray-500 
+                            rounded-xl text-center w-full min-h-[200px]">
+
+                            <!-- User Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="w-14 h-14 sm:w-16 sm:h-16 text-pink-400"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
+                            </svg>
+                            <!-- Text -->
+                            <h3 class="text-lg sm:text-xl font-semibold text-red-300">
+                                No Top Performers Yet
+                            </h3>
+                            <p class="text-sm sm:text-base text-gray-100 max-w-md">
+                                Once users start engaging, top performers will appear here.
+                            </p>
+                        </div>
 
                     `;
                 }

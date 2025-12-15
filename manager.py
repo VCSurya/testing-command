@@ -318,6 +318,97 @@ class ManagerModel:
             })
         return dict(result)
 
+    def get_work_data(self):
+        query = f"""
+                    SELECT 
+                        invoices.invoice_number,
+                        invoices.created_at,
+                        CASE
+                            WHEN invoices.completed = 0
+                                AND live_order_track.sales_proceed_for_packing = 1
+                                AND live_order_track.payment_confirm_status = 0
+                            THEN invoices.created_at
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.payment_confirm_status = 1
+                                AND live_order_track.packing_proceed_for_transport = 0
+                            THEN live_order_track.payment_date_time
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.packing_proceed_for_transport = 1
+                                AND live_order_track.transport_proceed_for_builty = 0
+                            THEN live_order_track.packing_date_time
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.transport_proceed_for_builty = 1
+                                AND live_order_track.builty_received = 0
+                            THEN live_order_track.transport_date_time
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.builty_received = 1
+                                AND live_order_track.verify_by_manager = 0
+                            THEN live_order_track.builty_date_time
+
+                            WHEN invoices.completed = 1
+                                AND live_order_track.verify_by_manager = 1
+                            THEN live_order_track.verify_manager_date_time
+                        END AS stage_date_time,
+
+                        CASE
+                            WHEN invoices.completed = 0
+                                AND live_order_track.sales_proceed_for_packing = 1
+                                AND live_order_track.payment_confirm_status = 0
+                            THEN 'Payment'
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.payment_confirm_status = 1
+                                AND live_order_track.packing_proceed_for_transport = 0
+                            THEN 'Packing'
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.packing_proceed_for_transport = 1
+                                AND live_order_track.transport_proceed_for_builty = 0
+                            THEN 'Transport'
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.transport_proceed_for_builty = 1
+                                AND live_order_track.builty_received = 0
+                            THEN 'Builty'
+
+                            WHEN invoices.completed = 0
+                                AND live_order_track.builty_received = 1
+                                AND live_order_track.verify_by_manager = 0
+                            THEN 'Verification'
+
+                            WHEN invoices.completed = 1
+                                AND live_order_track.verify_by_manager = 1
+                            THEN 'Completed'
+                        END AS pending_stage
+
+                    FROM invoices
+                    JOIN live_order_track 
+                        ON live_order_track.invoice_id = invoices.id
+
+                    WHERE 
+                        invoices.cancel_order_status = 0
+                        AND live_order_track.cancel_order_status = 0
+                        AND live_order_track.sales_proceed_for_packing = 1
+
+                    ORDER BY stage_date_time ASC;
+        """
+        self.cursor.execute(query)
+        data = self.cursor.fetchall()
+        result = defaultdict(list)
+    
+        for item in data:
+            result[item["pending_stage"]].append({
+                "invoice_number": item["invoice_number"],
+                "created_at": item["created_at"].strftime("%d/%m/%Y %I:%M %p"),
+                "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p")
+            })
+
+        return dict(result)
+
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -349,6 +440,15 @@ def verify_orders():
 @login_required('Manager')
 def cancelled_orders():
     return render_template('dashboards/manager/cancelled.html')
+
+# Work Routes
+@manager_bp.route('/manager/all-orders')
+@login_required('Manager')
+def work():
+    manager = ManagerModel()
+    work_data = manager.get_work_data()
+    manager.close()
+    return render_template('dashboards/manager/all_orders.html', data=work_data)
 
 @manager_bp.route('/manager/today-performers')
 @login_required('Manager')
