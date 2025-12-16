@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
-from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password
+from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -321,80 +321,102 @@ class ManagerModel:
     def get_work_data(self):
         query = f"""
                     SELECT 
-                        invoices.invoice_number,
-                        invoices.created_at,
-                        CASE
-                            WHEN invoices.completed = 0
+                            invoices.invoice_number,
+                            invoices.created_at,
+
+                            CASE
+                                -- Cancelled stage (only when both cancel flags = 1)
+                                WHEN invoices.cancel_order_status = 1
+                                    AND live_order_track.cancel_order_status = 1
+                                THEN cancelled_orders.cancelled_at
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.sales_proceed_for_packing = 1
+                                    AND live_order_track.payment_confirm_status = 0
+                                THEN invoices.created_at
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.payment_confirm_status = 1
+                                    AND live_order_track.packing_proceed_for_transport = 0
+                                THEN live_order_track.payment_date_time
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.packing_proceed_for_transport = 1
+                                    AND live_order_track.transport_proceed_for_builty = 0
+                                THEN live_order_track.packing_date_time
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.transport_proceed_for_builty = 1
+                                    AND live_order_track.builty_received = 0
+                                THEN live_order_track.transport_date_time
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.builty_received = 1
+                                    AND live_order_track.verify_by_manager = 0
+                                THEN live_order_track.builty_date_time
+
+                                WHEN invoices.completed = 1
+                                    AND live_order_track.verify_by_manager = 1
+                                THEN live_order_track.verify_manager_date_time
+                            END AS stage_date_time,
+
+                            CASE
+                                WHEN invoices.cancel_order_status = 1
+                                    AND live_order_track.cancel_order_status = 1
+                                THEN 'Cancelled'
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.sales_proceed_for_packing = 1
+                                    AND live_order_track.payment_confirm_status = 0
+                                THEN 'Payment'
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.payment_confirm_status = 1
+                                    AND live_order_track.packing_proceed_for_transport = 0
+                                THEN 'Packing'
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.packing_proceed_for_transport = 1
+                                    AND live_order_track.transport_proceed_for_builty = 0
+                                THEN 'Transport'
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.transport_proceed_for_builty = 1
+                                    AND live_order_track.builty_received = 0
+                                THEN 'Builty'
+
+                                WHEN invoices.completed = 0
+                                    AND live_order_track.builty_received = 1
+                                    AND live_order_track.verify_by_manager = 0
+                                THEN 'Verification'
+
+                                WHEN invoices.completed = 1
+                                    AND live_order_track.verify_by_manager = 1
+                                THEN 'Completed'
+                            END AS pending_stage
+
+                        FROM invoices
+                        JOIN live_order_track 
+                            ON live_order_track.invoice_id = invoices.id
+
+                        LEFT JOIN cancelled_orders
+                            ON cancelled_orders.invoice_id = invoices.id
+
+                        WHERE 
+                            (
+                                -- show cancelled orders
+                                invoices.cancel_order_status = 1
+                                AND live_order_track.cancel_order_status = 1
+                            )
+                            OR
+                            (
+                                -- show non-cancelled orders
+                                invoices.cancel_order_status = 0
+                                AND live_order_track.cancel_order_status = 0
                                 AND live_order_track.sales_proceed_for_packing = 1
-                                AND live_order_track.payment_confirm_status = 0
-                            THEN invoices.created_at
+                            )
 
-                            WHEN invoices.completed = 0
-                                AND live_order_track.payment_confirm_status = 1
-                                AND live_order_track.packing_proceed_for_transport = 0
-                            THEN live_order_track.payment_date_time
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.packing_proceed_for_transport = 1
-                                AND live_order_track.transport_proceed_for_builty = 0
-                            THEN live_order_track.packing_date_time
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.transport_proceed_for_builty = 1
-                                AND live_order_track.builty_received = 0
-                            THEN live_order_track.transport_date_time
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.builty_received = 1
-                                AND live_order_track.verify_by_manager = 0
-                            THEN live_order_track.builty_date_time
-
-                            WHEN invoices.completed = 1
-                                AND live_order_track.verify_by_manager = 1
-                            THEN live_order_track.verify_manager_date_time
-                        END AS stage_date_time,
-
-                        CASE
-                            WHEN invoices.completed = 0
-                                AND live_order_track.sales_proceed_for_packing = 1
-                                AND live_order_track.payment_confirm_status = 0
-                            THEN 'Payment'
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.payment_confirm_status = 1
-                                AND live_order_track.packing_proceed_for_transport = 0
-                            THEN 'Packing'
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.packing_proceed_for_transport = 1
-                                AND live_order_track.transport_proceed_for_builty = 0
-                            THEN 'Transport'
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.transport_proceed_for_builty = 1
-                                AND live_order_track.builty_received = 0
-                            THEN 'Builty'
-
-                            WHEN invoices.completed = 0
-                                AND live_order_track.builty_received = 1
-                                AND live_order_track.verify_by_manager = 0
-                            THEN 'Verification'
-
-                            WHEN invoices.completed = 1
-                                AND live_order_track.verify_by_manager = 1
-                            THEN 'Completed'
-                        END AS pending_stage
-
-                    FROM invoices
-                    JOIN live_order_track 
-                        ON live_order_track.invoice_id = invoices.id
-
-                    WHERE 
-                        invoices.cancel_order_status = 0
-                        AND live_order_track.cancel_order_status = 0
-                        AND live_order_track.sales_proceed_for_packing = 1
-
-                    ORDER BY stage_date_time ASC;
+                        ORDER BY stage_date_time ASC;
         """
         self.cursor.execute(query)
         data = self.cursor.fetchall()
@@ -413,6 +435,12 @@ class ManagerModel:
         self.cursor.close()
         self.conn.close() # type: ignore
     
+@manager_bp.route('/manager/invoice/<string:invoice_number>')
+@login_required('Manager')
+def show_invoice(invoice_number):
+    result = invoice_detailes(invoice_number)
+    return render_template('dashboards/manager/invoice.html', data=result)
+
 
 # Manager Dashboard
 @manager_bp.route('/manager/dashboard')

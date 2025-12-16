@@ -626,6 +626,7 @@
                         <option value="Builty">Builty</option>
                         <option value="Verify Order">Verify Order</option>
                         <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
                 <!-- No Results Message (Hidden by default, shown when no invoices match filters) -->
@@ -1060,6 +1061,51 @@
 
                                 <!-- Load More Button (Hidden by default, shown if count > 3) -->
                                 <button class="load-more-btn mt-3 w-full py-2 bg-gray-700 hover:bg-gray-600 text-sm font-medium rounded-lg text-green-400 border border-gray-600 transition duration-150 hidden" onclick="toggleInvoices('Completed')">
+                                    Show More Invoices
+                                </button>
+
+                            </div>
+                            
+                            `
+
+                        : ""
+                    }
+
+                    ${data.Cancelled && data.Cancelled.length > 0
+                        ?
+                        `
+                            <!-- Stage Card Component: Cancelled (5 Invoices - Load More needed) -->
+                            <div class="stage-card bg-dark-card p-4 rounded-xl shadow-2xl border-t-4 border-red-500 flex flex-col h-full" data-stage="Cancelled" data-is-expanded="false">
+                                <!-- Stage Title and Count (Combined) -->
+                                <h2 class="stage-title text-xl font-bold mb-3 text-red-400 flex justify-between items-center">
+                                    <span>Cancelled</span>
+                                    <span class="stage-count text-lg font-extrabold px-2 py-1 bg-red-400/30 text-red-400 rounded-full ">${data.Cancelled.length}</span>
+                                </h2>
+                                <hr>
+                                <!-- List of Invoices for this Stage -->
+                                <div class="invoice-list-wrapper space-y-3 flex-grow ">
+
+                                    <!-- Invoice Items -->
+                                    ${data.Cancelled.map(item => `
+                                    <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
+                                        <div>
+                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="text-xs text-gray-400">From: ${item.created_at}</p>
+                                            <p class="text-xs text-gray-400">At: ${item.stage_date_time}</p>
+                                        </div>
+
+                                        <span
+                                            class="text-xs border border-red-400 px-2 py-0.5 rounded-full cursor-pointer
+                                                text-red-400 hover:bg-red-400 hover:text-black transition">
+                                            View
+                                        </span>
+
+                                    </div>
+                                    `).join('')}
+                                </div>
+
+                                <!-- Load More Button (Hidden by default, shown if count > 3) -->
+                                <button class="load-more-btn mt-3 w-full py-2 bg-gray-700 hover:bg-gray-600 text-sm font-medium rounded-lg text-green-400 border border-gray-600 transition duration-150 hidden" onclick="toggleInvoices('Cancelled')">
                                     Show More Invoices
                                 </button>
 

@@ -101,3 +101,160 @@ def get_invoice_id(invoice_number=None):
             return {'status': False, 'invoice_id': None}
 
     return {'status': False, 'invoice_id': None}
+
+def invoice_detailes(invoice_number=None):
+
+    connection = get_db_connection()
+    if connection:
+        cursor = connection.cursor(dictionary=True)
+        
+        querry_1 = """
+        
+                    SELECT 
+
+                    invoices.invoice_number AS INVOICE,
+                    invoices.created_at AS INVOICE_DATE,
+                    invoices.delivery_mode AS DELIVERY_MODE,
+                    su.username AS SALES_USER,
+                    invoices.completed AS COMPLETED,
+                    invoices.invoice_number AS INVOICE_NUMBER,
+                    invoices.grand_total as GRAND_TOTAL,
+
+
+                    -- Event Information
+                    market_events.name AS EVENT_NAME,
+                    market_events.location AS EVENT_LOCATION,
+                    market_events.start_date AS EVENT_START_DATE,
+                    market_events.end_date AS EVENT_END_DATE,
+
+                    -- Customer Information
+                    cu.name AS CUSTOMER_NAME,
+                    cu.mobile AS CUSTOMER_MOBILE,
+                    cu.pincode AS CUSTOMER_PINCODE,
+                    cu.address AS CUSTOMER_ADDRESS,
+                    cu.state AS CUSTOMER_STATE,
+
+                    -- Payment Transactions Detailes
+                    invoices.payment_mode as PAYMENT_1_MODE,
+                    invoices.paid_amount AS PAID_AMOUNT,
+                    invoices.left_to_paid AS LEFT_TO_PAID,
+                    invoices.payment_note AS PAYMENT_NOTE_1,
+                    invoices.gst_included AS GST,
+                    live_order_track.payment_confirm_status AS PAYMENT_CONFIRM,
+                    live_order_track.payment_note as PAYMENT_NOTE_2,
+                    live_order_track.payment_date_time AS PAYMENT_2_DATE,
+                    live_order_track.left_to_paid_mode AS PAYMENT_2_MODE,
+                    payu.username AS PAYMENT_VERIFY_BY,
+
+                    -- Tracking Stages
+
+                    live_order_track.sales_proceed_for_packing AS SALES,
+                    live_order_track.sales_date_time AS SALES_DATE,
+
+                    live_order_track.packing_proceed_for_transport as PACKING,
+                    live_order_track.packing_date_time AS PACKING_DATE,
+                    packu.username AS PACKING_USER,
+
+                    live_order_track.transport_proceed_for_builty AS TRANSPORT,
+                    live_order_track.transport_date_time as TRANSPORT_DATE,
+                    invoices.transport_company_name AS TRANSPORT_COMPANY,
+                    tu.username AS TRANSPORT_USER,
+
+
+                    live_order_track.builty_received AS BUILTY,
+                    live_order_track.builty_date_time as BUILTY_DATE,
+                    bu.username AS BUILTY_USER,
+
+                    live_order_track.verify_by_manager AS VERIFYED,
+                    live_order_track.verify_manager_date_time as VERIFYED_DATE,
+                    vu.username AS VERIFYED_USER,
+
+                    -- Notes 
+                    invoices.sales_note AS SALES_NOTE,
+                    live_order_track.packing_note AS PACKING_NOTE,
+                    live_order_track.transport_note AS TRANSPORT_NOTE,
+                    live_order_track.builty_note AS BUILTY_NOTE,
+
+                    -- Cancellation Details
+                    invoices.cancel_order_status AS CANCEL_1,
+                    live_order_track.cancel_order_status AS CANCEL_2,
+                    cancelled_orders.cancelled_at as CANCEL_DATE,
+                    cancelled_orders.reason as CANCEL_REASON,
+                    cancelled_orders.confirm_at AS CONFIRN_CANCEL_DATE,
+                    cancelled_orders.confirm_by_saler AS CANCEL_CONFIRM_BY_SALER,
+                    cancelu.username AS CANCEL_USER
+                    
+                    FROM invoices
+                    JOIN live_order_track 
+                    ON invoices.id = live_order_track.invoice_id
+                    LEFT JOIN market_events 
+                    ON invoices.event_id = market_events.id
+                    AND invoices.event_id IS NOT NULL
+                    LEFT JOIN cancelled_orders
+                    ON invoices.id = cancelled_orders.invoice_id
+                    LEFT JOIN buddy cu ON invoices.customer_id = cu.id
+                    LEFT JOIN users su ON invoices.invoice_created_by_user_id = su.id
+                    LEFT JOIN users payu ON live_order_track.payment_verify_by = payu.id
+                    LEFT JOIN users packu ON live_order_track.packing_proceed_by = packu.id
+                    LEFT JOIN users tu ON live_order_track.transport_proceed_by = tu.id
+                    LEFT JOIN users bu ON live_order_track.builty_proceed_by = bu.id
+                    LEFT JOIN users vu ON live_order_track.verify_by_manager_id = vu.id
+                    LEFT JOIN users cancelu ON cancelled_orders.cancelled_by = cancelu.id
+
+                    WHERE invoices.invoice_number = %s;
+
+        """
+        
+        cursor.execute(querry_1, (invoice_number,))
+        data = cursor.fetchone()
+        
+        if data:
+            querry_2 = """
+
+                SELECT 
+
+                products.name AS ITEM_NAME,
+                invoice_items.quantity AS ITEM_QTY,
+                invoice_items.price AS ITEM_PRICE,
+                invoice_items.gst_tax_amount AS ITEM_TAX_AMOUNT,
+                invoice_items.total_amount as ITEM_TOTAL_AMOUNT
+
+                from invoices
+                LEFT JOIN invoice_items
+                ON invoices.id = invoice_items.invoice_id
+                JOIN products
+                ON invoice_items.product_id = products.id
+                WHERE invoices.invoice_number = %s;
+
+            """
+
+            cursor.execute(querry_2, (invoice_number,))
+            items = cursor.fetchall()
+
+            querry_3 = """
+                
+                SELECT 
+                u.username AS IMAGE_UPLOAD_BY,
+                packing_images.uploaded_at AS IMAGE_UPLOAD_AT,
+                packing_images.image_url AS IMAGE_URL
+
+                from invoices
+                LEFT JOIN packing_images ON invoices.id = packing_images.invoice_id
+                LEFT JOIN users u ON packing_images.uploaded_by = u.id
+                WHERE invoices.invoice_number = %s;
+
+            """
+
+            cursor.execute(querry_3, (invoice_number,))
+            images = cursor.fetchall()
+
+            cursor.close()
+            connection.close()
+            return {'status': True, 'data': data,'items':items,'images':images}
+        else:
+            cursor.close()
+            connection.close()
+            return {'status': False, 'data': None}
+
+    return {'status': False, 'data': None}
+

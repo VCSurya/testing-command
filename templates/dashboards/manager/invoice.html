@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Font Setup */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        :root {
+            --primary-color: #34D399;
+            /* Green 400 */
+            --accent-color: #6366F1;
+            /* Indigo 500 for secondary elements */
+            --warning-color: #F87171;
+            /* Red 400 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1F2937;
+            /* Dark Charcoal/Navy */
+        }
+
+        /* General styling for cards/sections */
+        .invoice-card {
+            background-color: #2F3B4A;
+            /* Slightly lighter card background */
+            border: 1px solid #374151;
+            /* Gray 700 border */
+        }
+
+        /* Tracking Timeline Styling */
+        .tracking-stage {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tracking-stage:last-child {
+            margin-bottom: 0;
+        }
+
+        .tracking-stage-dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            min-width: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .tracking-stage:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 1.5rem;
+            bottom: -1.5rem;
+            width: 2px;
+            background-color: #4B5563;
+            /* Gray 600 line */
+        }
+
+        .stage-completed .tracking-stage-dot {
+            background-color: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+        }
+
+        .stage-completed:not(:last-child)::before {
+            background-color: var(--primary-color);
+        }
+
+        .stage-cancelled .tracking-stage-dot {
+            background-color: var(--warning-color);
+            color: #000;
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900">
+
+    <div class="container mx-auto p-2 sm:p-6 lg:p-8 max-w-7xl">
+        <div id="invoice-container" class="invoice-card shadow-2xl rounded-xl p-4 md:p-5">
+
+            <!-- Primary Header and Status -->
+            <header class="mb-8 pb-6 border-b-2 border-gray-500">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <h1 class="text-4xl font-extrabold text-gray-50 mb-2">SMART TRADERS</h1>
+
+                    <div class="flex flex-col items-end">
+                        <span
+                            class="px-4 py-1 text-sm font-bold rounded-full bg-red-900/40 text-red-400 border border-red-500 mb-2">
+                            STATUS: CANCELLED
+                        </span>
+                    </div>
+
+                </div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-semibold text-gray-400">Created Date:</p>
+                        <p class="text-gray-300">2025-12-15</p>
+                    </div>
+                    <div class="sm:text-right">
+                        <p class="font-semibold text-gray-400">Sales Representative:</p>
+                        <p class="text-gray-300">Alex Johnson</p>
+                    </div>
+                </div>
+            </header>
+
+
+
+            <section class="mb-8 p-5 bg-gray-900 rounded-lg border border-gray-700">
+                <h2 class="text-lg font-bold text-gray-100 mb-4 border-b border-gray-600 pb-2">Event Information (Point
+                    of Sale)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-y-3 gap-x-6 text-sm">
+                    <div class="md:col-span-2">
+                        <p class="font-medium text-gray-400">Event Name:</p>
+                        <p class="font-semibold text-gray-100">National Traders Expo 2025</p>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-400">Location:</p>
+                        <p class="font-semibold text-gray-100">Exhibition Center, New Delhi</p>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-400">Event Dates:</p>
+                        <p class="font-semibold text-gray-100">Dec 10, 2025 - Dec 16, 2025</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Customer & Shipping Information -->
+            <section class="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Customer Details Card -->
+                <div class="lg:col-span-2 invoice-card p-5 rounded-lg">
+                    <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Billing & Contact
+                        Information</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm">
+                        <div>
+                            <p class="font-medium text-gray-400">Customer Name:</p>
+                            <p class="font-semibold text-gray-100">Priya Sharma</p>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-400">Mobile Number:</p>
+                            <p class="font-semibold text-gray-100">+91 98765 43210</p>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <p class="font-medium text-gray-400">Billing Address:</p>
+                            <p class="font-semibold text-gray-100">45, Bluebird Lane, Near City Mall, Mumbai</p>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-400">State Name:</p>
+                            <p class="font-semibold text-gray-100">Maharashtra</p>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-400">Pincode:</p>
+                            <p class="font-semibold text-gray-100">400001</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Details Card -->
+                <div class="lg:col-span-1 invoice-card p-5 rounded-lg border-l-4 border-accent-color">
+                    <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Shipping Details</h2>
+                    <div class="space-y-2 text-sm">
+                        <div>
+                            <p class="font-medium text-gray-400">Delivery Mode:</p>
+                            <p class="font-extrabold text-yellow-300">Transport/Road Carrier</p>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-400">Transport Company:</p>
+                            <p class="font-semibold text-gray-100">XYZ Logistics</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Itemized Products Table & Totals -->
+            <section class="mb-8">
+                <h2 class="text-xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">Order Summary</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Itemized Table (2/3 width on large screens) -->
+                    <div class="lg:col-span-2 overflow-x-auto rounded-lg shadow-md border border-gray-700">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Item Name</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Qty</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Price (₹)</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Tax (₹)</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Total (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+                                <tr>
+                                    <td class="px-3 py-4 whitespace-nowrap text-gray-100 font-medium">Product A -
+                                        Premium</td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">10</td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">1,000.00</td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">500.00 <span
+                                            class="text-xs text-gray-500">(5%)</span></td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-bold">10,500.00
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-3 py-4 whitespace-nowrap text-gray-100 font-medium">Product B - Basic
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">5</td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">500.00</td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">250.00 <span
+                                            class="text-xs text-gray-500">(10%)</span></td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-bold">5,250.00
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals Summary (1/3 width on large screens) -->
+                    <div class="lg:col-span-1 p-5 invoice-card rounded-lg flex flex-col justify-end">
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Subtotal:</span>
+                                <span class="font-medium text-gray-100">₹ 15,000.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Total Tax:</span>
+                                <span class="font-medium text-gray-100">₹ 750.00</span>
+                            </div>
+                            <div class="flex justify-between pt-4 border-t border-gray-600">
+                                <span class="text-xl font-extrabold text-gray-100">Grand Total:</span>
+                                <span class="text-xl font-extrabold text-green-400">₹ 15,750.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payment Transactions Table section -->
+            <section class="mb-8 border border-gray-700 rounded-lg shadow-md overflow-hidden">
+                <h3 class="text-md font-bold text-gray-100 bg-gray-700/70 p-3 border-b border-gray-700">Payment
+                    Transactions History</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700 text-sm">
+                        <thead class="bg-gray-700/50">
+                            <tr>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                    Date</th>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                    Mode</th>
+                                <th
+                                    class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                    Amount (₹)</th>
+                                <th
+                                    class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                    Received By</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+                            <tr>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">2025-12-15</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">UPI</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">7,750.00
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">Sarah Doe</td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">2025-12-16</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">Bank Transfer</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">8,000.00
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">Mark Lee</td>
+                            </tr>
+                            <tr class="bg-green-900/30 font-bold">
+                                <td colspan="2" class="px-3 py-3 text-left text-green-400">Total Paid:</td>
+                                <td class="px-3 py-3 text-right text-green-400">15,750.00</td>
+                                <td class="px-3 py-3"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tracking Stages Timeline (Re-styled for clarity) -->
+            <section class="mb-8 pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-bold text-gray-100 mb-6">Shipment Tracking Stages</h2>
+
+                <div class="relative pl-4">
+                    <!-- Stage 1 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">1</div>
+                        <p class="font-semibold text-green-400">Sales</p>
+                        <p class="text-gray-400 text-xs">2025-12-15 by Alex Johnson</p>
+                    </div>
+
+                    <!-- Stage 2 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">2</div>
+                        <p class="font-semibold text-green-400">Payment</p>
+                        <p class="text-gray-400 text-xs">2025-12-15 by Sarah Doe</p>
+                    </div>
+
+                    <!-- Stage 3 (Cancellation Point) -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">3</div>
+                        <p class="font-semibold text-red-400">Packing (Stopped)</p>
+                        <p class="text-gray-400 text-xs">2025-12-16 by Mark Lee</p>
+                    </div>
+
+                    <!-- Stage 4 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600 text-gray-300">4</div>
+                        <p class="font-semibold text-gray-400">Transport</p>
+                        <p class="text-gray-500 text-xs">Skipped due to Cancellation</p>
+                    </div>
+
+                    <!-- Stage 5 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600 text-gray-300">5</div>
+                        <p class="font-semibold text-gray-400">Builty</p>
+                        <p class="text-gray-500 text-xs">Skipped</p>
+                    </div>
+
+                    <!-- Stage 6 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600 text-gray-300">6</div>
+                        <p class="font-semibold text-gray-400">Verifyed</p>
+                        <p class="text-gray-500 text-xs">Skipped</p>
+                    </div>
+
+                    <!-- Stage 7 - Final Status -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">7</div>
+                        <p class="font-semibold text-red-400">Completed (Cancelled)</p>
+                        <p class="text-gray-400 text-xs">2025-12-16</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cancellation Status Section -->
+            <section class="mb-8 pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-bold text-red-400 mb-4">Order Cancellation Details</h2>
+                <div
+                    class="p-6 bg-red-900/30 border-2 border-red-700 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-red-400 mb-1">Reason for Cancellation:</p>
+                        <p class="text-gray-200 font-medium italic border-l-2 border-red-500 pl-3">Customer initiated
+                            cancellation due to unexpected project scope change and reduced material requirement.</p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p><span class="font-semibold text-red-400">Cancelled By:</span> <span
+                                class="text-gray-200">Priya Sharma (Customer)</span></p>
+                        <p><span class="font-semibold text-red-400">Cancellation Date:</span> <span
+                                class="text-gray-200">2025-12-16</span></p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p><span class="font-semibold text-red-400">Confirmation User:</span> <span
+                                class="text-gray-200">Alex Johnson (Sales)</span></p>
+                        <p><span class="font-semibold text-red-400">Confirmation Date/Time:</span> <span
+                                class="text-gray-200">2025-12-16, 14:30 IST</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Notes/Remarks Section -->
+            <section class="pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-bold text-gray-100 mb-4">Notes & Remarks</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+
+                    <!-- Sales Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-blue-400 rounded-lg shadow-sm">
+                        <p class="font-semibold text-blue-400 mb-1">Sales Remark:</p>
+                        <p class="text-gray-300 italic">"Initial order confirmed for express delivery. Status changed to
+                            CANCELLED on 2025-12-16."</p>
+                    </div>
+
+                    <!-- Packaging Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-yellow-400 rounded-lg shadow-sm">
+                        <p class="font-semibold text-yellow-400 mb-1">Packaging Instructions:</p>
+                        <p class="text-gray-300 italic">"Stop packing immediately. Prepare items for return to
+                            inventory."</p>
+                    </div>
+
+                    <!-- Transport Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-red-400 rounded-lg shadow-sm">
+                        <p class="font-semibold text-red-400 mb-1">Transport Requirements:</p>
+                        <p class="text-gray-300 italic">"Dispatch notification cancelled. No goods to be shipped.
+                            Carrier was already assigned."</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PACKING IMAGE GALLERY (Moved to Last) -->
+            <section class="mb-8 pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-bold text-gray-100 mb-4">Packing Images</h2>
+
+                <!-- Toggle Button -->
+                <button id="toggleImagesBtn"
+                    class="px-4 py-2 mb-4 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition duration-200 shadow-lg">
+                    Show Packing Images (3)
+                </button>
+
+                <!-- Gallery Content (Initially Hidden) -->
+                <div id="packingImagesGallery" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <!-- Image 1 -->
+                    <div class="bg-gray-700/50 p-4 rounded-lg shadow-xl border border-gray-700">
+                        <!-- Placeholder image simulating an uploaded file -->
+                        <img src="https://placehold.co/400x300/374151/E5E7EB?text=Package+View+1" alt="Packing Image 1"
+                            class="w-full h-auto rounded-lg mb-3 object-cover border border-gray-600">
+                        <p class="text-sm font-semibold text-gray-200">Package Photo: Front View</p>
+                        <p class="text-xs text-gray-400 mt-1">Uploaded By: Mark Lee (Packer)</p>
+                        <p class="text-xs text-gray-400">Date: 2025-12-16, 09:15 AM</p>
+                    </div>
+
+                    <!-- Image 2 -->
+                    <div class="bg-gray-700/50 p-4 rounded-lg shadow-xl border border-gray-700">
+                        <!-- Placeholder image simulating an uploaded file -->
+                        <img src="https://placehold.co/400x300/374151/E5E7EB?text=Package+View+2" alt="Packing Image 2"
+                            class="w-full h-auto rounded-lg mb-3 object-cover border border-gray-600">
+                        <p class="text-sm font-semibold text-gray-200">Package Photo: Label & Seal</p>
+                        <p class="text-xs text-gray-400 mt-1">Uploaded By: Mark Lee (Packer)</p>
+                        <p class="text-xs text-gray-400">Date: 2025-12-16, 09:20 AM</p>
+                    </div>
+
+                    <!-- Image 3 (Optional, for gallery effect) -->
+                    <div class="bg-gray-700/50 p-4 rounded-lg shadow-xl border border-gray-700">
+                        <!-- Placeholder image simulating an uploaded file -->
+                        <img src="https://placehold.co/400x300/374151/E5E7EB?text=Interior+Items+Check"
+                            alt="Packing Image 3"
+                            class="w-full h-auto rounded-lg mb-3 object-cover border border-gray-600">
+                        <p class="text-sm font-semibold text-gray-200">Pre-pack: Item Verification</p>
+                        <p class="text-xs text-gray-400 mt-1">Uploaded By: Susan Chen (Supervisor)</p>
+                        <p class="text-xs text-gray-400">Date: 2025-12-16, 08:45 AM</p>
+                    </div>
+
+                </div>
+            </section>
+
+
+        </div>
+    </div>
+    <script type="application/json" id="work-data">
+        {{ data | tojson }}
+    </script>
+    <!-- JavaScript for toggling image visibility -->
+    <script>
+
+        function displayData() {
+
+            const data = JSON.parse(
+                document.getElementById('work-data').textContent
+            );
+
+            document.title = data.data.INVOICE_NUMBER;
+            const dashboard = document.getElementById("invoice-container");
+
+            if (!data.status) {
+                dashboard.innerHTML = `
+
+                    <div class="bg-dark-card p-6 rounded-xl shadow-2xl border-t-4 border-red-500 flex flex-col h-full items-center justify-center">
+                        <h2 class="text-xl font-bold mb-3 text-red-400">No Invoice Data Available</h2>
+                        <p class="text-gray-400">There are currently no invoices to display.</p>
+                        <p class="text-gray-400">${data.message}</p>
+                    </div>
+
+                    `;
+                return;
+            }
+
+            console.log(data);
+
+            const invoice_date = new Date(data.data.INVOICE_DATE);
+            const totalQty = data.items.reduce((sum, item) => sum + Number(item.ITEM_QTY), 0);
+            const totalPrice = data.items.reduce((sum, item) => sum + Number(item.ITEM_PRICE), 0);
+
+            const totalTax = data.items.reduce((sum, item) => sum + Number(item.ITEM_TAX_AMOUNT), 0);
+
+
+            dashboard.innerHTML = `
+
+                 <header class="mb-8 pb-6 border-b-2 border-gray-500">
+
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                <h1 class="text-4xl font-extrabold text-gray-50 mb-2">${data.data.INVOICE_NUMBER}</h1>   
+
+                                ${data.data.CANCEL_1 === 1 && data.data.CANCEL_2 === 1 && data.data.COMPLETED === 0
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-red-900/40 text-red-400 border border-red-500 mb-2">
+                                            STATUS: CANCELLED
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+                                    
+                                ${data.data.CANCEL_1 === 0 && data.data.CANCEL_2 === 0 && data.data.COMPLETED === 0
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-500 mb-2">
+                                            STATUS: IN PROGRESS
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+
+                                
+                                ${data.data.CANCEL_1 === 0 && data.data.CANCEL_2 === 0 && data.data.COMPLETED === 1
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-green-900/40 text-green-400 border border-green-500 mb-2">
+                                            STATUS: COMPLETED
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+                                
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="font-semibold text-gray-400">Created Date:</p>
+                                    <p class="text-gray-300">${invoice_date.toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                })}
+                                    </p>
+                                </div>
+                                <div class="sm:text-right">
+                                    <p class="font-semibold text-gray-400">Sales Representative:</p>
+                                    <p class="text-gray-300">${data.data.SALES_USER}</p>
+                                </div>
+                            </div>
+                </header>
+
+                ${data.data.EVENT_NAME != null && data.data.EVENT_LOCATION != null && data.data.EVENT_START_DATE != null && data.data.EVENT_END_DATE != null
+                    ?
+                    `
+                    <section class="mb-8 p-5 bg-gray-900 rounded-lg border border-gray-700">
+                        <h2 class="text-lg font-bold text-gray-100 mb-4 border-b border-gray-600 pb-2">Event Information (Point of Sale)</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-y-3 gap-x-6 text-sm">
+                            <div class="md:col-span-2">
+                                <p class="font-medium text-gray-400">Event Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_NAME}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Location:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_LOCATION}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Event Dates:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_START_DATE} - ${data.data.EVENT_END_DATE}</p>
+                            </div>
+                        </div>
+                    </section>
+                                            
+                                    `
+                    : ""
+                }
+
+                <!-- Customer & Shipping Information -->
+                <section class="mb-8  grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Customer Details Card -->
+                    <div class="lg:col-span-2 bg-gray-900 invoice-card p-5 rounded-lg">
+                        <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Customer Information</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-400">Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_NAME}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Mobile Number:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_MOBILE}</p>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <p class="font-medium text-gray-400">Billing Address:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_ADDRESS}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">State Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_STATE}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Pincode:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_PINCODE}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Details Card -->
+                    <div class="lg:col-span-1 bg-gray-900 invoice-card p-5 rounded-lg border-l-4 border-accent-color">
+                        <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Shipping Details</h2>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-400">Delivery Mode:</p>
+                                <p class="font-extrabold text-yellow-300">${data.data.DELIVERY_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Transport Company:</p>
+                                <p class="font-semibold text-gray-100">${data.data.TRANSPORT_COMPANY.toUpperCase()}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            
+                <!-- Itemized Products Table & Totals -->
+                <section class="mb-8" >
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Order Summary</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-1 gap-0">
+
+                        <!-- Itemized Table (2/3 width on large screens) -->
+                        <div class="lg:col-span-2 overflow-x-auto rounded-lg shadow-md border border-gray-700">
+                            <table class="min-w-full  divide-y divide-gray-700">
+                                <thead class="bg-gray-700">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                                            Item Name</th>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Qty</th>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Price (₹)
+                                        </th>
+
+                                        ${data.data.GST === 1
+                    ?
+                    `
+                                            <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Tax (₹)</th>                        
+                                            `
+                    : ""
+                }
+
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                
+                                
+                                <tbody class="bg-gray-900 divide-y divide-gray-700 text-sm">
+                                    ${data.items.map(item => `
+                                        <tr>
+                                            <td class="px-3 py-4 whitespace-nowrap text-gray-100 font-medium">${item.ITEM_NAME}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">${item.ITEM_QTY}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">₹${item.ITEM_PRICE}</td>
+                                            ${data.data.GST === 1
+                        ?
+                        `
+                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">₹${item.ITEM_TAX_AMOUNT}</td>
+                                                `
+                        : ""
+                    }
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-bold">₹${item.ITEM_TOTAL_AMOUNT}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr class="bg-gray-800">
+                                            <td class="px-3 py-4 whitespace-nowrap text-xl font-extrabold text-gray-100">Grand Total:</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">${totalQty}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalPrice}</td>
+                                            ${data.data.GST === 1
+                    ?
+                    `
+                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalTax}</td>
+
+                                                `
+                    : ""
+                }
+                                            <td class="px-3 py-4 whitespace-nowrap text-right font-extrabold text-xl text-green-400 font-bold">₹${data.data.GRAND_TOTAL}
+                                            </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+
+                    </div>
+                </section>
+
+
+                <!-- Payment Transactions Table section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Payment Transactions History</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700 text-sm">
+                            <thead class="bg-gray-700/50">
+                                <tr>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Mode</th>
+                                    <th
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Amount (₹)</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Received By</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+                                <tr>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">2025-12-15</td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">UPI</td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">7,750.00
+                                    </td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">Sarah Doe</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">2025-12-16</td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">Bank Transfer</td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">8,000.00
+                                    </td>
+                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">Mark Lee</td>
+                                </tr>
+                                <tr class="bg-green-900/30 font-bold">
+                                    <td colspan="2" class="px-3 py-3 text-left text-green-400">Total Paid:</td>
+                                    <td class="px-3 py-3 text-right text-green-400">15,750.00</td>
+                                    <td class="px-3 py-3"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                
+
+                
+
+            `;
+
+
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const button = document.getElementById('toggleImagesBtn');
+            const gallery = document.getElementById('packingImagesGallery');
+
+            if (button && gallery) {
+                button.addEventListener('click', () => {
+                    gallery.classList.toggle('hidden');
+                    if (gallery.classList.contains('hidden')) {
+                        button.textContent = 'Show Packing Images (3)';
+                        button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                        button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    } else {
+                        button.textContent = 'Hide Packing Images (3)';
+                        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        button.classList.add('bg-red-600', 'hover:bg-red-700');
+                    }
+                });
+            }
+
+            displayData();
+        });
+    </script>
+
+</body>
+
+</html>
