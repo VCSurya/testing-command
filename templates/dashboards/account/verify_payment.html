@@ -1396,12 +1396,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, main_id, invoice_Id, btn) {
+        function openCancelOrderModal(invoiceNumber,btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
-            cancelOrderInvoiceid = main_id;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoice_Id + '>';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoiceNumber + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1425,7 +1424,7 @@
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
             try {
-                const resp = await cancelOrder(cancelOrderInvoiceNumber, cancelOrderInvoiceid, reason);
+                const resp = await cancelOrder(cancelOrderInvoiceNumber,reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
                 } else {
@@ -1437,19 +1436,19 @@
             closeCancelOrderModal();
         };
 
-        async function cancelOrder(invoiceNumber, Invoiceid, reason) {
+        async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/builty/cancel_order', {
+                const response = await fetch('/account/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_order_id: invoiceNumber, invoice_id: Invoiceid, reason: reason })
+                    body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
                 });
                 if (!response.ok) throw new Error('Failed to cancel');
                 return await response.json();
             } catch (e) {
                 return { success: false, message: e.message };
             }
-        }
+        }   
 
         async function confirmAndStart(invoice_id, amount_paid, grand_total) {
 
@@ -1541,6 +1540,12 @@
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
                                     </svg>
                                 </button>
+
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}', this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>   
 
                             </div>
                         </div>

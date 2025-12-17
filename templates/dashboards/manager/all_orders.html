@@ -566,12 +566,11 @@
             <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a>
             </li>
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
-            <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify
+            <li><a href="/manager/verify-orders" class="sidebar-link "><i class="bi bi-calendar-check"></i> <span>Verify
                         Order</span></a></li>
             <li><a href="/manager/all-orders" class="sidebar-link active"><i class="bi bi-clipboard-data"></i>
                     <span>All Orders</span></a></li>
-            <li><a href="/manager/cancelled-orders" class="sidebar-link"><i class="bi bi-x-circle"></i>
-                    <span>Cancelled</span></a></li>
+
             <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
             </li>
         </ul>
@@ -666,6 +665,11 @@
     {{ data | tojson }}
     </script>
     <script>
+
+        viewInvoiceDetails = function (invoiceNumber) {
+            window.open(`/manager/invoice/${invoiceNumber}`, '_blank', 'noopener');
+        };
+
 
         function filterInvoices() {
             const input = document.getElementById('invoiceSearch');
@@ -830,7 +834,7 @@
                                         
                                         <span
                                             class="text-xs border border-green-400 px-2 py-0.5 rounded-full cursor-pointer
-                                                text-green-400 hover:bg-green-400 hover:text-black transition">
+                                                text-green-400 hover:bg-green-400 hover:text-black transition" onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -874,7 +878,7 @@
                                         
                                         <span
                                             class="text-xs border border-green-400 px-2 py-0.5 rounded-full cursor-pointer
-                                                text-blue-400 hover:bg-blue-500 hover:text-white transition">
+                                                text-blue-400 hover:bg-blue-500 hover:text-white transition" onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -919,7 +923,7 @@
                                         
                                         <span
                                             class="text-xs border border-pink-400 px-2 py-0.5 rounded-full cursor-pointer
-                                                text-pink-400 hover:bg-pink-400 hover:text-black transition">
+                                                text-pink-400 hover:bg-pink-400 hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -962,7 +966,7 @@
                                         
                                         <span
                                             class="text-xs border border-yellow-400 px-2 py-0.5 rounded-full cursor-pointer
-                                                text-yellow-400 hover:bg-yellow-400 hover:text-black transition">
+                                                text-yellow-400 hover:bg-yellow-400 hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -1006,7 +1010,7 @@
 
                                         <span
                                             class="text-xs border border-[#dfed68] px-2 py-0.5 rounded-full cursor-pointer
-                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition">
+                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -1051,7 +1055,7 @@
 
                                         <span
                                             class="text-xs border border-[#dfed68] px-2 py-0.5 rounded-full cursor-pointer
-                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition">
+                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 
@@ -1096,7 +1100,7 @@
 
                                         <span
                                             class="text-xs border border-red-400 px-2 py-0.5 rounded-full cursor-pointer
-                                                text-red-400 hover:bg-red-400 hover:text-black transition">
+                                                text-red-400 hover:bg-red-400 hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
                                             View
                                         </span>
 

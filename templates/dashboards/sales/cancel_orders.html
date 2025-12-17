@@ -1759,28 +1759,71 @@
                         </div>
                         <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
                         
-                        <div class="tracking-wrapper">
-                        <div class="tracking-stepper">
-                            <div class="tracking-steps">
-                            
-                            ${['Sell', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
-                            <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                <div class="label-group">
-                                    <div class="label">
-                                        ${i === 0 && invoiceObj.trackingStatus === 0
-                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                        : step}
-                                    </div>
-                                    <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
-                                </div>
-                                ${i < 4 ? '<div class="bar"></div>' : ''}
-                            </div>
-                            `).join('')}
 
+                         <div title="${invoiceObj.delivery_mode}">
+                        <strong>Delivery Mode:</strong>
+                        ${invoiceObj.delivery_mode
+                        ? invoiceObj.delivery_mode
+                            .replace(/_/g, ' ')                // replace underscores with spaces
+                            .toLowerCase()                     // make everything lowercase first
+                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                        : ''
+                    }${invoiceObj.transport_company_name ? ` - ${invoiceObj.transport_company_name}` : ''}
+                        </div>
+                        
+                                               ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
+                        
+                            <div class="tracking-wrapper">
+                            <div class="tracking-stepper">
+                                <div class="tracking-steps">
+
+                                ${['Sell', 'Payment', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
+                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                                    <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
+                                    <div class="label-group">
+                                        <div class="label">
+                                            ${i === 0 && invoiceObj.trackingStatus === 0
+                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                            : step}
+                                        </div>
+                                        <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                    </div>
+                                    ${i < 5 ? '<div class="bar"></div>' : ''}
+                                </div>
+                                `).join('')}
+
+                                </div>
                             </div>
-                        </div>
-                        </div>
+                            </div>
+
+                        ` : `
+                            <div class="tracking-wrapper">
+                                <div class="tracking-stepper">
+                                    <div class="tracking-steps">
+
+                                    ${['Sell', 'Payment', 'Order Complete', 'Transport', 'Builty', 'Verified']
+                        .map((step, i) => ({ step, i })) // map with index
+                        .filter(s => !['Transport', 'Builty'].includes(s.step)) // ❌ remove Transport & Builty
+                        .map(({ step, i }) => `
+                                        <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
+                                            <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
+                                            <div class="label-group">
+                                                <div class="label">
+                                                    ${i === 0 && invoiceObj.trackingStatus === 0
+                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                                : step}
+                                                </div>
+                                                <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
+                                            </div>
+                                            <div class="bar"></div>
+                                        </div>
+                                        `).join('')}
+
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+
 
                         
                         <table>

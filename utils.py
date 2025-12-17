@@ -178,7 +178,7 @@ def invoice_detailes(invoice_number=None):
                     -- Cancellation Details
                     invoices.cancel_order_status AS CANCEL_1,
                     live_order_track.cancel_order_status AS CANCEL_2,
-                    cancelled_orders.cancelled_at as CANCEL_DATE,
+                    cancelled_orders.cancelled_at as CANCEL_AT_DATE,
                     cancelled_orders.reason as CANCEL_REASON,
                     cancelled_orders.confirm_at AS CONFIRN_CANCEL_DATE,
                     cancelled_orders.confirm_by_saler AS CANCEL_CONFIRM_BY_SALER,
@@ -201,7 +201,8 @@ def invoice_detailes(invoice_number=None):
                     LEFT JOIN users vu ON live_order_track.verify_by_manager_id = vu.id
                     LEFT JOIN users cancelu ON cancelled_orders.cancelled_by = cancelu.id
 
-                    WHERE invoices.invoice_number = %s;
+                    WHERE invoices.invoice_number = %s
+                    AND live_order_track.sales_proceed_for_packing = 1;
 
         """
         
@@ -234,13 +235,11 @@ def invoice_detailes(invoice_number=None):
             querry_3 = """
                 
                 SELECT 
-                u.username AS IMAGE_UPLOAD_BY,
                 packing_images.uploaded_at AS IMAGE_UPLOAD_AT,
                 packing_images.image_url AS IMAGE_URL
 
                 from invoices
-                LEFT JOIN packing_images ON invoices.id = packing_images.invoice_id
-                LEFT JOIN users u ON packing_images.uploaded_by = u.id
+                JOIN packing_images ON invoices.id = packing_images.invoice_id
                 WHERE invoices.invoice_number = %s;
 
             """

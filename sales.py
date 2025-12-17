@@ -1045,7 +1045,6 @@ class MyOrders:
             # passed tracking status with date
             trackingStatus = 0
             trackingDates = []
-            print(item['sales_proceed_for_packing'])
             if item['sales_proceed_for_packing']:
 
                 if item['sales_date_time']:
@@ -1624,41 +1623,50 @@ class Canceled_Orders:
                     trackingDates.append('')
                 trackingStatus = 1
 
-                if item['packing_proceed_for_transport']:
+                if item['payment_confirm_status']:
 
-                    if item['packing_proceed_for_transport']:
+                    if item['payment_date_time']:
                         trackingDates.append(
-                            item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                            item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                     else:
                         trackingDates.append('')
                     trackingStatus = 2
 
-                    if item['transport_proceed_for_builty']:
+                    if item['packing_proceed_for_transport']:
 
-                        if item['transport_proceed_for_builty']:
+                        if item['packing_proceed_for_transport']:
                             trackingDates.append(
-                                item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                         else:
                             trackingDates.append('')
                         trackingStatus = 3
 
-                        if item['builty_received']:
+                        if item['transport_proceed_for_builty']:
 
-                            if item['builty_received']:
+                            if item['transport_proceed_for_builty']:
                                 trackingDates.append(
-                                    item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                             else:
                                 trackingDates.append('')
                             trackingStatus = 4
 
-                            if item['verify_by_manager']:
+                            if item['builty_received']:
 
-                                if item['verify_by_manager']:
+                                if item['builty_received']:
                                     trackingDates.append(
-                                        item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                        item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
                                 else:
                                     trackingDates.append('')
                                 trackingStatus = 5
+
+                                if item['verify_by_manager']:
+
+                                    if item['verify_by_manager']:
+                                        trackingDates.append(
+                                            item['verify_manager_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                                    else:
+                                        trackingDates.append('')
+                                    trackingStatus = 6
 
             item['trackingStatus'] = trackingStatus
             item['trackingDates'] = trackingDates
@@ -1757,6 +1765,7 @@ class Canceled_Orders:
                 lot.verify_by_manager,
                 lot.verify_by_manager_id,
                 lot.verify_manager_date_time,
+                lot.payment_date_time,
 
                 -- cancelled_orders columns
                 c.id AS cancelled_orders_id,

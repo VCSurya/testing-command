@@ -563,9 +563,7 @@
                         Order</span></a></li>
             <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
                     <span>All Orders</span></a></li>
-            <li><a href="/manager/cancelled-orders" class="sidebar-link"><i class="bi bi-x-circle"></i>
-                    <span>Cancelled</span></a></li>
-            <li><a href="#" class="sidebar-link"><i class="bi bi-gear"></i> <span>Settings</span></a></li>
+
             <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
             </li>
         </ul>
@@ -711,12 +709,15 @@
             </div>
 
         </div>
-
+        <script type="application/json" id="work-data">
+        {{ data | tojson }}
+        </script>
         <script>
 
-
-            const newMockEnvVars = {{ data | tojson | safe }};
-
+            const newMockEnvVars = JSON.parse(
+                document.getElementById('work-data').textContent
+            );
+            
             // Data extracted from the image/context provided by the user
             const data = {
                 todayRevenue: newMockEnvVars.Today_revenue || 0,
