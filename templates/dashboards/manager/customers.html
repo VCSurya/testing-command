@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
+    <title>Customer Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
@@ -87,7 +87,7 @@
             }
 
             .filter-section {
-                margin-top: 0px;
+                margin-top: 75px;
             }
         }
 
@@ -203,7 +203,6 @@
             color: #fff;
             font-weight: 600;
             transition: background var(--transition), box-shadow var(--transition);
-            z-index: 2000;
         }
 
         .btn-primary:hover,
@@ -642,7 +641,7 @@
 
             .main-content {
                 margin-left: 0;
-                padding-top: 72px;
+                padding-top: 0px;
             }
 
             .h2,
@@ -656,7 +655,7 @@
             }
         }
 
-        @media (min-width: 992px) {
+       @media (min-width: 992px) {
             .custom-topbar {
                 display: flex;
             }
@@ -675,6 +674,7 @@
                 padding-top: 72px;
             }
         }
+
 
         /* Hide sidebar header on mobile */
         @media (max-width: 991.98px) {
@@ -796,14 +796,14 @@
         <ul class="sidebar-menu">
             <li><a href="/manager/dashboard" class="sidebar-link "><i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span></a></li>
-            <li><a href="/manager/users" class="sidebar-link active"><i class="bi bi-people"></i> <span>Users</span></a>
+            <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a>
             </li>
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
             <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify
                         Order</span></a></li>
             <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
                     <span>All Orders</span></a></li>
-            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i>
+            <li><a href="/manager/customers" class="sidebar-link active"><i class="bi bi-person-lines-fill"></i>
                     <span>Customers</span></a>
             </li>
             <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i>
@@ -820,10 +820,10 @@
                 <button class="topbar-menu-btn me-2 pr-5" id="topbarMenuBtn" aria-label="Open menu">
                     <span></span><span></span><span></span>
                 </button>
-                <h1 class="h2 mb-0">User Management</h1>
+                <h1 class="h2 mb-0">Customer Management</h1>
             </div>
             <button class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                <i class="bi bi-plus-lg"></i> Add User
+                <i class="bi bi-plus-lg"></i> Add
             </button>
         </div>
     </header>
@@ -835,20 +835,16 @@
         <div class="filter-section">
             <div class="row">
                 <div class="col-md-3">
-                    <label class="form-label">Filter by Role</label>
                     <select class="form-select" id="roleFilter">
-                        <option value="">All Roles</option>
-                        <option value="Sales">Sales</option>
-                        <option value="Packaging">Packaging</option>
-                        <option value="Transport">Transport</option>
-                        <option value="Account">Account</option>
-                        <option value="Builty">Builty</option>
-                        <option value="Retail">Retail</option>
+                        <option value="1">Name</option>
+                        <option value="5">Mobile</option>
+                        <option value="2">Address</option>
+                        <option value="3">State</option>
+                        <option value="4">Pincode</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Search by Username</label>
-                    <input type="text" class="form-control" id="nameFilter" placeholder="Enter Username...">
+                    <input type="text" class="form-control" id="nameFilter" placeholder="Enter Customer Name...">
                 </div>
             </div>
         </div>
@@ -860,8 +856,10 @@
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Username</th>
-                        <th>Role</th>
+                        <th>Address</th>
+                        <th>State</th>
+                        <th>Pincode</th>
+                        <th>Mobile</th>
                         <th>Created By</th>
                         <th>Updated By</th>
                         <th>Actions</th>
@@ -874,12 +872,12 @@
         </div>
     </main>
 
-    <!-- Add User Modal -->
+    <!-- Add Customer Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New User</h5>
+                    <h5 class="modal-title">Add New Customer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -889,25 +887,20 @@
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" required>
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control" name="address" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" name="password" required>
+                            <label class="form-label">State</label>
+                            <input type="text" class="form-control" name="state" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select class="form-select" name="role" required>
-                                <option value="Admin">Admin</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Sales">Sales</option>
-                                <option value="Packaging">Packaging</option>
-                                <option value="Transport">Transport</option>
-                                <option value="Account">Account</option>
-                                <option value="Builty">Builty</option>
-                                <option value="Retail">Retail</option>
-                            </select>
+                            <label class="form-label">Pincode</label>
+                            <input type="text" class="form-control" name="pincode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mobile</label>
+                            <input type="text" class="form-control" name="mobile" required>
                         </div>
                     </form>
                 </div>
@@ -924,7 +917,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit User</h5>
+                    <h5 class="modal-title">Edit Customer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -935,27 +928,22 @@
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" disabled
-                                style="background-color: transparent;">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control" name="address" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select class="form-select" name="role" required>
-                                <option value="Admin">Admin</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Sales">Sales</option>
-                                <option value="Packaging">Packaging</option>
-                                <option value="Transport">Transport</option>
-                                <option value="Account">Account</option>
-                                <option value="Builty">Builty</option>
-                                <option value="Retail">Retail</option>
-                            </select>
+                            <label class="form-label">State</label>
+                            <input type="text" class="form-control" name="state" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="input" class="form-control" name="password">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" class="form-control" name="pincode" required>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mobile</label>
+                            <input type="text" class="form-control" name="mobile" required>
+                        </div>
+
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -978,14 +966,16 @@
             // Initialize DataTable with enhanced options
             usersTable = $('#usersTable').DataTable({
                 ajax: {
-                    url: '/manager/users/data',
+                    url: '/manager/customers/data',
                     dataSrc: ''
                 },
                 columns: [
                     { data: 'id' },
                     { data: 'name' },
-                    { data: 'username' },
-                    { data: 'role' },
+                    { data: 'address' },
+                    { data: 'state' },
+                    { data: 'pincode' },
+                    { data: 'mobile' },
                     { data: 'created_by' },
                     { data: 'updated_by' },
                     {
@@ -1017,27 +1007,47 @@
                 }
             });
 
-            // Filter by role
             $('#roleFilter').on('change', function () {
-                usersTable.column(3).search(this.value).draw();
+                $('#nameFilter').val('');          // clear input
+                usersTable.columns().search('');   // clear column filters
+                usersTable.search('');             // clear global search
+                usersTable.draw();
             });
 
-            // Filter by name
+
             $('#nameFilter').on('keyup', function () {
-                usersTable.column(1).search(this.value).draw();
+                let columnIndex = $('#roleFilter').val();
+                let searchValue = this.value;
+
+                // Clear ALL column searches first
+                usersTable.columns().search('');
+
+                // Clear global search too (just in case)
+                usersTable.search('');
+
+                if (columnIndex !== '') {
+                    usersTable
+                        .column(columnIndex)
+                        .search(searchValue)
+                        .draw();
+                } else {
+                    usersTable.draw();
+                }
             });
+
 
             // Save new user
             $('#saveUser').click(function () {
                 const formData = {
                     name: $('input[name="name"]').val(),
-                    username: $('input[name="username"]').val(),
-                    password: $('input[name="password"]').val(),
-                    role: $('select[name="role"]').val(),
+                    address: $('input[name="address"]').val(),
+                    state: $('input[name="state"]').val(),
+                    pincode: $('input[name="pincode"]').val(),
+                    mobile: $('input[name="mobile"]').val(),
                 };
 
                 $.ajax({
-                    url: '/manager/users/add',
+                    url: '/manager/customer/add',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
@@ -1055,14 +1065,20 @@
             // Edit user
             $(document).on('click', '.edit-user', function () {
                 const userId = $(this).data('id');
-                $.get(`/manager/users/${userId}`, function (user) {
-                    $('#editUserForm input[name="id"]').val(user.id);
-                    $('#editUserForm input[name="name"]').val(user.name);
-                    $('#editUserForm input[name="username"]').val(user.username);
-                    $('#editUserForm select[name="role"]').val(user.role);
-                    $('#editUserForm input[name="password"]').val(user.password);
-                    $('#editUserModal').modal('show');
-                });
+                const rowData = usersTable
+                    .rows()
+                    .data()
+                    .toArray()
+                    .find(row => row.id === userId);
+
+                $('#editUserForm input[name="id"]').val(rowData.id);
+                $('#editUserForm input[name="name"]').val(rowData.name);
+                $('#editUserForm input[name="address"]').val(rowData.address);
+                $('#editUserForm input[name="state"]').val(rowData.state);
+                $('#editUserForm input[name="pincode"]').val(rowData.pincode);
+                $('#editUserForm input[name="mobile"]').val(rowData.mobile);
+                $('#editUserModal').modal('show');
+
             });
 
             // Update user
@@ -1070,14 +1086,14 @@
                 const userId = $('#editUserForm input[name="id"]').val();
                 const formData = {
                     name: $('#editUserForm input[name="name"]').val(),
-                    username: $('#editUserForm input[name="username"]').val(),
-                    role: $('#editUserForm select[name="role"]').val(),
-                    password: $('#editUserForm input[name="password"]').val(),
-                    // role: $('#editUserForm select[name="role"]').val(),
+                    address: $('#editUserForm input[name="address"]').val(),
+                    state: $('#editUserForm input[name="state"]').val(),
+                    pincode: $('#editUserForm input[name="pincode"]').val(),
+                    mobile: $('#editUserForm input[name="mobile"]').val(),
                 };
 
                 $.ajax({
-                    url: `/manager/users/${userId}/update`,
+                    url: `/manager/customers/${userId}/update`,
                     method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
@@ -1093,10 +1109,10 @@
 
             // Delete user
             $(document).on('click', '.delete-user', function () {
-                if (confirm('Are you sure you want to delete this user?')) {
+                if (confirm('Are you sure you want to delete this customer?')) {
                     const userId = $(this).data('id');
                     $.ajax({
-                        url: `/manager/users/${userId}/delete`,
+                        url: `/manager/customers/${userId}/delete`,
                         method: 'DELETE',
                         success: function (response) {
                             if (response.success) {
@@ -1108,6 +1124,7 @@
                 }
             });
         });
+
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
             var sidebar = document.getElementById('sidebar');
@@ -1137,6 +1154,7 @@
             }
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function (e) {
+                
                     if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
                         closeSidebar();
                     }

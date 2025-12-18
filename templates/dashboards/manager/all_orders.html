@@ -10,6 +10,8 @@
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --primary-bg: #181c24;
@@ -122,7 +124,6 @@
 
             .main-content {
                 margin-left: 0;
-                padding: 8px 2px;
             }
 
         }
@@ -202,6 +203,22 @@
             align-items: stretch;
             justify-content: flex-start;
             gap: 0.5rem;
+            /* Scrollable content */
+            overflow-y: auto; /* allows vertical scrolling */
+            -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+
+        }
+
+        /* Hide scrollbar for Webkit browsers (Chrome, Safari) */
+        .sidebar-menu::-webkit-scrollbar {
+            width: 0px;
+            background: transparent; /* optional: just to be safe */
+        }
+
+        /* Hide scrollbar for Firefox */
+        .sidebar-menu {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
         }
 
         .sidebar-menu li {
@@ -408,25 +425,23 @@
 
         }
 
-        @media (min-width: 992px) {
+       @media (min-width: 992px) {
             .custom-topbar {
-                display: none !important;
+                display: flex;
             }
 
             .custom-sidebar {
-                transform: none !important;
+                transform: translateX(-100%);
                 width: 270px;
             }
 
-            .main-content {
-                margin-left: 270px;
+            .custom-sidebar.active {
+                transform: translateX(0);
             }
-        }
 
-        /* Hide hamburger on desktop */
-        @media (min-width: 992px) {
-            .sidebar-toggle {
-                display: none !important;
+            .main-content {
+                margin-left: 0;
+                padding-top: 72px;
             }
         }
 
@@ -566,11 +581,14 @@
             <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a>
             </li>
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
-            <li><a href="/manager/verify-orders" class="sidebar-link "><i class="bi bi-calendar-check"></i> <span>Verify
+            <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify
                         Order</span></a></li>
             <li><a href="/manager/all-orders" class="sidebar-link active"><i class="bi bi-clipboard-data"></i>
                     <span>All Orders</span></a></li>
-
+            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i> <span>Customers</span></a>
+                        </li>
+            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i> <span>Products</span></a>
+                        </li>
             <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
             </li>
         </ul>
@@ -585,10 +603,10 @@
         </div>
     </aside>
     <header class="custom-topbar" id="topbar">
-        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-1 d-block d-lg-none"
+        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 pl-5 mb-1"
             id="topheder">
             <div class="d-flex align-items-center">
-                <button class="topbar-menu-btn me-2" id="topbarMenuBtn" aria-label="Open menu">
+                <button class="topbar-menu-btn me-2 pr-5" id="topbarMenuBtn" aria-label="Open menu">
                     <span></span><span></span><span></span>
                 </button>
                 <h1 class="h2 mb-0">All Orders</h1>
@@ -598,11 +616,7 @@
 
     <!-- Main content -->
     <main class="main-content">
-        <div
-            class="d-none d-lg-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 border-bottom">
-            <h1 class="h2 mb-0">All Orders</h1>
-        </div>
-
+        
         <div class="main-content-wrapper">
             <!-- Wrapper for the reusable Dashboard component -->
             <div id="invoice-dashboard-container" class="w-full">
@@ -1172,11 +1186,11 @@
             }
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function (e) {
-                if (window.innerWidth < 992 && sidebar.classList.contains('active')) {
+                
                     if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
                         closeSidebar();
                     }
-                }
+                
             });
 
             displayData();

@@ -19,7 +19,7 @@
             --sidebar-bg: #181c24;
             --sidebar-border: #23293a;
             --card-bg: #23293a;
-
+            --modal-bg: #23293a;
             --table-bg: #1e2230;
             --table-header-bg: #23293a;
             --table-row-hover: #23293a;
@@ -136,7 +136,6 @@
 
             .main-content {
                 margin-left: 0;
-                padding: 8px 2px;
             }
 
         }
@@ -216,6 +215,27 @@
             align-items: stretch;
             justify-content: flex-start;
             gap: 0.5rem;
+            /* Scrollable content */
+            overflow-y: auto;
+            /* allows vertical scrolling */
+            -webkit-overflow-scrolling: touch;
+            /* smooth scrolling on iOS */
+
+        }
+
+        /* Hide scrollbar for Webkit browsers (Chrome, Safari) */
+        .sidebar-menu::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+            /* optional: just to be safe */
+        }
+
+        /* Hide scrollbar for Firefox */
+        .sidebar-menu {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
         }
 
         .sidebar-menu li {
@@ -406,7 +426,7 @@
 
             .main-content {
                 margin-left: 0;
-                padding-top: 72px;
+                padding-top: 0px;
             }
 
             .h2,
@@ -427,28 +447,25 @@
 
         @media (min-width: 992px) {
             .custom-topbar {
-                display: none !important;
+                display: flex;
             }
 
             .custom-sidebar {
-                transform: none !important;
+                transform: translateX(-100%);
                 width: 270px;
             }
 
+            .custom-sidebar.active {
+                transform: translateX(0);
+            }
+
             .main-content {
-                margin-left: 270px;
-                padding-top: 32px;
-            }
-
-        }
-
-        /* Hide hamburger on desktop */
-        @media (min-width: 992px) {
-            .sidebar-toggle {
-                display: none !important;
+                margin-left: 0;
+                padding-top: 72px;
             }
         }
 
+        
         /* Hide sidebar header on mobile */
         @media (max-width: 991.98px) {
             .sidebar-header {
@@ -563,54 +580,31 @@
                         Order</span></a></li>
             <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
                     <span>All Orders</span></a></li>
-
+            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i>
+                    <span>Customers</span></a>
+            </li>
+            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i>
+                    <span>Products</span></a>
+            </li>
             <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
             </li>
         </ul>
     </aside>
     <header class="custom-topbar" id="topbar">
-        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-1 d-block d-lg-none"
+        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 pl-5 mb-1"
             id="topheder">
             <div class="d-flex align-items-center">
-                <button class="topbar-menu-btn me-2" id="topbarMenuBtn" aria-label="Open menu">
+                <button class="topbar-menu-btn me-2 pr-5" id="topbarMenuBtn" aria-label="Open menu">
                     <span></span><span></span><span></span>
                 </button>
                 <h1 class="h2 mb-0">Dashboard</h1>
             </div>
-            <div class="dropdown profile-menu">
-                <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="dropdownMenuButton"
-                    data-bs-toggle="dropdown" style="background-color: #ffffff;">
-                    <!-- <img src="/api/placeholder/100/500" alt="profile" class="me-2"> -->
-                    <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
-                    </span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
-                    </li>
-                </ul>
-            </div>
         </div>
     </header>
-
+    
     <!-- Main content -->
-    <main class="main-content" style="padding-top: 0px;">
-        <div
-            class="d-none d-lg-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 border-bottom">
-            <h1 class="text-4xl font-extrabold text-white md:text-3xl">Dashboard Overview</h1>
-            <div class="dropdown profile-menu">
-                <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="dropdownMenuButton"
-                    data-bs-toggle="dropdown" style="background-color: #ffffff;">
-                    <!-- <img src="/api/placeholder/100/500" alt="profile" class="me-2"> -->
-                    <span class="d-none d-md-inline">{{ session.get('username', 'Sales Manager') }}
-                    </span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
+    <main class="main-content">
+        
         <!-- Start of Reusable Component Wrapper -->
         <!-- <div id="verification-dashboard-component" class="w-full max-w-7xl mx-auto p-2"> -->
         <!-- Dashboard Grid Container -->
@@ -717,7 +711,7 @@
             const newMockEnvVars = JSON.parse(
                 document.getElementById('work-data').textContent
             );
-            
+
             // Data extracted from the image/context provided by the user
             const data = {
                 todayRevenue: newMockEnvVars.Today_revenue || 0,
@@ -934,11 +928,11 @@
             }
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function (e) {
-                if (window.innerWidth < 992 && sidebar.classList.contains('active')) {
+                
                     if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
                         closeSidebar();
                     }
-                }
+                
             });
 
             async function fetchTodayPerformers() {
@@ -976,9 +970,7 @@
 
             (async () => {
                 const performers = await fetchTodayPerformers();
-                console.log('Performers Data:', performers);
-                console.log('Performers Length:', performers.length);
-                if (!performance || Object.keys(performance).length === 0) {
+                if (!performers || Object.keys(performers).length != 0) {
 
                     dashboard.innerHTML = `
 
@@ -1196,7 +1188,7 @@
                         }
 
                     `;
-                }else{
+                } else {
                     dashboard.innerHTML = `
                         <div class="flex flex-col items-center justify-center gap-1 
                             p-4 sm:p-6 md:p-8 

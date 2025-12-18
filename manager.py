@@ -451,11 +451,6 @@ def manager_dashboard():
     my_mang.close()
     return render_template('dashboards/manager/manager.html', data=orders)
 
-# User Management Routes
-@manager_bp.route('/manager/users')
-@login_required('Manager')
-def manager_users():
-    return render_template('dashboards/manager/users.html')
 
 # Verify Orders Routes
 @manager_bp.route('/manager/verify-orders')
@@ -463,10 +458,10 @@ def manager_users():
 def verify_orders():
     return render_template('dashboards/manager/verify_orders.html')
 
-# Work Routes
+# all orders Routes
 @manager_bp.route('/manager/all-orders')
 @login_required('Manager')
-def work():
+def all_orders():
     manager = ManagerModel()
     work_data = manager.get_work_data()
     manager.close()
@@ -487,27 +482,6 @@ def today_performers():
         performers = manager.get_today_performers_data()
         manager.close()
         return jsonify({"success": True, "data": performers})
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@manager_bp.route('/manager/users/data')
-@login_required('Manager')
-def get_users_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
-
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("""
-        SELECT id, name, username, role, created_by, updated_by
-        FROM users WHERE boss = 0 AND active = 1 AND role != 'Manager' AND role != 'Admin'""")
-
-        users = cursor.fetchall()
-        return jsonify(users)
 
     finally:
         cursor.close()
@@ -595,6 +569,10 @@ def merge_orders_products(data):
 
         return list(merged.values())
 
+@manager_bp.route("/manager/uploads/packaging/<filename>")
+@login_required('Manager')
+def uploaded_image(filename):
+    return send_from_directory("uploads/packaging", filename)
 
 @manager_bp.route('/manager/my-orders-list', methods=['GET'])
 @login_required('Manager')
@@ -769,6 +747,34 @@ def confirm_verification():
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}),500
+
+# User Management Routes
+@manager_bp.route('/manager/users')
+@login_required('Manager')
+def manager_users():
+    return render_template('dashboards/manager/users.html')
+
+
+@manager_bp.route('/manager/users/data')
+@login_required('Manager')
+def get_users_data():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([])
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+        SELECT id, name, username, role, created_by, updated_by
+        FROM users WHERE boss = 0 AND active = 1 AND role != 'Manager' AND role != 'Admin'""")
+
+        users = cursor.fetchall()
+        return jsonify(users)
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 @manager_bp.route('/manager/users/add', methods=['POST'])
 @login_required('Manager')
@@ -1013,8 +1019,293 @@ def add_event():
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"}), 500
     
 
-
-@manager_bp.route("/manager/uploads/packaging/<filename>")
+# Cutomer Management Routes
+@manager_bp.route('/manager/customers', methods=['GET'])
 @login_required('Manager')
-def uploaded_image(filename):
-    return send_from_directory("uploads/packaging", filename)
+def manager_customers():
+    return render_template('dashboards/manager/customers.html')
+
+@manager_bp.route('/manager/customers/data')
+@login_required('Manager')
+def get_customers_data():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([])
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+            b.id,
+            b.name,
+            b.address,
+            b.state,
+            b.pincode,
+            b.mobile,
+            u1.name AS created_by,
+            u2.name AS updated_by
+            
+            from buddy b
+            LEFT JOIN users u1 on b.created_by = u1.id
+            LEFT JOIN users u2 on b.updated_by = u2.id
+            WHERE b.active = 1;
+        """)
+
+        customers = cursor.fetchall()
+        return jsonify(customers)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/customer/add', methods=['POST'])
+@login_required('Manager')
+def add_customer():
+
+    data = request.json
+    
+    name = data.get('name')
+    address = data.get('address')
+    state = data.get('state')
+    pincode = data.get('pincode')
+    mobile = data.get('mobile')
+
+    if not all([name, address, state, pincode, mobile]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+
+    created_by = session.get('user_id')  # Get current user's ID from session
+    
+    cursor = conn.cursor()
+
+    try:
+        # Check if username already exists
+        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return jsonify({'success': False, 'message': f'{mobile}: Mobile already exists'})
+
+        # Insert new user
+        cursor.execute("""
+            INSERT INTO buddy (name, address, state, pincode, mobile, created_by, updated_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (name, address, state, pincode, mobile, created_by, created_by))
+        conn.commit()
+
+        return jsonify({'success': True, 'message': 'Customer added successfully'})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/customers/<int:user_id>/update', methods=['PUT'])
+@login_required('Manager')
+def update_customer(user_id):
+    data = request.json
+    
+    name = data.get('name')
+    address = data.get('address')
+    state = data.get('state')
+    pincode = data.get('pincode')
+    mobile = data.get('mobile')
+    updated_by = session.get('user_id')  # Get current user's username from session
+    
+
+    # Validate required fields
+    if not all([name, address, state, pincode, mobile]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        # Update user in database
+        cursor.execute("""
+            UPDATE buddy
+            SET name = %s, address = %s, state = %s, pincode = %s, mobile = %s,updated_by = %s, updated_at = NOW()
+            WHERE id = %s AND active = 1;
+        """, (name, address, state, pincode, mobile, updated_by, user_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Customer detailes updated successfully'})
+    except mysql.connector.Error as err:
+        print(err)
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/customers/<int:user_id>/delete', methods=['DELETE'])
+@login_required('Manager')
+def delete_customer(user_id):
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE buddy
+            SET active = 0 , updated_at = NOW() , updated_by = %s
+            WHERE id = %s
+        """, (session.get('user_id'),user_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Customer deleted successfully'})
+    
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': str(err)})
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+# Product Management Routes
+@manager_bp.route('/manager/products', methods=['GET'])
+@login_required('Manager')
+def manager_products():
+    return render_template('dashboards/manager/products.html')
+
+@manager_bp.route('/manager/products/data')
+@login_required('Manager')
+def get_products_data():
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([])
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+            p.id,
+            p.name,
+            p.purchase_price,
+            p.selling_price,
+            u1.name AS created_by,
+            u2.name AS updated_by
+
+            from products p
+            LEFT JOIN users u1 on p.created_by = u1.id
+            LEFT JOIN users u2 on p.updated_by = u2.id
+            WHERE p.active = 1;
+        """)
+
+        customers = cursor.fetchall()
+        return jsonify(customers)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/products/add', methods=['POST'])
+@login_required('Manager')
+def add_product():
+
+    data = request.json
+    
+    name = data.get('name')
+    selling_price = data.get('selling_price')
+    purchase_price = data.get('purchase_price')
+
+    if not all([name, selling_price, purchase_price]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+
+    created_by = session.get('user_id')  # Get current user's ID from session
+    
+    cursor = conn.cursor()
+
+    try:
+        # Check if username already exists
+        cursor.execute("SELECT * FROM products WHERE name = %s", (name,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return jsonify({'success': False, 'message': f'{name}: Product already exists'})
+
+        # Insert new user
+        cursor.execute("""
+            INSERT INTO products (name, selling_price, purchase_price, created_by, updated_by)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (name, selling_price, purchase_price, created_by, created_by))
+        conn.commit()
+
+        return jsonify({'success': True, 'message': 'Product added successfully'})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/products/<int:user_id>/update', methods=['PUT'])
+@login_required('Manager')
+def update_product(user_id):
+    data = request.json
+    
+    name = data.get('name')
+    selling_price = data.get('selling_price')
+    purchase_price = data.get('purchase_price')
+
+    updated_by = session.get('user_id')  # Get current user's username from session
+    
+
+    # Validate required fields
+    if not all([name, selling_price, purchase_price]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        # Update user in database
+        cursor.execute("""
+            UPDATE products
+            SET name = %s, selling_price = %s, purchase_price = %s, updated_by = %s, updated_at = NOW()
+            WHERE id = %s AND active = 1;
+        """, (name, selling_price, purchase_price, updated_by, user_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Product details updated successfully'})
+    except mysql.connector.Error as err:
+        print(err)
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/products/<int:user_id>/delete', methods=['DELETE'])
+@login_required('Manager')
+def delete_products(user_id):
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE products
+            SET active = 0 , updated_at = NOW() , updated_by = %s
+            WHERE id = %s
+        """, (session.get('user_id'),user_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Product deleted successfully'})
+    
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': str(err)})
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+
