@@ -465,7 +465,7 @@
             }
         }
 
-        
+
         /* Hide sidebar header on mobile */
         @media (max-width: 991.98px) {
             .sidebar-header {
@@ -564,6 +564,70 @@
             /* Gray-800 */
         }
     </style>
+    <style>
+        /* USER CARD */
+        .sidebar-user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            width: 100%;
+            justify-content: center;
+
+        }
+
+
+        .user-name {
+            font-size: 1em;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar-user-card {
+                justify-content: center;
+            }
+
+            .user-details {
+                display: none;
+            }
+        }
+    </style>
+    <style>
+        /* USER CARD */
+        .sidebar-user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            width: 100%;
+            justify-content: center;
+
+        }
+
+
+        .user-name {
+            font-size: 1em;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar-user-card {
+                justify-content: center;
+            }
+
+            .user-details {
+                display: none;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -571,24 +635,22 @@
     <aside class="custom-sidebar" id="sidebar">
         <h1 class="sidebar-title">Manager<span style="color: rgb(250, 250, 121);">Pro</span></h1>
         <ul class="sidebar-menu">
-            <li><a href="/manager/dashboard" class="sidebar-link active"><i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span></a></li>
-            <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a>
-            </li>
+            <li><a href="/manager/dashboard" class="sidebar-link active"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify Order</span></a></li>
+            <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i><span>All Orders</span></a></li>
+            <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a></li>
+            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i><span>Customers</span></a></li>
+            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i><span>Products</span></a></li>
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
-            <li><a href="/manager/verify-orders" class="sidebar-link"><i class="bi bi-calendar-check"></i> <span>Verify
-                        Order</span></a></li>
-            <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
-                    <span>All Orders</span></a></li>
-            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i>
-                    <span>Customers</span></a>
-            </li>
-            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i>
-                    <span>Products</span></a>
-            </li>
-            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
-            </li>
+            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a></li>
         </ul>
+        <!-- User Card -->
+        <div class="sidebar-user-card" style="color: #4fffb0;">
+            <i class="bi bi-person-circle" style="font-size: 1.5em;"></i>
+            <span class="user-name" style="color: #ffffff;">{{ session.get('username', 'Manager') }}</span>
+        </div>
+
+
     </aside>
     <header class="custom-topbar" id="topbar">
         <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 pl-5 mb-1"
@@ -601,10 +663,10 @@
             </div>
         </div>
     </header>
-    
+
     <!-- Main content -->
     <main class="main-content">
-        
+
         <!-- Start of Reusable Component Wrapper -->
         <!-- <div id="verification-dashboard-component" class="w-full max-w-7xl mx-auto p-2"> -->
         <!-- Dashboard Grid Container -->
@@ -928,11 +990,11 @@
             }
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function (e) {
-                
-                    if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
-                        closeSidebar();
-                    }
-                
+
+                if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
+                    closeSidebar();
+                }
+
             });
 
             async function fetchTodayPerformers() {

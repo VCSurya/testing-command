@@ -21,6 +21,7 @@
       justify-content: center;
       align-items: center;
       color: #333;
+      padding: 10px;
     }
 
     .background {
@@ -138,6 +139,11 @@
 
     #username {
       margin-bottom: 20px;
+      border: 1px solid black;
+    }
+
+    #password{
+      border: 1px solid black;
     }
   </style>
 
@@ -297,6 +303,66 @@
       }
     }
   </style>
+
+  <style>
+    #login-btn {
+      position: relative;
+      width: 100%;
+      height: 45px;
+      font-size: 16px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    /* Default text */
+    #login-btn .text {
+      transition: opacity 0.3s ease;
+    }
+
+    /* Loading dots */
+    #login-btn .dots {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      font-size: 18px;
+    }
+
+    /* Create animated dots */
+    #login-btn .dots::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+
+    /* Active state */
+    #login-btn.loading .text {
+      opacity: 0;
+    }
+
+    #login-btn.loading .dots {
+      opacity: 1;
+    }
+
+    @keyframes dots {
+      0% {
+        content: '';
+      }
+
+      25% {
+        content: '.';
+      }
+
+      50% {
+        content: '..';
+      }
+
+      75% {
+        content: '...';
+      }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -329,8 +395,25 @@
 
     <br>
     <br>
-    <button type="button" id="login-btn">Log in</button>
+
+    <button type="button" id="login-btn">
+      <span class="text">Log in</span>
+      <span class="dots">Wait</span>
+    </button>
+
   </div>
+  <script>
+    const btn = document.getElementById('login-btn');
+
+    btn.addEventListener('click', () => {
+      btn.classList.add('loading');
+
+      // Simulate loading (remove after 3s)
+      setTimeout(() => {
+        btn.classList.remove('loading');
+      }, 500);
+    });
+  </script>
 
   <script>
     // Glowing Particles Background

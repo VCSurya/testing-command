@@ -5,10 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --primary-bg: #181c24;
@@ -17,7 +19,7 @@
             --sidebar-bg: #181c24;
             --sidebar-border: #23293a;
             --card-bg: #23293a;
-
+            --modal-bg: #23293a;
             --table-bg: #1e2230;
             --table-header-bg: #23293a;
             --table-row-hover: #23293a;
@@ -213,6 +215,27 @@
             align-items: stretch;
             justify-content: flex-start;
             gap: 0.5rem;
+            /* Scrollable content */
+            overflow-y: auto;
+            /* allows vertical scrolling */
+            -webkit-overflow-scrolling: touch;
+            /* smooth scrolling on iOS */
+
+        }
+
+        /* Hide scrollbar for Webkit browsers (Chrome, Safari) */
+        .sidebar-menu::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+            /* optional: just to be safe */
+        }
+
+        /* Hide scrollbar for Firefox */
+        .sidebar-menu {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
         }
 
         .sidebar-menu li {
@@ -403,7 +426,7 @@
 
             .main-content {
                 margin-left: 0;
-                padding-top: 72px;
+                padding-top: 0px;
             }
 
             .h2,
@@ -415,30 +438,33 @@
                 padding-left: 15px;
                 padding-right: 20px;
             }
+
+
+            #dashboard-grid {
+                margin-top: 60px;
+            }
         }
 
         @media (min-width: 992px) {
             .custom-topbar {
-                display: none !important;
+                display: flex;
             }
 
             .custom-sidebar {
-                transform: none !important;
+                transform: translateX(-100%);
                 width: 270px;
             }
 
+            .custom-sidebar.active {
+                transform: translateX(0);
+            }
+
             .main-content {
-                margin-left: 270px;
-                padding-top: 32px;
+                margin-left: 0;
+                padding-top: 72px;
             }
         }
 
-        /* Hide hamburger on desktop */
-        @media (min-width: 992px) {
-            .sidebar-toggle {
-                display: none !important;
-            }
-        }
 
         /* Hide sidebar header on mobile */
         @media (max-width: 991.98px) {
@@ -456,52 +482,150 @@
             pointer-events: none;
             opacity: 0.6;
         }
+
+        /* Custom card styling for better depth and dark theme contrast */
+        .dashboard-card {
+            transition: all 0.3s ease-in-out;
+            /* Darker shadow for better visibility on dark background */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+            border: 1px solid #374151;
+            /* Subtle border for definition */
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            border-color: #4b5563;
+            /* Slight border highlight on hover */
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#1e293b', // Slate 800
+                        'dark-card': '#20252e', // Slate 700
+                        'primary': '#60a5fa', // Blue 400
+                        'secondaryd': '#a78bfa', // Violet 400
+                        'text-light': '#f8fafc', // Slate 50
+                        'text-muted': '#94a3b8', // Slate 400
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Global smooth transitions for better UX */
+        .card-transition {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-transition:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Custom scrollbar for a dark theme look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            /* Slate 600 */
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            /* Dark background */
+        }
     </style>
     <style>
-        .user-card {
+        /* Custom scrollbar for a dark theme (for both horizontal and vertical scrolling) */
+        .overflow-x-auto::-webkit-scrollbar,
+        .overflow-y-auto::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-thumb,
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            /* Gray-600 */
+            border-radius: 10px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-track,
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: #1f2937;
+            /* Gray-800 */
+        }
+    </style>
+    <style>
+        /* USER CARD */
+        .sidebar-user-card {
             display: flex;
             align-items: center;
-            background: #e6dbff23;
-            padding: 15px 20px;
-            border-radius: 12px;
-            gap: 15px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
+            gap: 12px;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
             width: 100%;
-            position: absolute;
-            bottom: 20px;
+            justify-content: center;
+
         }
 
-        .user-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1.2em;
-            flex-shrink: 0;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
 
         .user-name {
+            font-size: 1em;
             font-weight: 600;
-            color: #ffffff;
-            font-size: 1.1em;
+            color: #fff;
         }
 
-        .user-status {
-            font-size: 0.9em;
-            color: #ffffff;
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar-user-card {
+                justify-content: center;
+            }
+
+            .user-details {
+                display: none;
+            }
+        }
+    </style>
+    <style>
+        /* USER CARD */
+        .sidebar-user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            width: 100%;
+            justify-content: center;
+
+        }
+
+
+        .user-name {
+            font-size: 1em;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar-user-card {
+                justify-content: center;
+            }
+
+            .user-details {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -511,33 +635,27 @@
     <aside class="custom-sidebar" id="sidebar">
         <h1 class="sidebar-title">Admin<span style="color: rgb(250, 250, 121);">Pro</span></h1>
         <ul class="sidebar-menu">
-            <li><a href="/manager/dashboard" class="sidebar-link active"><i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span></a></li>
-            <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a>
-            </li>
-            <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
-            
-            <li><a href="/manager/cancelled-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i>
-                    <span>Cancelled</span></a></li>
-            <li><a href="#" class="sidebar-link"><i class="bi bi-gear"></i> <span>Settings</span></a></li>
-            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
-            </li>
-            <div class="user-card">
-                <div class="user-avatar align-items-center d-flex justify-content-center">
-                    <i class="fas fa-user me"></i>
-                </div>
-                <div class="user-info">
-                    <div class="user-name">{{ session.get('username', 'Sales Manager') }}</div>
-                    <div class="user-status">Sales</div>
-                </div>
-            </div>
+            <li><a href="/admin/dashboard" class="sidebar-link active"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="/admin/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i><span>All Orders</span></a></li>
+            <li><a href="/admin/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a></li>
+            <li><a href="/admin/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i><span>Customers</span></a></li>
+            <li><a href="/admin/products" class="sidebar-link"><i class="bi bi-box-seam"></i><span>Products</span></a></li>
+            <li><a href="/admin/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
+            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a></li>
         </ul>
+        <!-- User Card -->
+        <div class="sidebar-user-card" style="color: #4fffb0;">
+            <i class="bi bi-person-circle" style="font-size: 1.5em;"></i>
+            <span class="user-name" style="color: #ffffff;">{{ session.get('username', 'Admin') }}</span>
+        </div>
+
+
     </aside>
     <header class="custom-topbar" id="topbar">
-        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-1 d-block d-lg-none"
+        <div class="d-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 pl-5 mb-1"
             id="topheder">
             <div class="d-flex align-items-center">
-                <button class="topbar-menu-btn me-2" id="topbarMenuBtn" aria-label="Open menu">
+                <button class="topbar-menu-btn me-2 pr-5" id="topbarMenuBtn" aria-label="Open menu">
                     <span></span><span></span><span></span>
                 </button>
                 <h1 class="h2 mb-0">Dashboard</h1>
@@ -546,11 +664,228 @@
     </header>
 
     <!-- Main content -->
-    <main class="main-content" style="padding-top: 0px;">
-        <div
-            class="d-none d-lg-flex w-100 justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 border-bottom">
-            <h1 class="h2 mb-0">Dashboard</h1>
+    <main class="main-content">
+
+        <!-- Main Dashboard Container -->
+        <div class="w-full mx-auto space-y-8 mb-2">
+            <h1 class="text-3xl md:text-3xl font-extrabold text-primary border-b border-gray-700 pb-2">
+                Today's Financial Summary
+            </h1>
+
+            <!-- 1. Key Metrics Section: Revenue and Paid Total -->
+            <div id="key-metrics-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Data will be injected here -->
+            </div>
+            <div id="breakdown-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Data will be injected here -->
+            </div>
+
         </div>
+
+
+        <div class="p-0 sm:p-8 max-w-full" id="performers-data-container">
+
+            <h1 class="text-3xl md:text-3xl font-extrabold text-primary border-b border-gray-700 pb-2">
+                Today's Top Performers
+            </h1>
+
+            <div id="loader-container" class="flex flex-col items-center justify-center min-h-[10vh] mt-4">
+                <svg class="animate-spin w-12 h-12 text-blue-400" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <p class="mt-4 text-blue-300 font-semibold">Loading Performers Data...</p>
+            </div>
+
+            <!-- Performers data will be injected here -->
+            <div id="dashboard-container" class="flex space-x-6 overflow-x-auto pb-4 mt-4">
+            </div>
+
+        </div>
+        <script type="application/json" id="work-data">
+        {{ data | tojson }}
+        </script>
+        <script>
+
+            const newMockEnvVars = JSON.parse(
+                document.getElementById('work-data').textContent
+            );
+
+            // Data extracted from the image/context provided by the user
+            const data = {
+                todayRevenue: newMockEnvVars.Today_revenue || 0,
+                todayPaidTotal: newMockEnvVars.today_paid_amount || 0,
+                cash: { count: newMockEnvVars.Total_cash_transaction || 0, amount: newMockEnvVars.Total_cash_amount || 0 },
+                online: { count: newMockEnvVars.Total_online_transaction || 0, amount: newMockEnvVars.Total_online_amount || 0 },
+                card: { count: newMockEnvVars.Total_card_transaction || 0, amount: newMockEnvVars.Total_card_amount || 0 }
+            };
+
+
+            /**
+             * Formats a number as currency (e.g., 18400 -> $18,400)
+             * @param {number} amount
+             * @returns {string} Formatted currency string
+             */
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'INR', // Assuming USD, change if needed
+                    minimumFractionDigits: 0
+                }).format(amount);
+            };
+
+            /**
+             * Creates the HTML structure for a single key metric card (Revenue/Paid Total).
+             * @param {string} title
+             * @param {number} amount
+             * @param {string} colorClass - Tailwind color class for the background/accent
+             * @returns {string} HTML string
+             */
+            const createKeyMetricCard = (title, amount, colorClass) => {
+                return `
+            <div class="bg-dark-card p-6 rounded-xl shadow-xl card-transition border-t-4 ${colorClass}">
+                <p class="text-text-muted text-sm uppercase tracking-wider">${title}</p>
+                <p class="text-4xl font-bold mt-2 text-text-light">
+                    ${formatCurrency(amount)}
+                </p>
+                <p class="text-text-muted text-xs mt-1">
+                    Total for today's operations.
+                </p>
+            </div>
+        `;
+            };
+
+            /**
+             * Creates the HTML structure for a single payment method breakdown card.
+             * @param {string} method - Cash, Online, or Card
+             * @param {object} details - { count: number, amount: number }
+             * @returns {string} HTML string
+             */
+            const createBreakdownCard = (method, details) => {
+                const icon = getMethodIcon(method);
+                const color = getMethodColor(method);
+
+                return `
+            <div class="bg-dark-card px-6 rounded-xl shadow-lg card-transition border-l-4 ${color}">
+                <div class="flex mt-2 items-center space-x-2">
+                    <div class="py-1 rounded-full bg-opacity-20 ${color} text-2xl">
+                        ${icon}
+                    </div>
+                    <h3 class="text-xl font-semibold text-text-light">${method}</h3>
+                </div>
+
+                <div class="mt-1 border-t border-gray-600 pb-2 pt-4 flex justify-between items-end">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-bold text-text-light">${formatCurrency(details.amount)}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-text-muted text-xs uppercase">Transactions</span>
+                        <span class="text-xl font-bold text-secondary">${details.count}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+            };
+
+
+            const getMethodIcon = (method) => {
+                const m = method?.toLowerCase();
+
+                switch (m) {
+
+                    /* =======================
+                    CASH PAYMENT ICON
+                    ======================= */
+                    case "cash":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M6 6v2M18 6v2"/>
+                </svg>
+            `;
+
+                    /* =======================
+                    ONLINE PAYMENT ICON (Perfect)
+                    - Uses Phone + Rupee/₹ symbol
+                    - Represents UPI, online banking, PayPal, Stripe, etc.
+                    ======================= */
+                    case "online":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="2" width="12" height="20" rx="2"/>
+                    <path d="M9 8h6"/>
+                    <path d="M9 12h6"/>
+                    <path d="M12 16h3"/>
+                    <circle cx="12" cy="19" r="1" fill="currentColor"/>
+                </svg>
+            `;
+
+                    /* =======================
+                    CARD PAYMENT ICON
+                    ======================= */
+                    case "card":
+                        return `
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <path d="M2 10h20"/>
+                    <path d="M7 15h4"/>
+                </svg>
+            `;
+
+                    /* =======================
+                    DEFAULT ICON
+                    ======================= */
+                    default:
+                        return `?`;
+                }
+            };
+
+
+
+            /** Helper to get color classes */
+            const getMethodColor = (method) => {
+                switch (method.toLowerCase()) {
+                    case 'cash': return 'text-green-400 border-green-400';
+                    case 'online': return 'text-yellow-400 border-yellow-400';
+                    case 'card': return 'text-indigo-400 border-indigo-400';
+                    default: return 'text-primary border-primary';
+                }
+            };
+
+
+            /** Main function to render the dashboard */
+            const renderDashboard = () => {
+                const keyMetricsContainer = document.getElementById('key-metrics-container');
+                const breakdownContainer = document.getElementById('breakdown-container');
+
+                // 1. Render Key Metrics (Revenue and Paid Total)
+                const keyMetricsHtml = [
+                    createKeyMetricCard("Today Revenue", data.todayRevenue, "border-primary"),
+                    createKeyMetricCard("Today Received", data.todayPaidTotal, "border-secondaryd")
+                ].join('');
+                keyMetricsContainer.innerHTML = keyMetricsHtml;
+
+                // 2. Render Payment Breakdown (Cash, Online, Card)
+                const breakdownHtml = [
+                    createBreakdownCard("Cash", data.cash),
+                    createBreakdownCard("Online", data.online),
+                    createBreakdownCard("Card", data.card)
+                ].join('');
+                breakdownContainer.innerHTML = breakdownHtml;
+            };
+
+            // Initialize the dashboard rendering when the document is fully loaded
+            document.addEventListener('DOMContentLoaded', renderDashboard);
+        </script>
 
     </main>
 
@@ -561,11 +896,15 @@
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
 
+
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
             var sidebar = document.getElementById('sidebar');
             var sidebarToggle = document.getElementById('sidebarToggle');
             var topbarMenuBtn = document.getElementById('topbarMenuBtn');
+            const loader = document.getElementById('loader-container');
+            const dashboard = document.getElementById("dashboard-container");
+
             function openSidebar() {
                 document.body.classList.add('sidebar-open');
                 sidebar.classList.add('active');
@@ -590,12 +929,293 @@
             }
             // Close sidebar when clicking outside on mobile
             document.addEventListener('click', function (e) {
-                if (window.innerWidth < 992 && sidebar.classList.contains('active')) {
-                    if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
-                        closeSidebar();
-                    }
+
+                if (!sidebar.contains(e.target) && !topbarMenuBtn.contains(e.target)) {
+                    closeSidebar();
                 }
+
             });
+
+            async function fetchTodayPerformers() {
+                try {
+                    const response = await fetch('/admin/today-performers', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include' // important if using login/session auth
+                    });
+
+                    // Handle HTTP-level errors (401, 403, 500, etc.)
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    // Handle API-level errors
+                    if (!result.success) {
+                        throw new Error(result.message || 'Failed to fetch today performers');
+                    } else {
+                        console.log('Today performers fetched successfully');
+                        loader.classList.add('hidden'); // Hide the loader
+                    }
+
+                    return result.data;
+
+                } catch (error) {
+                    console.error('Error fetching today performers:', error.message);
+                    return null;
+                }
+            }
+
+            (async () => {
+                const performers = await fetchTodayPerformers();
+                if (!performers || Object.keys(performers).length != 0) {
+
+                    dashboard.innerHTML = `
+
+                        ${performers.Sales && performers.Sales.length > 0
+                            ?
+                            `
+                            <!-- SALES Department Card (Green) -->
+                            <div class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-green-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                    
+                                <div class="flex items-center mb-4">
+                                    <!-- DollarSign Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-green-400">
+                                        <line x1="12" x2="12" y1="2" y2="22" />
+                                        <path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">SALES</h2>
+                                </div>
+                                
+                                <!-- Internal scroll container for performer list -->
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                     ${performers.Sales.map(item => `
+                                        <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                        <div class="flex items-center">
+                                            <div class="w-2 h-2 rounded-full mr-3 bg-green-400"></div>
+                                            <span class="font-semibold text-gray-100">${item.username}</span>
+                                        </div>
+                                        <div class="text-xl font-bold">
+                                            <span class="text-green-400">${item.total}</span>
+                                            <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                        </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Packaging && performers.Packaging.length > 0
+                            ?
+                            `
+                            <!-- PACKING Department Card (Yellow) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-yellow-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Package Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-yellow-400">
+                                        <path d="m7.5 4.27 9 5.15" />
+                                        <path d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8Z" />
+                                        <path d="m3 12 8.5 4.5" />
+                                        <path d="M19 12 10.5 16.5" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">PACKING</h2>
+                                </div>
+                                
+                                <!-- Internal scroll container for performer list -->
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                     ${performers.Packaging.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-yellow-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-yellow-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Transport && performers.Transport.length > 0
+                            ?
+                            `
+                            <!-- TRANSPORT Department Card (Blue) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-blue-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Truck Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-blue-400">
+                                        <path d="M14 18V6" />
+                                        <path d="M10 18V6" />
+                                        <path d="M2 18h20" />
+                                        <path d="M3 18l3-11h12l3 11" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">TRANSPORT</h2>
+                                </div>
+
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Transport.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-blue-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-blue-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Account && performers.Account.length > 0
+                            ?
+                            `
+                            <div
+                            class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-indigo-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                            <div class="flex items-center mb-4">
+                                <!-- Briefcase Icon (Manually embedded SVG) -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    class="w-6 h-6 mr-3 text-indigo-400">
+                                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                </svg>
+                                <h2 class="text-xl font-bold text-white">ACCOUNTING</h2>
+                            </div>
+
+                            <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Account.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-indigo-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-indigo-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                        ${performers.Builty && performers.Builty.length > 0
+                            ?
+                            `
+                            <!-- BUILTY Department Card (Pink) -->
+                            <div
+                                class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-pink-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                                <div class="flex items-center mb-4">
+                                    <!-- Users Icon (Manually embedded SVG) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="w-6 h-6 mr-3 text-pink-400">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                    <h2 class="text-xl font-bold text-white">BUILTY</h2>
+                                </div>
+
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Builty.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-pink-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-pink-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+                    `;
+                } else {
+                    dashboard.innerHTML = `
+                        <div class="flex flex-col items-center justify-center gap-1 
+                            p-4 sm:p-6 md:p-8 
+                            border-1 border-dashed border-gray-500 
+                            rounded-xl text-center w-full min-h-[200px]">
+
+                            <!-- User Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="w-14 h-14 sm:w-16 sm:h-16 text-pink-400"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
+                            </svg>
+                            <!-- Text -->
+                            <h3 class="text-lg sm:text-xl font-semibold text-red-300">
+                                No Top Performers Yet
+                            </h3>
+                            <p class="text-sm sm:text-base text-gray-100 max-w-md">
+                                Once users start engaging, top performers will appear here.
+                            </p>
+                        </div>
+
+                    `;
+                }
+            })();
+
         });
     </script>
 </body>

@@ -10,58 +10,19 @@ now_ist = datetime.now(ist)
 formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 
 
-# Create a Blueprint for manager routes
-manager_bp = Blueprint('manager', __name__)
+# Create a Blueprint for admin routes
+admin_bp = Blueprint('admin', __name__)
 
-class ManagerModel:
+class AdminModel:
     def __init__(self):
         self.conn = get_db_connection()
         if not self.conn:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
-    def get_dashboard_data(self,user_id):
-        query_1 = f"""
-            
-            SELECT 
-                -- Total Draft Verify Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-               		AND cancel_order_status = 0 
-               		AND payment_confirm_status = 1
-                    AND packing_proceed_for_transport = 1
-                    AND transport_proceed_for_builty =1
-                    AND builty_received = 1
-                    AND verify_by_manager = 0
-          		THEN 1 END) AS total_draft_verify_order,
-
-                -- Total Proceed verifyed Order From User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND cancel_order_status = 0 
-                        AND payment_confirm_status = 1
-                        AND packing_proceed_for_transport = 1
-                        AND transport_proceed_for_builty = 1
-                        AND builty_received = 1
-                        AND verify_by_manager = 1
-                        AND verify_by_manager_id = {user_id}
-                THEN 1 END) AS total_proceed_verifyed_order_from_user,
-
-                -- Total Today Verifyed Order By User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND cancel_order_status = 0 
-                        AND payment_confirm_status = 1
-                        AND packing_proceed_for_transport = 1
-                        AND transport_proceed_for_builty = 1
-                        AND builty_received = 1
-                        AND verify_by_manager = 1
-                        AND verify_by_manager_id = {user_id}
-                        AND DATE(verify_manager_date_time) = CURRENT_DATE()
-                THEN 1 END) AS total_today_verifyed_order_by_user
-
-            FROM live_order_track;
-            
-        """
-
-        query_2 = """
+    def get_dashboard_data(self):
+        
+        query = """
 
             SELECT 
 
@@ -200,12 +161,10 @@ class ManagerModel:
 
         """
 
-        self.cursor.execute(query_1)
-        result_1 = self.cursor.fetchone()
-        self.cursor.execute(query_2)
-        result_2 = self.cursor.fetchone()
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
         
-        return result_1 | result_2
+        return result
 
     def get_today_performers_data(self):
         query = """
@@ -435,40 +394,33 @@ class ManagerModel:
         self.cursor.close()
         self.conn.close() # type: ignore
     
-@manager_bp.route('/manager/invoice/<string:invoice_number>')
-@login_required('Manager')
+@admin_bp.route('/admin/invoice/<string:invoice_number>')
+@login_required('Admin')
 def show_invoice(invoice_number):
     result = invoice_detailes(invoice_number)
-    return render_template('dashboards/manager/invoice.html', data=result)
+    return render_template('dashboards/admin/invoice.html', data=result)
 
 
-# Manager Dashboard
-@manager_bp.route('/manager/dashboard')
-@login_required('Manager')
+# Admin Dashboard
+@admin_bp.route('/admin/dashboard')
+@login_required('Admin')
 def manager_dashboard():
-    my_mang = ManagerModel()
-    orders = my_mang.get_dashboard_data(session.get('user_id'))
+    my_mang = AdminModel()
+    orders = my_mang.get_dashboard_data()
     my_mang.close()
-    return render_template('dashboards/manager/manager.html', data=orders)
-
-
-# Verify Orders Routes
-@manager_bp.route('/manager/verify-orders')
-@login_required('Manager')
-def verify_orders():
-    return render_template('dashboards/manager/verify_orders.html')
+    return render_template('dashboards/admin/admin.html', data=orders)
 
 # all orders Routes
-@manager_bp.route('/manager/all-orders')
-@login_required('Manager')
+@admin_bp.route('/admin/all-orders')
+@login_required('Admin')
 def all_orders():
-    manager = ManagerModel()
-    work_data = manager.get_all_orders_data()
-    manager.close()
-    return render_template('dashboards/manager/all_orders.html', data=work_data)
+    admin = AdminModel()
+    work_data = admin.get_all_orders_data()
+    admin.close()
+    return render_template('dashboards/admin/all_orders.html', data=work_data)
 
-@manager_bp.route('/manager/today-performers')
-@login_required('Manager')
+@admin_bp.route('/admin/today-performers')
+@login_required('Admin')
 def today_performers():
     conn = get_db_connection()
     
@@ -478,9 +430,9 @@ def today_performers():
     cursor = conn.cursor(dictionary=True)
     try:
         
-        manager = ManagerModel()
-        performers = manager.get_today_performers_data()
-        manager.close()
+        admin = AdminModel()
+        performers = admin.get_today_performers_data()
+        admin.close()
         return jsonify({"success": True, "data": performers})
 
     finally:
@@ -569,13 +521,13 @@ def merge_orders_products(data):
 
         return list(merged.values())
 
-@manager_bp.route("/manager/uploads/packaging/<filename>")
-@login_required('Manager')
+@admin_bp.route("/admin/uploads/packaging/<filename>")
+@login_required('Admin')
 def uploaded_image(filename):
     return send_from_directory("uploads/packaging", filename)
 
-@manager_bp.route('/manager/my-orders-list', methods=['GET'])
-@login_required('Manager')
+@admin_bp.route('/admin/my-orders-list', methods=['GET'])
+@login_required('Admin')
 def verify_order_list():
     try:
         query = f"""
@@ -691,8 +643,8 @@ def verify_order_list():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}),500
 
-@manager_bp.route('/manager/order-verify',methods=['POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/order-verify',methods=['POST'])
+@login_required('Admin')
 def confirm_verification():
     try:
         
@@ -749,14 +701,14 @@ def confirm_verification():
         return jsonify({'success': False, 'message': str(e)}),500
 
 # User Management Routes
-@manager_bp.route('/manager/users')
-@login_required('Manager')
+@admin_bp.route('/admin/users')
+@login_required('Admin')
 def manager_users():
-    return render_template('dashboards/manager/users.html')
+    return render_template('dashboards/admin/users.html')
 
 
-@manager_bp.route('/manager/users/data')
-@login_required('Manager')
+@admin_bp.route('/admin/users/data')
+@login_required('Admin')
 def get_users_data():
     conn = get_db_connection()
     if not conn:
@@ -765,8 +717,8 @@ def get_users_data():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
-        SELECT id, name, username, role, created_by, updated_by
-        FROM users WHERE boss = 0 AND active = 1 AND role != 'Manager' AND role != 'Admin'""")
+        SELECT id, name, username, role, created_by, updated_by,active
+        FROM users WHERE boss = 0""")
 
         users = cursor.fetchall()
         return jsonify(users)
@@ -776,8 +728,8 @@ def get_users_data():
         conn.close()
 
 
-@manager_bp.route('/manager/users/add', methods=['POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/users/add', methods=['POST'])
+@login_required('Admin')
 def add_user():
     data = request.json
     name = data.get('name')
@@ -788,9 +740,6 @@ def add_user():
 
     if not all([name, username, password, role]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
-
-    if role not in ["Sales","Packaging","Transport","Account","Builty","Retail"]:
-        return jsonify({'success': False, 'message': 'Please select the right user role'})
 
     # Encrypt password
     encrypted_password = encrypt_password(password)
@@ -822,8 +771,8 @@ def add_user():
         conn.close()
 
 
-@manager_bp.route('/manager/users/<int:user_id>')
-@login_required('Manager')
+@admin_bp.route('/admin/users/<int:user_id>')
+@login_required('Admin')
 def get_user(user_id):
     conn = get_db_connection()
     if not conn:
@@ -834,7 +783,7 @@ def get_user(user_id):
         cursor.execute("""
             SELECT id, name, username, role ,password
             FROM users
-            WHERE id = %s AND boss = 0 AND active = 1 AND role != 'Admin' AND role != 'Admin'
+            WHERE id = %s AND boss = 0
         """, (user_id,))
         user = cursor.fetchone()
         
@@ -849,8 +798,8 @@ def get_user(user_id):
 
 
 
-@manager_bp.route('/manager/users/<int:user_id>/update', methods=['PUT'])
-@login_required('Manager')
+@admin_bp.route('/admin/users/<int:user_id>/update', methods=['PUT'])
+@login_required('Admin')
 def update_user(user_id):
     data = request.json
     name = data.get('name')
@@ -860,9 +809,6 @@ def update_user(user_id):
     updated_by = session.get('username')  # Get current user's username from session
     
 
-    if role not in ["Sales","Packaging","Transport","Account","Builty","Retail"]:
-        return jsonify({'success': False, 'message': 'Please select the right user role'})
-    
     # Get database connection
     conn = get_db_connection()
     if not conn:
@@ -890,9 +836,35 @@ def update_user(user_id):
         cursor.close()
         conn.close()
 
+@admin_bp.route('/admin/users/<int:user_id>/restore', methods=['PUT'])
+@login_required('Admin')
+def restor_user(user_id):
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        
+        # Update user in database
+        cursor.execute("""
+            UPDATE users
+            SET active = 1
+            WHERE id = %s AND boss = 0
+        """, (user_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'User restore successfully'})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': str(err)})
+    finally:
+        cursor.close()
+        conn.close()
 
-@manager_bp.route('/manager/users/<int:user_id>/delete', methods=['DELETE'])
-@login_required('Manager')
+
+@admin_bp.route('/admin/users/<int:user_id>/delete', methods=['DELETE'])
+@login_required('Admin')
 def delete_user(user_id):
     conn = get_db_connection()
     if not conn:
@@ -903,7 +875,7 @@ def delete_user(user_id):
         cursor.execute("""
             UPDATE users
             SET active = 0
-            WHERE id = %s AND boss = 0 AND role != 'Admin' AND role != 'Manager'
+            WHERE id = %s AND boss = 0
         """, (user_id,))
         conn.commit()
         return jsonify({'success': True, 'message': 'User deleted successfully'})
@@ -918,13 +890,13 @@ def delete_user(user_id):
 
 # Market Events Management Routes
 
-@manager_bp.route('/manager/events')
-@login_required('Manager')
+@admin_bp.route('/admin/events')
+@login_required('Admin')
 def manager_events_page():
-    return render_template('dashboards/manager/events.html')
+    return render_template('dashboards/admin/events.html')
 
-@manager_bp.route('/manager/all_events_details', methods=['GET','POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/all_events_details', methods=['GET','POST'])
+@login_required('Admin')
 def manager_events():
 
     try:
@@ -958,8 +930,8 @@ def manager_events():
     return jsonify({'success': False, 'message': 'No events found'}) if not events else jsonify(events)
 
 
-@manager_bp.route('/manager/delete-event', methods=['DELETE'])
-@login_required('Manager')
+@admin_bp.route('/admin/delete-event', methods=['DELETE'])
+@login_required('Admin')
 def delete_event():
     event_id = request.json.get('id') # Get event ID from request data
     try:
@@ -986,11 +958,10 @@ def delete_event():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
     
-@manager_bp.route('/manager/add-event', methods=['POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/add-event', methods=['POST'])
+@login_required('Admin')
 def add_event():
     event_data = request.json
-    print(event_data)
     if not all([event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date')]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
     try:
@@ -1022,13 +993,13 @@ def add_event():
     
 
 # Cutomer Management Routes
-@manager_bp.route('/manager/customers', methods=['GET'])
-@login_required('Manager')
+@admin_bp.route('/admin/customers', methods=['GET'])
+@login_required('Admin')
 def manager_customers():
-    return render_template('dashboards/manager/customers.html')
+    return render_template('dashboards/admin/customers.html')
 
-@manager_bp.route('/manager/customers/data')
-@login_required('Manager')
+@admin_bp.route('/admin/customers/data')
+@login_required('Admin')
 def get_customers_data():
     conn = get_db_connection()
     if not conn:
@@ -1060,8 +1031,8 @@ def get_customers_data():
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/customer/add', methods=['POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/customer/add', methods=['POST'])
+@login_required('Admin')
 def add_customer():
 
     data = request.json
@@ -1085,7 +1056,7 @@ def add_customer():
 
     try:
         # Check if username already exists
-        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
+        cursor.execute("SELECT * FROM buddy WHERE mobile = %s and active = 1", (mobile,))
         existing_user = cursor.fetchone()
         
         if existing_user:
@@ -1105,8 +1076,8 @@ def add_customer():
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/customers/<int:user_id>/update', methods=['PUT'])
-@login_required('Manager')
+@admin_bp.route('/admin/customers/<int:user_id>/update', methods=['PUT'])
+@login_required('Admin')
 def update_customer(user_id):
     data = request.json
     
@@ -1144,8 +1115,8 @@ def update_customer(user_id):
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/customers/<int:user_id>/delete', methods=['DELETE'])
-@login_required('Manager')
+@admin_bp.route('/admin/customers/<int:user_id>/delete', methods=['DELETE'])
+@login_required('Admin')
 def delete_customer(user_id):
     conn = get_db_connection()
     if not conn:
@@ -1169,13 +1140,13 @@ def delete_customer(user_id):
         conn.close()
 
 # Product Management Routes
-@manager_bp.route('/manager/products', methods=['GET'])
-@login_required('Manager')
+@admin_bp.route('/admin/products', methods=['GET'])
+@login_required('Admin')
 def manager_products():
-    return render_template('dashboards/manager/products.html')
+    return render_template('dashboards/admin/products.html')
 
-@manager_bp.route('/manager/products/data')
-@login_required('Manager')
+@admin_bp.route('/admin/products/data')
+@login_required('Admin')
 def get_products_data():
     conn = get_db_connection()
     if not conn:
@@ -1205,8 +1176,8 @@ def get_products_data():
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/products/add', methods=['POST'])
-@login_required('Manager')
+@admin_bp.route('/admin/products/add', methods=['POST'])
+@login_required('Admin')
 def add_product():
 
     data = request.json
@@ -1248,8 +1219,8 @@ def add_product():
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/products/<int:user_id>/update', methods=['PUT'])
-@login_required('Manager')
+@admin_bp.route('/admin/products/<int:user_id>/update', methods=['PUT'])
+@login_required('Admin')
 def update_product(user_id):
     data = request.json
     
@@ -1286,8 +1257,8 @@ def update_product(user_id):
         cursor.close()
         conn.close()
 
-@manager_bp.route('/manager/products/<int:user_id>/delete', methods=['DELETE'])
-@login_required('Manager')
+@admin_bp.route('/admin/products/<int:user_id>/delete', methods=['DELETE'])
+@login_required('Admin')
 def delete_products(user_id):
     conn = get_db_connection()
     if not conn:

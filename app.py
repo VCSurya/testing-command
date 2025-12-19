@@ -13,6 +13,7 @@ from packaging import packaging_bp
 from transport import transport_bp
 from builty import builty_bp
 from account import account_bp
+from admin import admin_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 from flask_cors import CORS
 
@@ -101,6 +102,7 @@ app.register_blueprint(packaging_bp)
 app.register_blueprint(transport_bp)
 app.register_blueprint(builty_bp)
 app.register_blueprint(account_bp)
+app.register_blueprint(admin_bp)
 # Routes
 @app.route('/')
 def index():

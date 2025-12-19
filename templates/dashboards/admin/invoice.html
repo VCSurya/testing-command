@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Font Setup */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        :root {
+            --primary-color: #34D399;
+            /* Green 400 */
+            --accent-color: #6366F1;
+            /* Indigo 500 for secondary elements */
+            --warning-color: #F87171;
+            /* Red 400 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1F2937;
+            /* Dark Charcoal/Navy */
+        }
+
+        /* General styling for cards/sections */
+        .invoice-card {
+            background-color: #2F3B4A;
+            /* Slightly lighter card background */
+            border: 1px solid #374151;
+            /* Gray 700 border */
+        }
+
+        /* Tracking Timeline Styling */
+        .tracking-stage {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tracking-stage:last-child {
+            margin-bottom: 0;
+        }
+
+        .tracking-stage-dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            min-width: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .tracking-stage:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 1.5rem;
+            bottom: -1.5rem;
+            width: 2px;
+            background-color: #4B5563;
+            /* Gray 600 line */
+        }
+
+        .stage-completed .tracking-stage-dot {
+            background-color: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+        }
+
+        .stage-completed:not(:last-child)::before {
+            background-color: var(--primary-color);
+        }
+
+        .stage-cancelled .tracking-stage-dot {
+            background-color: var(--warning-color);
+            color: #000;
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+        }
+    </style>
+    <style>
+        .scroll-btn {
+            position: fixed;
+            right: 20px;
+            padding: 12px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 50%;
+            background-color: #636363;
+            color: #fff;
+        }
+
+        #topBtn {
+            top: 20px;
+        }
+
+        #bottomBtn {
+            bottom: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900">
+    <button id="topBtn" class="scroll-btn">↑</button>
+    <button id="bottomBtn" class="scroll-btn">↓</button>
+
+    <div class="container mx-auto p-2 sm:p-6 lg:p-8 max-w-7xl">
+        <div id="invoice-container" class="invoice-card shadow-2xl rounded-xl p-4 md:p-5">
+        </div>
+    </div>
+    <script>
+        // Scroll to top
+        document.getElementById("topBtn").onclick = function () {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+
+        // Scroll to bottom
+        document.getElementById("bottomBtn").onclick = function () {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: "smooth"
+            });
+        };
+    </script>
+    <script type="application/json" id="work-data">
+        {{ data | tojson }}
+    </script>
+    <!-- JavaScript for toggling image visibility -->
+    <script>
+
+        function displayData() {
+
+            const data = JSON.parse(
+                document.getElementById('work-data').textContent
+            );
+
+            const dashboard = document.getElementById("invoice-container");
+
+            if (!data.status) {
+                dashboard.innerHTML = `
+
+                    <div class="bg-dark-card p-6 rounded-xl shadow-2xl border-t-4 border-red-500 flex flex-col h-full items-center justify-center">
+                        <h2 class="text-xl font-bold mb-3 text-red-400">No Invoice Data Available</h2>
+                        <p class="text-gray-400">There are currently no invoices to display.</p>
+                        <p class="text-gray-400">${data.message}</p>
+                    </div>
+
+                    `;
+                return;
+            }
+
+            document.title = data.data.INVOICE_NUMBER;
+
+            console.log(data);
+
+            const invoice_date = new Date(data.data.INVOICE_DATE);
+            const totalQty = data.items.reduce((sum, item) => sum + Number(item.ITEM_QTY), 0);
+            const totalPrice = data.items.reduce((sum, item) => sum + Number(item.ITEM_PRICE), 0);
+
+            const totalTax = data.items.reduce((sum, item) => sum + Number(item.ITEM_TAX_AMOUNT), 0);
+
+
+            dashboard.innerHTML = `
+
+                 <header class="mb-8 pb-6 border-b-2 border-gray-500">
+
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                <h1 class="text-4xl font-extrabold text-gray-50 mb-2">${data.data.INVOICE_NUMBER}</h1>   
+
+                                ${data.data.CANCEL_1 === 1 && data.data.CANCEL_2 === 1 && data.data.COMPLETED === 0
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-red-900/40 text-red-400 border border-red-500 mb-2">
+                                            STATUS: CANCELLED
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+                                    
+                                ${data.data.CANCEL_1 === 0 && data.data.CANCEL_2 === 0 && data.data.COMPLETED === 0
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-500 mb-2">
+                                            STATUS: IN PROGRESS
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+
+                                
+                                ${data.data.CANCEL_1 === 0 && data.data.CANCEL_2 === 0 && data.data.COMPLETED === 1
+                    ?
+                    `
+                                    <div class="flex flex-col items-end">
+                                        <span class="px-4 py-1 text-sm font-bold rounded-full bg-green-900/40 text-green-400 border border-green-500 mb-2">
+                                            STATUS: COMPLETED
+                                        </span>
+                                    </div>
+                                        
+                                    `
+                    : ""
+                }
+                                
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="font-semibold text-gray-400">Created Date:</p>
+                                    <p class="text-gray-300">${invoice_date.toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                })}
+                                    </p>
+                                </div>
+                                <div class="sm:text-right">
+                                    <p class="font-semibold text-gray-400">Sales Representative:</p>
+                                    <p class="text-gray-300">${data.data.SALES_USER}</p>
+                                </div>
+                            </div>
+                </header>
+
+                ${data.data.EVENT_NAME != null && data.data.EVENT_LOCATION != null && data.data.EVENT_START_DATE != null && data.data.EVENT_END_DATE != null
+                    ?
+                    `
+                    <section class="mb-8 p-5 bg-gray-900 rounded-lg border border-gray-700">
+                        <h2 class="text-lg font-bold text-gray-100 mb-4 border-b border-gray-600 pb-2">Event Information (Point of Sale)</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-y-3 gap-x-6 text-sm">
+                            <div class="md:col-span-2">
+                                <p class="font-medium text-gray-400">Event Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_NAME}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Location:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_LOCATION}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Event Dates:</p>
+                                <p class="font-semibold text-gray-100">${data.data.EVENT_START_DATE} - ${data.data.EVENT_END_DATE}</p>
+                            </div>
+                        </div>
+                    </section>
+                                            
+                                    `
+                    : ""
+                }
+
+                <!-- Customer & Shipping Information -->
+                <section class="mb-8  grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Customer Details Card -->
+                    <div class="lg:col-span-2 bg-gray-900 invoice-card p-5 rounded-lg">
+                        <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Customer Information</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-400">Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_NAME}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Mobile Number:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_MOBILE}</p>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <p class="font-medium text-gray-400">Billing Address:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_ADDRESS}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">State Name:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_STATE}</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-400">Pincode:</p>
+                                <p class="font-semibold text-gray-100">${data.data.CUSTOMER_PINCODE}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Details Card -->
+                    <div class="lg:col-span-1 bg-gray-900 invoice-card p-5 rounded-lg border-l-4 border-accent-color">
+                        <h2 class="text-lg font-bold text-gray-100 mb-3 border-b border-gray-700 pb-2">Shipping Details</h2>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-400">Delivery Mode:</p>
+                                <p class="font-extrabold text-yellow-300">${data.data.DELIVERY_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}
+                                </p>
+                            </div>
+                            
+                            ${data.data.DELIVERY_MODE === "transport" ?
+                            `
+                            <div>
+                                <p class="font-medium text-gray-400">Transport Company:</p>
+                                <p class="font-semibold text-gray-100">${data.data.TRANSPORT_COMPANY.toUpperCase()}</p>
+                            </div>
+                            `:``}
+                            
+                        </div>
+                    </div>
+                </section>
+            
+                <!-- Itemized Products Table & Totals -->
+                <section class="mb-8" >
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Order Summary</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-1 gap-0">
+
+                        <!-- Itemized Table (2/3 width on large screens) -->
+                        <div class="lg:col-span-2 overflow-x-auto rounded-lg shadow-md border border-gray-700">
+                            <table class="min-w-full  divide-y divide-gray-700">
+                                <thead class="bg-gray-700">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                                            Item Name</th>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Qty</th>
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Price (₹)
+                                        </th>
+
+                                        ${data.data.GST === 1
+                    ?
+                    `
+                                            <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Tax (₹)</th>                        
+                                            `
+                    : ""
+                }
+
+                                        <th scope="col"
+                                            class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                            Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                
+                                
+                                <tbody class="bg-gray-900 divide-y divide-gray-700 text-sm">
+                                    ${data.items.map(item => `
+                                        <tr>
+                                            <td class="px-3 py-4 whitespace-nowrap text-gray-100 font-medium">${item.ITEM_NAME}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">${item.ITEM_QTY}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">₹${item.ITEM_PRICE}</td>
+                                            ${data.data.GST === 1
+                        ?
+                        `
+                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300">₹${item.ITEM_TAX_AMOUNT}</td>
+                                                `
+                        : ""
+                    }
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-bold">₹${item.ITEM_TOTAL_AMOUNT}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr class="bg-gray-800">
+                                            <td class="px-3 py-4 whitespace-nowrap text-xl font-extrabold text-gray-100">Grand Total:</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">${totalQty}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalPrice}</td>
+                                            ${data.data.GST === 1
+                    ?
+                    `
+                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalTax}</td>
+
+                                                `
+                    : ""
+                }
+                                            <td class="px-3 py-4 whitespace-nowrap text-right font-extrabold text-xl text-green-400 font-bold">₹${data.data.GRAND_TOTAL}
+                                            </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+
+                    </div>
+                </section>
+
+                <!-- Payment Transactions Table section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Payment Transactions History</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700 text-sm">
+                            <thead class="bg-gray-700/50">
+                                <tr>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Mode</th>
+                                    <th
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Amount (₹)</th>
+                                    <th
+                                        class="px-3 py-3  text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Received By</th>
+                                    
+                                    <th
+                                        class="px-3 py-3  text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                        Verified By</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+
+                            ${data.data.PAID_AMOUNT === data.data.GRAND_TOTAL
+                    ? `
+                                    <tr>
+                                        <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.INVOICE_DATE}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_1_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}</td>
+                                        <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">₹${data.data.PAID_AMOUNT}
+                                        </td>
+                                        <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.SALES_USER}</td>
+                                        
+                                        ${data.data.PAYMENT_CONFIRM == 1
+                        ? `
+                                                <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                            `: `
+                                                <td class="px-3 py-3 text-center whitespace-nowrap text-yellow-300">Pending</td>
+                                            
+                                            `
+                    }
+                                        
+                                    </tr>
+
+                                
+                                `
+                    : data.data.LEFT_TO_PAID === data.data.GRAND_TOTAL
+                        ? `
+
+                                            ${data.data.PAYMENT_CONFIRM == 1 ?
+                            `
+                                             <tr>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_2_DATE}</td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_2_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}</td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">₹${data.data.LEFT_TO_PAID}
+                                                    </td>
+                                                    <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                                    <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                                    
+                                            </tr>
+
+                                            `: `
+                                            <tr>
+                                                    <tr class="font-extrabold text-red-400 bg-red-900/10">
+                                                        <td colspan="2" class="px-3 py-2 text-xl text-left">Outstanding Balance (To be Paid):</td>
+                                                        <td class="px-3 py-2 text-right text-xl">₹${data.data.LEFT_TO_PAID}</td>
+                                                        <td></td>
+                                                        <td></td>
+                                                    </tr>
+                                            </tr>
+                                            `}
+                                           
+                                    `
+                        : `
+                                                
+                                            <tr>
+                                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.INVOICE_DATE}</td>
+                                                <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_1_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}</td>
+                                                <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">₹${data.data.PAID_AMOUNT}
+                                                </td>
+                                                <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.SALES_USER}</td>
+                                                
+                                                ${data.data.PAYMENT_CONFIRM == 1
+                            ? `
+                                                        <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                                    `: `
+                                                        <td class="px-3 py-3 text-center whitespace-nowrap text-yellow-300">Pending</td>
+                                                    
+                                                    `
+                        }
+                                                
+                                            </tr>
+
+                                            ${data.data.PAYMENT_2_MODE != 'not_paid'
+                            ? `
+
+                                                <tr>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_2_DATE}</td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-gray-300">${data.data.PAYMENT_2_MODE.toLowerCase()
+                    .replace(/_/g, ' ')
+                    .replace(/^./, char => char.toUpperCase())}</td>
+                                                    <td class="px-3 py-3 whitespace-nowrap text-right text-gray-100 font-medium">₹${data.data.LEFT_TO_PAID}
+                                                    </td>
+                                                    <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                                    
+                                                    ${data.data.PAYMENT_CONFIRM == 1
+                                ? `
+                                                            <td class="px-3 py-3 text-center whitespace-nowrap text-gray-300">${data.data.PAYMENT_VERIFY_BY}</td>
+                                                        `: `
+                                                            <td class="px-3 py-3 text-center whitespace-nowrap text-yellow-300">Pending</td>
+                                                        
+                                                        `
+                            }
+                                                    
+                                                </tr>
+
+                                                ` : `
+                                                
+                                                <tr>
+                                                    <tr class="font-extrabold text-red-400 bg-red-900/10">
+                                                        <td colspan="2" class="px-3 py-2 text-left text-xl">Outstanding Balance (To be Paid):</td>
+                                                        <td class="px-3 py-2 text-right text-xl">₹${data.data.LEFT_TO_PAID}</td>
+                                                        <td></td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tr>
+
+                                                `
+                        }
+
+                                    `
+                }
+
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                ${data.data.PAYMENT_NOTE_1.length > 0 ?
+                    `
+                    <!-- Payment Notes/Remarks Section -->
+                    <section class="mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+
+                            <!-- Payment Note 1 -->
+                            <div class="p-4 bg-gray-700/50 border-l-4 border-blue-400 rounded-lg shadow-sm">
+                                <p class="font-semibold text-blue-400 mb-1">Payment Note:</p>
+                                <p class="text-gray-300 italic">${data.data.PAYMENT_NOTE_1}</p>
+                            </div>
+                            
+                            ${data.data.PAYMENT_NOTE_2.trim() !== "" ?
+                        `
+                            <!-- Payment Note 2 -->
+                            <div class="p-4 bg-gray-700/50 border-l-4 border-yellow-400 rounded-lg shadow-sm">
+                                <p class="font-semibold text-yellow-400 mb-1">Payment Note:</p>
+                                <p class="text-gray-300 italic">${data.data.PAYMENT_NOTE_2}</p>
+                            </div>
+                            `
+                        : ``}
+
+                        </div>
+                    </section>
+                    `
+                    : ``}
+                
+                ${data.data.DELIVERY_MODE === "transport" || data.data.DELIVERY_MODE === "post" ?
+
+                    `
+                 <section class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Shipment Tracking Stages</h2>
+                                    <div class="relative pl-4">
+                    ${data.data.SALES === 1 ? `
+                                        
+                    <!-- Stage 1 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">1</div>
+                        <p class="font-semibold text-green-400">Sales</p>
+                        <p class="text-gray-400 text-xs">${data.data.SALES_DATE} by ${data.data.SALES_USER}</p>
+                    </div>
+
+                    ` : `
+                    <!-- Stage 1 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">1</div>
+                        <p class="font-semibold text-gray-400">Sales</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+                    `}
+
+
+                    ${data.data.PAYMENT_CONFIRM === 1 ? `
+                                        
+                    <!-- Stage 2 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">2</div>
+                        <p class="font-semibold text-green-400">Payment</p>
+                        <p class="text-gray-400 text-xs">${data.data.PAYMENT_2_DATE} by ${data.data.PAYMENT_VERIFY_BY}</p>
+                    </div>
+
+                    ` : `
+                                     
+                    <!-- Stage 2 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">2</div>
+                        <p class="font-semibold text-gray-400">Payment</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+
+                    `}
+
+                    ${data.data.PACKING === 1 ? `
+                                        
+                    <!-- Stage 3 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">3</div>
+                        <p class="font-semibold text-green-400">Packing</p>
+                        <p class="text-gray-400 text-xs">${data.data.PACKING_DATE} by ${data.data.PACKING_USER}</p>
+                    </div>
+
+                    ` : `
+                                     
+                    <!-- Stage 3 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">3</div>
+                        <p class="font-semibold text-gray-400">Packing</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+
+                    `}
+
+                    ${data.data.TRANSPORT === 1 ? `
+                                        
+                    <!-- Stage 4 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">4</div>
+                        <p class="font-semibold text-green-400">Transport</p>
+                        <p class="text-gray-400 text-xs">${data.data.TRANSPORT_DATE} by ${data.data.TRANSPORT_USER}</p>
+                    </div>
+
+                    ` : `
+                                     
+                    <!-- Stage 4 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">4</div>
+                        <p class="font-semibold text-gray-400">Transport</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+
+                    `}
+
+
+                    ${data.data.BUILTY === 1 ? `
+                                        
+                    <!-- Stage 5 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">5</div>
+                        <p class="font-semibold text-green-400">Builty</p>
+                        <p class="text-gray-400 text-xs">${data.data.BUILTY_DATE} by ${data.data.BUILTY_USER}</p>
+                    </div>
+
+                    ` : `
+                                     
+                    <!-- Stage 5 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">5</div>
+                        <p class="font-semibold text-gray-400">Builty</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+
+                    `}
+
+                    ${data.data.VERIFYED === 1 ? `
+                                        
+                    <!-- Stage 6 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">6</div>
+                        <p class="font-semibold text-green-400">Verifyed</p>
+                        <p class="text-gray-400 text-xs">${data.data.VERIFYED_DATE} by ${data.data.VERIFYED_USER}</p>
+                    </div>
+
+                    ` : `
+                    
+                    <!-- Stage 6 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">6</div>
+                        <p class="font-semibold text-gray-400">Verifyed</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+                    `}
+
+                    
+                    ${data.data.CANCEL_1 === 0 || data.data.CANCEL_2 === 0 ?
+                        `
+                    
+                        ${data.data.COMPLETED === 1 ?
+                            `
+                        <!-- Stage 4 - Final Status -->
+                        <div class="tracking-stage stage-completed">
+                            <div class="tracking-stage-dot">+</div>
+                            <p class="font-semibold text-green-400">Completed</p>
+                        </div>
+                        `
+                            : `
+                        <!-- Stage 4 - Final Status -->
+                        <div class="tracking-stage">
+                            <div class="tracking-stage-dot bg-gray-600 text-gray-300">+</div>
+                            <p class="font-semibold text-gray-400">Completed</p>
+                        </div>
+                        `}
+
+                    `
+                        :
+                        `
+                    
+                    ${data.data.CANCEL_CONFIRM_BY_SALER === 0 ?
+                            `
+                    <!-- Stage 4 - Final Status -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">+</div>
+                        <p class="font-semibold text-red-400">Cancellation in progress</p>
+                        <p class="text-gray-400 text-xs">${data.data.CANCEL_AT_DATE}</p>
+                    </div>
+                    `
+                            :
+
+                            `
+                    <!-- Stage 4 - Final Status -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">+</div>
+                        <p class="font-semibold text-red-400">Cancelled</p>
+                        <p class="text-gray-400 text-xs">${data.data.CONFIRN_CANCEL_DATE}</p>
+                    </div>
+                    `
+                        }                    
+                    `}
+
+
+
+                </div>
+                </section>
+                
+                `
+                    :
+
+                    `
+                <section class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4 border-b-2 border-gray-600 pb-2">Shipment Tracking Stages</h2>
+                    <div class="relative pl-4">
+                    
+                    ${data.data.SALES === 1 ? `
+                                        
+                    <!-- Stage 1 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">1</div>
+                        <p class="font-semibold text-green-400">Sales</p>
+                        <p class="text-gray-400 text-xs">${data.data.SALES_DATE} by ${data.data.SALES_USER}</p>
+                    </div>
+
+                    ` : `
+                    <!-- Stage 1 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">1</div>
+                        <p class="font-semibold text-gray-400">Sales</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+                    `}
+
+
+                    ${data.data.PAYMENT_CONFIRM === 1 ? `
+                                        
+                    <!-- Stage 2 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">2</div>
+                        <p class="font-semibold text-green-400">Payment</p>
+                        <p class="text-gray-400 text-xs">${data.data.PAYMENT_2_DATE} by ${data.data.PAYMENT_VERIFY_BY}</p>
+                    </div>
+
+                    ` : `
+                                     
+                    <!-- Stage 2 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">2</div>
+                        <p class="font-semibold text-gray-400">Payment</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+
+                    `}
+
+
+                    ${data.data.VERIFYED === 1 ? `
+                                        
+                    <!-- Stage 3 -->
+                    <div class="tracking-stage stage-completed">
+                        <div class="tracking-stage-dot">3</div>
+                        <p class="font-semibold text-green-400">Verifyed</p>
+                        <p class="text-gray-400 text-xs">${data.data.VERIFYED_DATE} by ${data.data.VERIFYED_USER}</p>
+                    </div>
+
+                    ` : `
+                    
+                    <!-- Stage 3 -->
+                    <div class="tracking-stage">
+                        <div class="tracking-stage-dot bg-gray-600">3</div>
+                        <p class="font-semibold text-gray-400">Verifyed</p>
+                        <p class="text-gray-500 text-xs">Pending...</p>
+                    </div>
+                    `}
+
+                    ${data.data.CANCEL_1 === 0 || data.data.CANCEL_2 === 0 ?
+                        `
+                    
+                        ${data.data.COMPLETED === 1 ?
+                            `
+                        <!-- Stage 4 - Final Status -->
+                        <div class="tracking-stage stage-completed">
+                            <div class="tracking-stage-dot">+</div>
+                            <p class="font-semibold text-green-400">Completed</p>
+                        </div>
+                        `
+                            : `
+                        <!-- Stage 4 - Final Status -->
+                        <div class="tracking-stage">
+                            <div class="tracking-stage-dot bg-gray-600 text-gray-300">+</div>
+                            <p class="font-semibold text-gray-400">Completed</p>
+                        </div>
+                        `}
+
+                    `
+                        :
+                        `
+                    
+                    ${data.data.CANCEL_CONFIRM_BY_SALER === 0 ?
+                            `
+                    <!-- Stage 4 - Final Status -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">+</div>
+                        <p class="font-semibold text-red-400">Cancellation in progress</p>
+                        <p class="text-gray-400 text-xs">${data.data.CANCEL_AT_DATE}</p>
+                    </div>
+                    `
+                            :
+
+                            `
+                    <!-- Stage 4 - Final Status -->
+                    <div class="tracking-stage stage-cancelled">
+                        <div class="tracking-stage-dot">+</div>
+                        <p class="font-semibold text-red-400">Cancelled</p>
+                        <p class="text-gray-400 text-xs">${data.data.CONFIRN_CANCEL_DATE}</p>
+                    </div>
+                    `
+                        }                    
+                    `}
+
+                    </div>
+                </section>
+
+                `
+
+                }
+
+            ${data.data.CANCEL_1 === 1 && data.data.CANCEL_2 === 1 ?
+                    `
+                <!-- Cancellation Status Section -->
+                <section class="mb-8 pt-6 border-t border-gray-700">
+                    <h2 class="text-xl font-bold text-red-400 mb-4">Order Cancellation Details</h2>
+                    <div
+                        class="p-6 bg-red-900/30 border-2 border-red-700 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                        ${data.data.CANCEL_REASON != null && data.data.CANCEL_REASON.length > 0 ?
+                        `
+                        <div class="md:col-span-2">
+                            <p class="font-semibold text-red-400 mb-1">Reason for Cancellation:</p>
+                            <p class="text-gray-200 font-medium italic border-l-2 border-red-500 pl-3">${data.data.CANCEL_REASON}</p>
+                        </div>
+                        `: ``}
+                        
+                        <div class="space-y-1">
+                            <p><span class="font-semibold text-red-400">Cancelled By:</span> <span
+                                    class="text-gray-200">${data.data.CANCEL_USER}</span></p>
+                            <p><span class="font-semibold text-red-400">Cancellation Date:</span> <span
+                                    class="text-gray-200">${data.data.CANCEL_AT_DATE}</span></p>
+                        </div>
+
+                        <div class="space-y-1">
+                            ${data.data.CANCEL_CONFIRM_BY_SALER === 1 ?
+                        `
+                            <p><span class="font-semibold text-red-400">Confirmation User:</span> <span
+                                    class="text-gray-200">${data.data.SALES_USER}</span></p>
+                            <p><span class="font-semibold text-red-400">Confirmation Date/Time:</span> <span
+                                    class="text-gray-200">${data.data.CONFIRN_CANCEL_DATE}</span></p>
+                            `: `
+                            <p><span class="font-semibold text-red-400">Confirmation User:</span> <span
+                                    class="text-yellow-200">In Process</span></p>
+                            `}
+                            
+                        </div>
+                    </div>
+                </section>
+                `
+                    : ``}
+
+
+            <!-- Notes/Remarks Section -->
+            <section class="pt-6 border-t border-gray-700">
+                <h2 class="text-xl font-bold text-gray-100 mb-4">Notes & Remarks</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+
+                    ${data.data.SALES_NOTE != null && data.data.SALES_NOTE.length > 0 ?
+                    `
+                    <!-- Sales Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-blue-400 rounded-lg shadow-sm">
+                        <p class="font-semibold text-blue-400 mb-1">Sales Note:</p>
+                        <p class="text-gray-300 italic">${data.data.SALES_NOTE}</p>
+                    </div>
+                    `
+                    : ``}
+
+                    ${data.data.PACKING_NOTE != null && data.data.PACKING_NOTE.length > 0 ?
+                    `
+                    <!-- Packaging Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-[#d99153] rounded-lg shadow-sm">
+                        <p class="font-semibold text-[#d99153] mb-1">Packaging Note:</p>
+                        <p class="text-gray-300 italic">${data.data.PACKING_NOTE}</p>
+                    </div>
+                    `
+                    : ``}
+
+                    ${data.data.TRANSPORT_NOTE != null && data.data.TRANSPORT_NOTE.length > 0 ?
+                    `
+                    <!-- Transport Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-[#82ebe6] rounded-lg shadow-sm">
+                        <p class="font-semibold text-[#82ebe6] mb-1">Transport Note:</p>
+                        <p class="text-gray-300 italic">${data.data.TRANSPORT_NOTE}</p>
+                    </div>
+                    `
+                    : ``}
+
+
+                    ${data.data.BUILTY_NOTE != null && data.data.BUILTY_NOTE.length > 0 ?
+                    `
+                    <!-- Bulty Note -->
+                    <div class="p-4 bg-gray-700/50 border-l-4 border-[#e594e3] rounded-lg shadow-sm">
+                        <p class="font-semibold text-[#e594e3] mb-1">Bulty Note:</p>
+                        <p class="text-gray-300 italic">${data.data.BUILTY_NOTE}</p>
+                    </div>
+                    `
+                    : ``}
+
+                </div>
+            </section>
+            
+            ${data.images.length > 0 ?
+                    `
+                <!-- PACKING IMAGE GALLERY (Moved to Last) -->
+                <section class="mb-8 pt-6 border-t border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-100 mb-4">Packing Images</h2>
+
+                    <!-- Toggle Button -->
+                    <button id="toggleImagesBtn"
+                        class="px-4 py-2 mb-4 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition duration-200 shadow-lg">
+                        Show Packing Images
+                    </button>
+
+                    <!-- Gallery Content (Initially Hidden) -->
+                    <div id="packingImagesGallery" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                        ${data.images.map((img, index) => `
+                            <!-- Images -->
+                            <div class="bg-gray-700/50 p-4 rounded-lg shadow-xl border border-gray-700">
+                                <!-- Placeholder image simulating an uploaded file -->
+                                <img src="/manager${img.IMAGE_URL}" alt="Packing Image ${index + 1}"
+                                    class="w-full h-auto rounded-lg mb-3 object-cover border border-gray-600">
+                                <p class="text-xs text-gray-400">Date: ${img.IMAGE_UPLOAD_AT}</p>
+                            </div>
+                        `).join('')}
+
+                    </div>
+                </section>    
+                `
+                    : ``}
+            
+
+
+            `;
+
+
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            displayData();
+
+            const button = document.getElementById('toggleImagesBtn');
+            const gallery = document.getElementById('packingImagesGallery');
+
+            if (button && gallery) {
+                button.addEventListener('click', () => {
+                    gallery.classList.toggle('hidden');
+                    if (gallery.classList.contains('hidden')) {
+                        button.textContent = 'Show Packing Images';
+                        button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                        button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    } else {
+                        button.textContent = 'Hide Packing Images';
+                        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        button.classList.add('bg-red-600', 'hover:bg-red-700');
+                    }
+                });
+            }
+
+        });
+    </script>
+
+</body>
+
+</html>
