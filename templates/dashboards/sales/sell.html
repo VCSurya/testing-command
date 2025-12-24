@@ -640,7 +640,7 @@
                 left: 0;
             }
 
-        
+
             .mobile-toggle {
                 display: block;
             }
@@ -1223,7 +1223,7 @@
             cursor: pointer;
         }
 
-        .sr-only-checkbox { 
+        .sr-only-checkbox {
             position: absolute;
             width: 1px;
             height: 1px;
@@ -1423,6 +1423,14 @@
                                     <select class="form-select" id="customerSelect" name="customer_id" required>
                                         <option value="">Select Customer</option>
                                     </select>
+                                </div>
+                                <br>
+                                <div style="display: flex;gap: 20px;">
+                                    <label>Name: <span>Hare Ram</span></label>
+                                    <label>Mobile: <span>325324656</span></label>
+                                    <label>Pincode: <span>325324</span></label>
+                                    <label>State: <span>Gujrat</span></label>
+                                    <label>Address: <span>C/21 Haridarshan Society New Naroda</span></label>
                                 </div>
                             </div>
 
@@ -2058,7 +2066,7 @@
                         data.forEach(customer => {
                             const option = document.createElement('option');
                             option.value = customer.id;
-                            option.textContent = `${customer.name} - ${customer.address}`;
+                            option.textContent = `${customer.mobile} - ${customer.name}`;
                             customerSelect.appendChild(option);
                         });
                         $('#customerSelect').trigger('change');
@@ -2068,6 +2076,13 @@
                         alert('Failed to load customers. Please refresh the page and try again.');
                     });
             }
+
+
+            $('#customerSelect').on('select2:select select2:clear', function (e) {
+                var customerId = $('#customerSelect').val();
+                console.log(customerId);
+            });
+
 
             // Fetch products from the server
             function fetchProducts() {
@@ -2223,7 +2238,7 @@
                             fetchCustomers();
 
                         } else {
-                            alert('Failed to add customer. Please try again.');
+                            alert(data.message);
                         }
                     })
                     .catch(error => {
@@ -2597,7 +2612,7 @@
                         const pdfFile = new File([pdfBlob], `${selectedText}_${invoiceNumber}.pdf`, {
                             type: 'application/pdf'
                         });
-                        
+
                         // Check if Web Share API supports files
                         if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
                             navigator.share({
@@ -2688,10 +2703,10 @@
                 const transportCompany = document.getElementById('transportCompany').value.trim();
 
                 if (deliveryMode === 'transport' && transportCompany === '') {
-                alert('Please enter the transport company name.');
-                return;
+                    alert('Please enter the transport company name.');
+                    return;
                 }
-                
+
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));

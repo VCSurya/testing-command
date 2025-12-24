@@ -377,23 +377,35 @@ def add_new_customer():
         conn = get_db_connection()
 
         if not conn:
-            return jsonify({'error': 'Database connection failed'}), 500
+            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+
+        if not all([name, address, state, pincode, mobile]):
+            return jsonify({'success': False,'error': 'Required fields are missing'}),500
 
         cursor = conn.cursor()
+
+        # Check if username already exists
+        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return jsonify({'success': False, 'message': f'{mobile}: Mobile already exists'})
 
         # Insert new product into database
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
                        (name, address, state, pincode, mobile, session.get('user_id')))
         conn.commit()
+        
+        cursor.execute("SELECT id FROM buddy WHERE mobile = %s",(mobile,))
+        exist = cursor.fetchone()
+
         cursor.close()
         conn.close()
 
-        # print(f"New customer added with ID: {customer_id}")
-
-        return jsonify({'success': True})
+        return jsonify({'success': True,"data":exist[0] if exist else None})
 
     except Exception as e:
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'success': False,'error': 'Internal server error'}), 500
 
 
 @sales_bp.route('/sales/products')
