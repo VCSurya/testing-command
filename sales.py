@@ -357,6 +357,25 @@ def get_customers():
         cursor.close()
         conn.close()
 
+@sales_bp.route('/sales/input-customers/<string:input>', methods=['GET'])
+@login_required('Sales')
+def get_customers_input(input):
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 500  # Return HTTP 500 if DB connection fails
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+        customers = cursor.fetchall()
+        return jsonify(customers)
+    except Exception as e:
+        print(f"Error fetching customers: {e}")
+        return jsonify({'error': 'Failed to fetch customers'}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @sales_bp.route('/sales/add-customer', methods=['POST'])
 @login_required('Sales')
@@ -382,27 +401,27 @@ def add_new_customer():
         if not all([name, address, state, pincode, mobile]):
             return jsonify({'success': False,'error': 'Required fields are missing'}),500
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
         # Check if username already exists
         cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
         existing_user = cursor.fetchone()
         
         if existing_user:
-            return jsonify({'success': False, 'message': f'{mobile}: Mobile already exists'})
+            return jsonify({'success': False, 'error': f'{mobile}: Customer already exists'})
 
         # Insert new product into database
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
                        (name, address, state, pincode, mobile, session.get('user_id')))
         conn.commit()
         
-        cursor.execute("SELECT id FROM buddy WHERE mobile = %s",(mobile,))
+        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
         exist = cursor.fetchone()
-
+        
         cursor.close()
         conn.close()
 
-        return jsonify({'success': True,"data":exist[0] if exist else None})
+        return jsonify({'success': True,"data":exist if exist else {}})
 
     except Exception as e:
         return jsonify({'success': False,'error': 'Internal server error'}), 500
