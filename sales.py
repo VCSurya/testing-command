@@ -427,6 +427,27 @@ def add_new_customer():
         return jsonify({'success': False,'error': 'Internal server error'}), 500
 
 
+@sales_bp.route('/sales/input-products/<string:input>', methods=['GET'])
+@login_required('Sales')
+def get_products_input(input):
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 500  # Return HTTP 500 if DB connection fails
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(f"SELECT id,name,selling_price as price FROM products WHERE name LIKE '%{input}%' LIMIT 30")
+        products = cursor.fetchall()
+        return jsonify(products)
+    except Exception as e:
+        print(f"Error fetching products: {e}")
+        return jsonify({'error': 'Failed to fetch products'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @sales_bp.route('/sales/products')
 @login_required('Sales')
 def get_products():
@@ -493,7 +514,7 @@ def save_invoice_into_database():
     try:
 
         # Get form data
-        customer_id = request.form.get('customer_id')
+        customer_id = request.form.get('customerId')
         delivery_mode = request.form.get('delivery_mode')
         transport_company = request.form.get('transport_company')
         payment_mode = request.form.get('payment_mode')
@@ -527,8 +548,11 @@ def save_invoice_into_database():
         if not conn:
             return jsonify({'error': 'Database connection failed'}), 500
 
+        if not customer_id or customer_id == "": 
+            return jsonify({'error': 'Invalid mobile number'}), 500
+
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM buddy WHERE id = %s", (customer_id,))
+        cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -563,7 +587,7 @@ def save_invoice_into_database():
 
         # Prepare bill data for database
         bill_data = {
-            'customer_id': customer_id,
+            'customer_id': customer['id'],
             'delivery_mode': delivery_mode,
             'grand_total': grand_total,
             'payment_mode': payment_mode,
