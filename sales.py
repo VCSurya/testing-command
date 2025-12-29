@@ -301,6 +301,50 @@ class Sales:
         if self.conn:
             self.conn.close()
 
+@sales_bp.route('/sales/input-transport/<string:input>', methods=['GET'])
+@login_required('Sales')
+def get_transport_input(input):
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify([]), 500  # Return HTTP 500 if DB connection fails
+    print(input)
+    cursor = conn.cursor(dictionary=True)
+    try:
+        
+        # if input.isdigit():
+        #     cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+        # else:
+        #     cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
+
+        # customers = cursor.fetchall()
+        # return jsonify(customers)
+        return jsonify([
+            {
+                "id":1,
+                "pincode": "394221",
+                "name": "Kabra express transport",
+                "city": "Udhna surat",
+                "days": 1,
+                "charges": 130
+            },
+            {
+                "id":2,
+                "pincode": "365601",
+                "name": "Jalaram travels",
+                "city": "Amreli, Gujarat",
+                "days": 1,
+                "charges": 100
+            },
+            ])
+    
+    except Exception as e:
+        print(f"Error fetching customers: {e}")
+        return jsonify({'error': 'Failed to fetch customers'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 @sales_bp.route('/sales/all_events_details', methods=['GET'])
 @login_required('Sales')
 def all_market_events():
@@ -367,7 +411,12 @@ def get_customers_input(input):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+        
+        if input.isdigit():
+            cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+        else:
+            cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
+
         customers = cursor.fetchall()
         return jsonify(customers)
     except Exception as e:
@@ -640,6 +689,8 @@ def save_invoice_into_database():
 
     except Exception as e:
         print(f"Error saving invoice: {e}")
+        import traceback
+        print(traceback.print_exc())
         return jsonify({'error': str(e)}), 500
 
 
