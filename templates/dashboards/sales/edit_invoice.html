@@ -1327,6 +1327,141 @@
             color: #ffffff;
         }
     </style>
+
+    <style>
+        #card {
+            background: var(--bg-card);
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+            /* Needed for positioning the remove button */
+            transition: transform 0.2s ease, opacity 0.3s ease;
+        }
+
+        #card:hover {
+            transform: translateY(-4px);
+        }
+
+        /* Card Content */
+        .card-body {
+            padding: 30px;
+        }
+
+        /* Grid Row for side-by-side elements */
+        .info-row {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            flex: 1;
+            /* Split row equally */
+            min-width: 0;
+            /* Important for flex child text truncation/wrapping */
+        }
+
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .info-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .info-label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        /* Address often needs wrapping */
+        .info-value.wrap {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        /* Single line value with ellipsis if name is too long */
+        .info-value.truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Remove Button Styling */
+        .remove-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .remove-btn:hover {
+            background: #fef2f2;
+            color: red;
+            border-color: #fee2e2;
+            transform: scale(1.1);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 520px) {
+            .info-row {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            #card {
+                border-radius: 16px;
+            }
+
+            .card-body {
+                padding: 20px 0px;
+            }
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1392,15 +1527,15 @@
                 <div class="header-container d-flex align-items-center">
 
                     <div class="d-flex align-items-center justify-content-between p-0">
-                        <button class="btn btn-outline-primary me-2 p-0" id="sidebarToggle" title="Back" onclick="history.back()">
+                        <button class="btn btn-outline-primary me-2 p-0" id="sidebarToggle" title="Back"
+                            onclick="history.back()">
                             <i class="bi bi-arrow-bar-left fs-2 text-white"></i>
 
 
                         </button>
-                        
+
                         <h4 class="mb-0 fw-semibold text-end" style="font-size: 1.8em; color: #2c3e50;">
-                            <span style="color: #007bff;">{{data.id}}</span>-<span
-                                style="font-weight: 600;">Edit</span>
+                            <span style="color: #007bff;">{{data.id}}</span>-<span style="font-weight: 600;">Edit</span>
                         </h4>
                     </div>
                 </div>
@@ -1425,10 +1560,90 @@
                                     </button>
                                 </div>
                                 <br>
-                                <div style="display: flex;gap: 20px;">
-                                    <select class="form-select" id="customerSelect" name="customer_id" required>
-                                        <option value="">Select Customer</option>
-                                    </select>
+                                <br>
+                                <div class="space-y-1">
+                                    <!-- Step 1: Search Section -->
+                                    <div class="relative">
+                                        <div class="relative">
+                                            <span
+                                                class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text" id="customerSearch"
+                                                placeholder="Enter customer mobile number or name"
+                                                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                                autocomplete="off">
+                                        </div>
+
+                                        <!-- Search Results Dropdown -->
+                                        <div id="resultsDropdown"
+                                            class="hidden absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar dropdown-animate">
+                                            <!-- Results will be injected here -->
+                                        </div>
+                                    </div>
+
+                                    <div id="card" class="hidden">
+
+                                        <button type="button" class="remove-btn" id="deleteBtn" title="Remove"
+                                            onclick="clearSelection()">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
+
+                                        <div class="card-body">
+                                            <!-- Row 1: Name and Address -->
+                                            <div class="info-row">
+                                                <!-- Full Name -->
+                                                <div class="info-item">
+                                                    <div class="icon-box">
+                                                        <i data-lucide="user-round" size="18"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Name</span>
+                                                        <span class="info-value truncate" id="selectedName">N/A</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Address -->
+                                                <div class="info-item">
+                                                    <div class="icon-box">
+                                                        <i data-lucide="map-pin" size="18"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Address</span>
+                                                        <span class="info-value wrap" id="selectedAddress">N/A</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Row 2: Pincode and Mobile -->
+                                            <div class="info-row">
+                                                <!-- Pincode -->
+                                                <div class="info-item">
+                                                    <div class="icon-box">
+                                                        <i data-lucide="hash" size="18"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Pincode</span>
+                                                        <span class="info-value" id="selectedPincode">N/A</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Mobile -->
+                                                <div class="info-item">
+                                                    <div class="icon-box">
+                                                        <i data-lucide="phone" size="18"></i>
+                                                    </div>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Mobile</span>
+                                                        <span class="info-value" id="selectedMobile">N/A</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-slate-100">
+
                                 </div>
                             </div>
 
@@ -1685,7 +1900,8 @@
                 </div>
                 <div class="modal-footer" id="printPopupFooter" style="display: none;">
                     <input type="hidden" id="invoiceNumber_for_sharing" name="invoiceNumber_value_for_sharing" value="">
-                    <button type="button" class="btn btn-primary" id="shareBtn" style="width: 100%;"><i class="bi bi-share"></i>
+                    <button type="button" class="btn btn-primary" id="shareBtn" style="width: 100%;"><i
+                            class="bi bi-share"></i>
                         Share</button>
 
                 </div>
@@ -1791,17 +2007,22 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
     <script id="invoice-data" type="application/json">
         {{ data | tojson }}
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
-           
+
             const invoiceData = JSON.parse(document.getElementById('invoice-data').textContent); // Invoice data
             document.getElementById('gst-toggle-switch').checked = invoiceData.gst_included == 1 ? true : false;
 
-         
+
 
             // Billing System JavaScript
             let customers = [];
@@ -1855,8 +2076,107 @@
                 });
             });
 
+            ///// selecting the customers 
+
+            function debounce(fn, delay) {
+                let timer;
+                return function (...args) {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            async function fetchCustomers(query) {
+
+                if (query === "") {
+                    renderDropdown([]);
+                    return;
+                };
+
+                try {
+
+                    const response = await fetch(`/sales/input-customers/${encodeURIComponent(query)}`);
+                    const customers = await response.json();
+                    renderDropdown(customers);
+
+                } catch (error) {
+                    console.error("API Error:", error);
+                }
+            }
+
+            const debouncedSearch = debounce(function (e) {
+                fetchCustomers(e.target.value);
+            }, 500);
+
+
+
+            const searchInput = document.getElementById('customerSearch');
+            const dropdown = document.getElementById('resultsDropdown');
+            const selectedDisplay = document.getElementById('card');
+
+            searchInput.addEventListener("input", debouncedSearch);
+
+
+            function renderDropdown(list) {
+
+                if (list.length === 0) {
+                    dropdown.innerHTML = '<div class="p-4 text-slate-400 text-sm">No customers found</div>';
+                } else {
+                    dropdown.innerHTML = list.map(c => `
+                    <div onclick="selectCustomer(${c.mobile},'${c.name}','${c.address}','${c.pincode}')" class="p-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 last:border-none transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-l font-bold text-slate-500">
+                            ${c.mobile[0]}${c.name[0]}
+                        </div>
+                        <div>
+                            <div class="text-l font-medium text-slate-800">${c.mobile} - ${c.name}</div>
+                        </div>
+                    </div>
+                `).join('');
+                }
+                dropdown.classList.remove('hidden');
+                if (list.length === 0) {
+                    setTimeout(() => {
+                        dropdown.classList.add('hidden');
+                    }, 1000); // Optional delay for smooth transition
+                }
+            }
+
+
+            // Selection logic
+            window.selectCustomer = function (mobile, name, address, pincode) {
+                searchInput.value = '';
+                dropdown.classList.add('hidden');
+                selectedDisplay.classList.remove('hidden');
+
+                document.getElementById('selectedName').textContent = name;
+                document.getElementById('selectedMobile').textContent = mobile;
+                document.getElementById('selectedPincode').textContent = pincode;
+                document.getElementById('selectedAddress').textContent = address;
+
+                if (document.getElementById('deliveryMode').value === 'transport') {
+                    pincodeFetchTransport(pincode);
+                }
+
+            }
+
+            window.clearSelection = function () {
+                selectedDisplay.classList.add('hidden');
+                document.getElementById('selectedName').textContent = "";
+                document.getElementById('selectedMobile').textContent = "";
+                document.getElementById('selectedPincode').textContent = "";
+                document.getElementById('selectedAddress').textContent = "";
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+
+
             // Load customers and products from the server
-            fetchCustomers();
+            // fetchCustomers();
             fetchProducts();
             updateProductTable();
 
@@ -2062,34 +2382,34 @@
 
 
 
-            // Fetch customers from the server
-            function fetchCustomers() {
-                fetch('/sales/customers')
-                    .then(response => response.json())
-                    .then(data => {
-                        customers = data;
-                        const customerSelect = document.getElementById('customerSelect');
-                        customerSelect.innerHTML = '<option value="">Select Customer</option>';
-                        data.forEach(customer => {
-                            const option = document.createElement('option');
-                            option.value = customer.id;
-                            option.textContent = `${customer.name} - ${customer.address}`;
-                            customerSelect.appendChild(option);
-                        });
+            // // Fetch customers from the server
+            // function fetchCustomers() {
+            //     fetch('/sales/customers')
+            //         .then(response => response.json())
+            //         .then(data => {
+            //             customers = data;
+            //             const customerSelect = document.getElementById('customerSelect');
+            //             customerSelect.innerHTML = '<option value="">Select Customer</option>';
+            //             data.forEach(customer => {
+            //                 const option = document.createElement('option');
+            //                 option.value = customer.id;
+            //                 option.textContent = `${customer.name} - ${customer.address}`;
+            //                 customerSelect.appendChild(option);
+            //             });
 
-                        // $('#customerSelect').trigger('change');
+            //             // $('#customerSelect').trigger('change');
 
-                        // ✅ Set the selected customer
-                        if (invoiceData.customer_id) {
-                            $('#customerSelect').val(invoiceData.customer_id).trigger('change');
-                        }
+            //             // ✅ Set the selected customer
+            //             if (invoiceData.customer_id) {
+            //                 $('#customerSelect').val(invoiceData.customer_id).trigger('change');
+            //             }
 
-                    })
-                    .catch(error => {
-                        console.error('Error fetching customers:', error);
-                        alert('Failed to load customers. Please refresh the page and try again.');
-                    });
-            }
+            //         })
+            //         .catch(error => {
+            //             console.error('Error fetching customers:', error);
+            //             alert('Failed to load customers. Please refresh the page and try again.');
+            //         });
+            // }
 
             // Fetch products from the server
             function fetchProducts() {

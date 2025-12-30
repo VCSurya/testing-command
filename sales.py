@@ -235,7 +235,7 @@ class Sales:
                 INSERT INTO invoices (
                     customer_id, delivery_mode, grand_total, gst_included,
                     invoice_created_by_user_id, left_to_paid, paid_amount,
-                    payment_mode, payment_note, sales_note, transport_company_name,
+                    payment_mode, payment_note, sales_note, transport_id,
                     invoice_number, event_id ,completed,created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,NOW())
             """
@@ -251,7 +251,7 @@ class Sales:
                 invoice_data['payment_mode'],
                 invoice_data['payment_note'],
                 invoice_data['sales_note'],
-                invoice_data['transport_company_name'],
+                invoice_data['transport_id'],
                 invoice_number,
                 invoice_data['event_id'] if invoice_data.get(
                     'event_id') else None,
@@ -308,35 +308,17 @@ def get_transport_input(input):
     conn = get_db_connection()
     if not conn:
         return jsonify([]), 500  # Return HTTP 500 if DB connection fails
-    print(input)
+
     cursor = conn.cursor(dictionary=True)
     try:
         
-        # if input.isdigit():
-        #     cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
-        # else:
-        #     cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
+        if input.isdigit():
+            cursor.execute(f"SELECT * FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
+        else:
+            cursor.execute(f"SELECT * FROM `transport` WHERE city LIKE '{input}%' LIMIT 15;")
 
-        # customers = cursor.fetchall()
-        # return jsonify(customers)
-        return jsonify([
-            {
-                "id":1,
-                "pincode": "394221",
-                "name": "Kabra express transport",
-                "city": "Udhna surat",
-                "days": 1,
-                "charges": 130
-            },
-            {
-                "id":2,
-                "pincode": "365601",
-                "name": "Jalaram travels",
-                "city": "Amreli, Gujarat",
-                "days": 1,
-                "charges": 100
-            },
-            ])
+        customers = cursor.fetchall()
+        return jsonify(customers)
     
     except Exception as e:
         print(f"Error fetching customers: {e}")
@@ -565,7 +547,7 @@ def save_invoice_into_database():
         # Get form data
         customer_id = request.form.get('customerId')
         delivery_mode = request.form.get('delivery_mode')
-        transport_company = request.form.get('transport_company')
+        transport_id = request.form.get('transport_id')
         payment_mode = request.form.get('payment_mode')
         payment_type = request.form.get('payment_type')
         paid_amount = float(request.form.get('paid_amount', 0))
@@ -587,9 +569,9 @@ def save_invoice_into_database():
         if grand_total < 0:
             return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
-        # Need transport_company name
+        # Need transport_id 
         if delivery_mode == 'transport':
-            if not transport_company:
+            if not transport_id:
                 return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
         # Get customer details to validate
@@ -603,7 +585,6 @@ def save_invoice_into_database():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
-        cursor.close()
         conn.close()
 
         if not customer:
@@ -641,7 +622,7 @@ def save_invoice_into_database():
             'grand_total': grand_total,
             'payment_mode': payment_mode,
             'paid_amount': paid_amount,
-            'transport_company_name': transport_company,
+            'transport_id': transport_id,
             'sales_note': sales_note,
             'invoice_created_by_user_id': session.get('user_id'),
             'payment_note': request.form.get('payment_note', ''),
@@ -772,7 +753,7 @@ def generate_bill_pdf(invoice_id):
         # or however you store bill number
         bill_no = invoice_data['invoice_number'] + str(invoice_data['id'])
         delivery_mode = invoice_data['delivery_mode']
-        transport_company = invoice_data['transport_company_name']
+        transport_id = invoice_data['transport_id']
         payment_mode = invoice_data['payment_mode']
         paid_amount = float(invoice_data['paid_amount'])
         grand_total = float(invoice_data['grand_total'])
@@ -978,7 +959,7 @@ def generate_bill_pdf(invoice_id):
         ]
 
         if delivery_mode == "transport":
-            info_data.append(["Transport Company", transport_company])
+            info_data.append(["Transport Company", transport_id])
 
         info_table = Table(info_data, colWidths=[2*inch, 6*inch])
         info_table.setStyle(TableStyle([
@@ -1244,7 +1225,7 @@ class MyOrders:
                 inv.payment_mode,
                 inv.paid_amount,
                 inv.left_to_paid,
-                inv.transport_company_name,
+                inv.transport_id,
                 inv.sales_note,
                 inv.invoice_created_by_user_id,
                 inv.payment_note,
@@ -1328,8 +1309,6 @@ class MyOrders:
 
                 inv.left_to_paid,
 
-                inv.transport_company_name,
-
                 inv.sales_note,
 
                 inv.payment_note,
@@ -1360,7 +1339,14 @@ class MyOrders:
             
                 p.name,
 
-                lot.sales_proceed_for_packing
+                lot.sales_proceed_for_packing,
+
+                transport.pincode AS transport_pincode,
+                transport.name AS transport_name,
+                transport.city AS transport_city,
+                transport.days AS transport_days,
+                transport.charges AS transport_charges
+                
             
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
@@ -1368,6 +1354,7 @@ class MyOrders:
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
             LEFT JOIN products p ON ii.product_id = p.id
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            LEFT JOIN transport ON inv.transport_id = transport.id
 
             WHERE inv.invoice_created_by_user_id = %s
             AND lot.cancel_order_status = 0
@@ -1812,7 +1799,7 @@ class Canceled_Orders:
                 inv.payment_mode,
                 inv.paid_amount,
                 inv.left_to_paid,
-                inv.transport_company_name,
+                inv.transport_id,
                 inv.sales_note,
                 inv.invoice_created_by_user_id,
                 inv.payment_note,
@@ -2095,7 +2082,7 @@ class EditBill:
 
         query = """
         SELECT invoices.id, invoices.customer_id, invoices.grand_total,
-            invoices.payment_mode, invoices.paid_amount, invoices.transport_company_name,
+            invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
             invoices.sales_note, invoices.payment_note, invoices.gst_included, 
             invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id, 
             ip.quantity, ip.total_amount, p.name as product_name 
@@ -2109,7 +2096,7 @@ class EditBill:
         invoice_data = self.cursor.fetchall()
 
         # Extract common fields
-        common_keys = ['customer_id', 'grand_total', 'payment_mode', 'paid_amount', 'transport_company_name',
+        common_keys = ['customer_id', 'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
                        'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
 
         # Build the unified dict with Decimal -> float conversion
@@ -2164,7 +2151,7 @@ class EditBill:
                     payment_mode = %s,
                     payment_note = %s,
                     sales_note = %s,
-                    transport_company_name = %s,
+                    transport_id = %s,
                     event_id = %s,
                     completed = %s
                 WHERE id = %s
@@ -2181,7 +2168,7 @@ class EditBill:
                 invoice_data['payment_mode'],
                 invoice_data['payment_note'],
                 invoice_data['sales_note'],
-                invoice_data['transport_company_name'],
+                invoice_data['transport_id'],
                 invoice_data['event_id'] if invoice_data.get('event_id') else None,
                 invoice_data.get('completed', 0),
                 invoice_id
@@ -2282,7 +2269,7 @@ def update_invoice_into_database():
         # Get form data
         customer_id = request.form.get('customer_id')
         delivery_mode = request.form.get('delivery_mode')
-        transport_company = request.form.get('transport_company')
+        transport_id = request.form.get('transport_id')
         payment_mode = request.form.get('payment_mode')
         payment_type = request.form.get('payment_type')
         paid_amount = float(request.form.get('paid_amount', 0))
@@ -2312,9 +2299,9 @@ def update_invoice_into_database():
         else:
             return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
-        # Need transport_company name
+        # Need transport_id
         if delivery_mode == 'transport':
-            if not transport_company:
+            if not transport_id:
                 return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
         # Get customer details to validate
@@ -2364,7 +2351,7 @@ def update_invoice_into_database():
             'grand_total': grand_total,
             'payment_mode': payment_mode,
             'paid_amount': paid_amount,
-            'transport_company_name': transport_company,
+            'transport_id': transport_id,
             'sales_note': sales_note,
             'invoice_created_by_user_id': session.get('user_id'),
             'payment_note': request.form.get('payment_note', ''),
