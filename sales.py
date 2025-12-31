@@ -2081,22 +2081,23 @@ class EditBill:
     def get_invoice(self, invoice_id):
 
         query = """
-        SELECT invoices.id, invoices.customer_id, invoices.grand_total,
+        SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, invoices.grand_total,
             invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
             invoices.sales_note, invoices.payment_note, invoices.gst_included, 
             invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id, 
             ip.quantity, ip.total_amount, p.name as product_name 
-        FROM invoice_items ip 
-        JOIN products p ON ip.product_id = p.id 
-        JOIN invoices ON invoices.id = ip.invoice_id
-        WHERE ip.invoice_id = %s;
+            FROM invoice_items ip 
+            JOIN products p ON ip.product_id = p.id 
+            JOIN invoices ON invoices.id = ip.invoice_id
+            JOIN buddy ON invoices.customer_id = buddy.id
+            WHERE ip.invoice_id = %s;
         """
 
         self.cursor.execute(query, (invoice_id,))
         invoice_data = self.cursor.fetchall()
 
         # Extract common fields
-        common_keys = ['customer_id', 'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
+        common_keys = ['c_mobile','c_address','c_name','c_pincode' ,'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
                        'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
 
         # Build the unified dict with Decimal -> float conversion

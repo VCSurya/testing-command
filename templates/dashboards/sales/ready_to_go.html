@@ -331,6 +331,9 @@
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
+            overflow: auto;
+            scrollbar-width: thin; /* for Firefox */
+            scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {
@@ -623,7 +626,7 @@
             flex: 1 1 45%;
             background: linear-gradient(to bottom right, #fafafa, #e1e6ee);
             border-left: 5px solid #4A90E2;
-            padding: 15px 0px 0px 20px;
+            padding: 10px 0px 10px 20px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
@@ -1022,34 +1025,92 @@
     </style>
 
     <style>
-        .transport-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        /* The Horizontal Row Container */
+        .transport-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-top: 5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .transport-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        /* Individual Data Groups */
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            min-width: fit-content;
         }
 
-        .gradient-border {
-            position: relative;
-            background: white;
-            border-radius: 1rem;
+        /* Highlighting the Transport Name */
+        .brand-group {
+            flex: 1.5;
         }
 
-        .gradient-border::before {
-            content: "";
-            position: absolute;
-            inset: -2px;
-            z-index: -1;
-            background: linear-gradient(to right, #3b82f6, #8b5cf6);
-            border-radius: 1.125rem;
-            opacity: 0;
-            transition: opacity 0.3s;
+        .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.1rem;
         }
 
-        .transport-card:hover .gradient-border::before {
-            opacity: 1;
+        .value {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .brand-name {
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .charges-value {
+            color: black;
+            font-weight: 800;
+        }
+
+        /* Responsive design for tablets and mobile */
+        @media (max-width: 850px) {
+            .transport-row {
+                flex-wrap: wrap;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .info-group {
+                flex: 1 1 150px;
+            }
+
+            .brand-group {
+                flex: 1 1 100%;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .transport-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .info-group {
+                flex: none;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -1487,99 +1548,43 @@
 
                         ${invoiceObj.delivery_mode === 'transport' ? `
                     
-                            <div class="w-full mt-2" id="transportCard">
-                                <!-- Transportation Card Element -->
-                                <div class="transport-card group relative">
-                                    <div
-                                        class="gradient-border bg-white rounded-s shadow-sm border border-slate-200 overflow-hidden">
+                           <!-- Static HTML Content -->
+                            <div class="transport-row">
+                                <div class="info-group brand-group">
+                                    <span class="label">Transport Name</span>
+                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
+                                </div>
+                                
+                                <div class="info-group">
+                                    <span class="label">City</span>
+                                    <span class="value">${invoiceObj.transport_city}</span>
+                                </div>
 
-                                        <!-- Main Content Layout -->
-                                        <div class="flex flex-col md:flex-row">
+                                <div class="info-group">
+                                    <span class="label">Pincode</span>
+                                    <span class="value">${invoiceObj.transport_pincode}</span>
+                                </div>
 
-                                            <!-- Left Section: Branding & Location -->
-                                            <div class="p-3 md:p-8 flex-grow">
-                                                <div class="flex items-center justify-between mb-4">
-                                                    <div class="flex items-center space-x-3">
-                                                        <div class="bg-blue-100 text-blue-600 p-2 rounded-xl">
-                                                            <i class="fas fa-truck-fast text-l"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h2 id="companyName"
-                                                                class="text-xl md:text-xl font-bold text-slate-800 tracking-tight">
-                                                                ${invoiceObj.transport_name}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                    <div class="md:hidden flex flex-col items-end">
-                                                        <span
-                                                            class="text-xs font-semibold uppercase tracking-wider text-slate-400">Charges</span>
-                                                        <span id="charges1"
-                                                            class="text-lg font-bold text-blue-600">₹${invoiceObj.transport_charges}</span>
-                                                    </div>
-                                                </div>
+                                <div class="info-group">
+                                    <span class="label">Charges</span>
+                                    <span class="value charges-value">₹${invoiceObj.transport_charges}</span>
+                                </div>
 
-                                                <div class="grid grid-cols-2 gap-4 mt-6">
-                                                    <div class="flex items-start space-x-3">
-                                                        <i class="fas fa-location-dot mt-1 text-slate-400"></i>
-                                                        <div>
-                                                            <p
-                                                                class="text-xs text-slate-400 uppercase font-bold tracking-wider">
-                                                                City</p>
-                                                            <p class="text-slate-700 font-semibold" id="city">
-                                                                ${invoiceObj.transport_city}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex items-start space-x-3">
-                                                        <i class="fas fa-map-pin mt-1 text-slate-400"></i>
-                                                        <div>
-                                                            <p
-                                                                class="text-xs text-slate-400 uppercase font-bold tracking-wider">
-                                                                Pincode</p>
-                                                            <p class="text-slate-700 font-semibold"
-                                                                id="pincode">${invoiceObj.transport_pincode}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Right Section: Logistics & Pricing -->
-                                            <div
-                                                class="bg-slate-50 p-6 md:p-8 md:w-72 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-200">
-                                                <div class="hidden md:block mb-6">
-                                                    <p
-                                                        class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                                        Charges</p>
-                                                    <div class="flex items-baseline space-x-1">
-                                                        <span class="text-3xl font-bold text-slate-800"
-                                                            id="charges2">₹${invoiceObj.transport_charges}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div class="space-y-4">
-                                                    <div class="flex items-center justify-between text-sm">
-                                                        <span class="text-slate-500"><i
-                                                                class="far fa-clock mr-2"></i>
-                                                            <span class="font-bold text-slate-700"
-                                                                id="days">${invoiceObj.transport_days} - Days</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                        </div>
-                                    </div>
+                                <div class="info-group">
+                                    <span class="label">Delivery</span>
+                                    <span class="value">${invoiceObj.transport_days} - Days</span>
                                 </div>
                             </div>
+
                         ` : `
                             <div title="${invoiceObj.delivery_mode}">
                                     <strong>Delivery Mode:</strong>
                                     ${invoiceObj.delivery_mode
-                                ? invoiceObj.delivery_mode
-                                    .replace(/_/g, ' ')                // replace underscores with spaces
-                                    .toLowerCase()                     // make everything lowercase first
-                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                                : ''}
+                        ? invoiceObj.delivery_mode
+                            .replace(/_/g, ' ')                // replace underscores with spaces
+                            .toLowerCase()                     // make everything lowercase first
+                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                        : ''}
                             </div>
                         `}
 
@@ -1595,15 +1600,15 @@
                             </thead>
                             <tbody>
                                 ${invoiceObj.products.map(p => {
-                        const name = p && typeof p.name === 'string' ? p.name : '';
-                        const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                            const name = p && typeof p.name === 'string' ? p.name : '';
+                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                        const base_price = p && typeof p.price === 'number' ? p.price : '';
-                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                        const total_price = base_price + tax_price;
+                            const base_price = p && typeof p.price === 'number' ? p.price : '';
+                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                            const total_price = base_price + tax_price;
 
-                        return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                    }).join('')}
+                            return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                        }).join('')}
                             </tbody>
                         </table>
                         

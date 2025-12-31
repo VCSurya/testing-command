@@ -356,6 +356,7 @@
         .btn-primary {
             background-color: var(--primary);
             border-color: var(--primary);
+            width: 100%;
         }
 
         .btn-primary:hover {
@@ -1560,7 +1561,6 @@
                                     </button>
                                 </div>
                                 <br>
-                                <br>
                                 <div class="space-y-1">
                                     <!-- Step 1: Search Section -->
                                     <div class="relative">
@@ -1651,11 +1651,30 @@
                                 <div class="section-header">
                                     <span for="customerSelect" class="icon">📦</span>
                                     PRODUCT TABLE
-                                    <button type="button"
+                                    <!-- <button type="button"
                                         style="border:none;padding: 0px 10px;float: right;background-color: #ffffff;color: #1e094d;"
                                         id="addCustomerBtn">
                                         <span id="addProductBtn"> <i class="bi bi-plus-circle"></i> Add Item </span>
-                                    </button>
+                                    </button> -->
+                                </div>
+
+                                <br>
+                                <!-- Step 1: Search production Section -->
+                                <div class="relative">
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" id="productSearch" placeholder="Enter product name"
+                                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                            autocomplete="off">
+                                    </div>
+
+                                    <!-- Search Results Dropdown -->
+                                    <div id="productresultsDropdown"
+                                        class="hidden absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar dropdown-animate">
+                                        <!-- Results will be injected here -->
+                                    </div>
                                 </div>
 
                                 <div class="table-responsive">
@@ -2023,59 +2042,6 @@
             document.getElementById('gst-toggle-switch').checked = invoiceData.gst_included == 1 ? true : false;
 
 
-
-            // Billing System JavaScript
-            let customers = [];
-            let products = [];
-            let selectedProducts = [];
-            let grandTotal = 0;
-            const GST_RATE = 18; // 18% GST
-            let currentProduct = null;
-
-            // Initialize Select2 for customer select
-            $(document).ready(function () {
-                $('#customerSelect').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: 'Search and select customer',
-                    allowClear: true,
-                    width: '100%'
-                });
-
-                // Initialize product select with search enabled
-                $('#modalProductSelect').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: 'Search and select product',
-                    allowClear: true,
-                    width: '100%',
-                    dropdownParent: $('#productDetailsModal'),
-                    minimumInputLength: 0,
-                    language: {
-                        noResults: function () {
-                            return "No products found";
-                        }
-                    }
-                });
-
-                // Add event listener for product selection
-                $('#modalProductSelect').on('select2:select', function (e) {
-                    const productId = e.params.data.id;
-                    currentProduct = products.find(p => p.id == productId);
-                    if (currentProduct) {
-                        document.getElementById('modalBasePrice').value = currentProduct.price;
-                        document.getElementById('modalQuantity').value = 1;
-                        // document.getElementById('modalIncludeGST').checked = true;
-                        updateModalFinalPrice();
-                    }
-                });
-
-                // Add event listener for product deselection
-                $('#modalProductSelect').on('select2:clear', function () {
-                    document.getElementById('modalBasePrice').value = '';
-                    document.getElementById('modalQuantity').value = 1;
-                    document.getElementById('modalFinalPrice').value = '';
-                });
-            });
-
             ///// selecting the customers 
 
             function debounce(fn, delay) {
@@ -2174,17 +2140,110 @@
             });
 
 
+            ///// Search Products
+
+            // Billing System JavaScript
+
+            let products = [];
+            let selectedProducts = [];
+            let grandTotal = 0;
+            const GST_RATE = 18; // 18% GST
+            let currentProduct = null;
+
+            async function fetchProducts(query) {
+
+                if (query === "") {
+                    renderProductDropdown([]);
+                    return;
+                };
+
+                try {
+
+                    const response = await fetch(`/sales/input-products/${encodeURIComponent(query)}`);
+                    const products = await response.json();
+                    renderProductDropdown(products);
+
+                } catch (error) {
+                    console.error("API Error:", error);
+                }
+            }
+
+            const debouncedSearchForProducts = debounce(function (e) {
+                fetchProducts(e.target.value);
+            }, 500);
+
+            const searchInputForProduct = document.getElementById('productSearch');
+            const productDropdown = document.getElementById('productresultsDropdown');
+
+            searchInputForProduct.addEventListener("input", debouncedSearchForProducts);
+
+            function renderProductDropdown(list) {
+
+                if (list.length === 0) {
+                    productDropdown.innerHTML = '<div class="p-4 text-slate-400 text-sm">No customers found</div>';
+                } else {
+                    productDropdown.innerHTML = list.map(c => `
+                    <div 
+                    data-id="${c.id}"
+                    data-name="${encodeURIComponent(c.name)}"
+                    data-price="${c.price}"
+                    onclick="selectProducts(this)" 
+                    class="p-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 last:border-none transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-l font-bold text-slate-500">
+                            ${c.name[0]}${c.price[0]}
+                        </div>
+                        <div>
+                            <div class="text-l font-medium text-slate-800">${c.name} - ₹${c.price}</div>
+                        </div>
+                    </div>
+                `).join('');
+                }
+                productDropdown.classList.remove('hidden');
+                if (list.length === 0) {
+                    setTimeout(() => {
+                        productDropdown.classList.add('hidden');
+                    }, 1000); // Optional delay for smooth transition
+                }
+            }
+
+            // Selection logic
+            window.selectProducts = function (el) {
+
+                const id = el.dataset.id;
+                const name = decodeURIComponent(el.dataset.name);
+                const price = el.dataset.price;
+
+
+                searchInputForProduct.value = '';
+                productDropdown.classList.add('hidden');
+                // selectedDisplay.classList.remove('hidden');
+
+
+                const productId = id;
+                currentProduct = productId;
+                if (currentProduct) {
+                    document.getElementById('modalBasePrice').value = price;
+                    document.getElementById('modalQuantity').value = 1;
+                    // document.getElementById('modalIncludeGST').checked = true;
+                    updateModalFinalPrice();
+                }
+                addProduct(id, name, price);
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!searchInputForProduct.contains(e.target) && !productDropdown.contains(e.target)) {
+                    productDropdown.classList.add('hidden');
+                }
+            });
+
 
             // Load customers and products from the server
-            // fetchCustomers();
-            fetchProducts();
+            selectCustomer(invoiceData.c_mobile, invoiceData.c_name, invoiceData.c_address, invoiceData.c_pincode);
             updateProductTable();
-
-
             fetchEvents();
 
             // Set up event listeners
-            document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
+            // document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
             document.getElementById('addCustomerBtn').addEventListener('click', addCustomerModal);
 
             document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
@@ -2380,66 +2439,6 @@
 
             }
 
-
-
-            // // Fetch customers from the server
-            // function fetchCustomers() {
-            //     fetch('/sales/customers')
-            //         .then(response => response.json())
-            //         .then(data => {
-            //             customers = data;
-            //             const customerSelect = document.getElementById('customerSelect');
-            //             customerSelect.innerHTML = '<option value="">Select Customer</option>';
-            //             data.forEach(customer => {
-            //                 const option = document.createElement('option');
-            //                 option.value = customer.id;
-            //                 option.textContent = `${customer.name} - ${customer.address}`;
-            //                 customerSelect.appendChild(option);
-            //             });
-
-            //             // $('#customerSelect').trigger('change');
-
-            //             // ✅ Set the selected customer
-            //             if (invoiceData.customer_id) {
-            //                 $('#customerSelect').val(invoiceData.customer_id).trigger('change');
-            //             }
-
-            //         })
-            //         .catch(error => {
-            //             console.error('Error fetching customers:', error);
-            //             alert('Failed to load customers. Please refresh the page and try again.');
-            //         });
-            // }
-
-            // Fetch products from the server
-            function fetchProducts() {
-                fetch('/sales/products')
-                    .then(response => response.json())
-                    .then(data => {
-                        products = data;
-                        const productSelect = $('#modalProductSelect');
-                        productSelect.empty();
-                        productSelect.append('<option value="">Search and select product</option>');
-
-                        data.forEach(product => {
-                            const option = new Option(
-                                `${product.name}`,
-                                product.id,
-                                false,
-                                false
-                            );
-                            productSelect.append(option);
-                        });
-
-                        // Refresh Select2
-                        productSelect.trigger('change');
-                    })
-                    .catch(error => {
-                        console.error('Error fetching products:', error);
-                        alert('Failed to load products. Please refresh the page and try again.');
-                    });
-            }
-
             function fetchEvents() {
                 fetch('/sales/all_events_details')
                     .then(response => response.json())
@@ -2544,7 +2543,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert('Customer added successfully.');
+
                             $('#customerModal').modal('hide');
 
                             // Clear the form fields
@@ -2553,10 +2552,11 @@
                             document.getElementById('customerState').value = '';
                             document.getElementById('customerPincode').value = '';
                             document.getElementById('customerMobile').value = '';
-                            fetchCustomers();
+
+                            selectCustomer(data.data.mobile, data.data.name, data.data.address, data.data.pincode);
 
                         } else {
-                            alert('Failed to add customer. Please try again.');
+                            alert(data.error);
                         }
                     })
                     .catch(error => {
@@ -2600,7 +2600,8 @@
             addProductsFromList(invoiceData.products || []);
 
             // Add product to the bill
-            function addProduct() {
+            function addProduct(id, name, price) {
+
                 if (!currentProduct) {
                     alert('Please select a product first.');
                     return;
@@ -2627,7 +2628,7 @@
                 const productTotal = basePrice * quantity;
 
                 // Check if product already exists in the table
-                const existingProductIndex = selectedProducts.findIndex(p => p.id == currentProduct.id);
+                const existingProductIndex = selectedProducts.findIndex(p => p.id == id);
                 if (existingProductIndex !== -1) {
                     // Update the existing product
                     selectedProducts[existingProductIndex].quantity += quantity;
@@ -2635,8 +2636,8 @@
                 } else {
                     // Add new product
                     selectedProducts.push({
-                        id: currentProduct.id,
-                        name: currentProduct.name,
+                        id: id,
+                        name: name,
                         // basePrice: calculatedBasePrice,
                         // gstAmount: gstAmount,
                         finalPrice: basePrice,
@@ -2644,9 +2645,7 @@
                         total: productTotal,
                         // includeGST: includeGST
                     });
-                    console.log(selectedProducts);
                 }
-
                 updateProductTable();
                 updateTotals();
 
@@ -2658,8 +2657,8 @@
                 document.getElementById('modalFinalPrice').value = '';
 
                 // Hide modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailsModal'));
-                modal.hide();
+                // const modal = bootstrap.Modal.getInstance(document.getElementById('productDetailsModal'));
+                // modal.hide();
             }
 
             // Update product table
@@ -3044,9 +3043,9 @@
                     return;
                 }
 
-                var customerId = $('#customerSelect').val();
+                var customerId = document.getElementById('selectedMobile').textContent;
 
-                if (!customerId) {
+                if (!customerId || customerId === "" || customerId === "N/A") {
                     alert('Please Select a Customer.');
                     return;
                 }
@@ -3062,6 +3061,7 @@
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
+                formData.append('customerId', customerId);
 
                 // Show the modal with loading animation
                 const loadingDots = document.getElementById('printLoadingDots');
@@ -3082,7 +3082,7 @@
                 printModal.show();
 
                 // Step 1: Save invoice to database
-                fetch('/sales/update_invoice', {
+                fetch('/sales/save_invoice', {
                     method: 'POST',
                     body: formData
                 })
