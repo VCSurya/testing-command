@@ -1756,9 +1756,143 @@
 
                                 <div class="form-group" id="transportCompanyGroup"
                                     style="display: none;margin-top: 20px;">
-                                    <!-- <label for="transportCompany">Transport Company Name:</label> -->
-                                    <input type="text" class="form-control" id="transportCompany"
-                                        name="transport_company" placeholder="Enter Transport Company Name">
+
+                                    <input type="text" class="form-control" id="transportCompany" name="transport_id"
+                                        hidden>
+
+                                    <!-- Step 1: Search Section -->
+                                    <div class="relative">
+                                        <div class="relative">
+                                            <span
+                                                class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text" id="transportSearch"
+                                                placeholder="Enter Transport Company Name or Pincode"
+                                                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                                autocomplete="off">
+                                        </div>
+
+                                        <!-- Search Results Dropdown -->
+                                        <div id="transportSearchDropdown"
+                                            class="hidden absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar dropdown-animate">
+                                            <!-- Results will be injected here -->
+                                        </div>
+                                    </div>
+
+                                    <br>
+                                    <!-- Container for the card -->
+                                    <div class="hidden w-full" id="transportCard">
+                                        <!-- Transportation Card Element -->
+                                        <div class="transport-card group relative">
+                                            <div
+                                                class="gradient-border bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+                                                <!-- Main Content Layout -->
+                                                <div class="flex flex-col md:flex-row">
+
+                                                    <!-- Left Section: Branding & Location -->
+                                                    <div class="p-3 md:p-8 flex-grow">
+                                                        <div class="flex items-center justify-between mb-4">
+                                                            <div class="flex items-center space-x-3">
+                                                                <div class="bg-blue-100 text-blue-600 p-2 rounded-xl">
+                                                                    <i class="fas fa-truck-fast text-l"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <h2 id="companyName"
+                                                                        class="text-xl md:text-xl font-bold text-slate-800 tracking-tight">
+                                                                        N/A
+                                                                    </h2>
+                                                                </div>
+                                                            </div>
+                                                            <div class="md:hidden flex flex-col items-end">
+                                                                <span
+                                                                    class="text-xs font-semibold uppercase tracking-wider text-slate-400">Charges</span>
+                                                                <span id="charges1"
+                                                                    class="text-lg font-bold text-blue-600">₹0</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="grid grid-cols-2 gap-4 mt-6">
+                                                            <div class="flex items-start space-x-3">
+                                                                <i class="fas fa-location-dot mt-1 text-slate-400"></i>
+                                                                <div>
+                                                                    <p
+                                                                        class="text-xs text-slate-400 uppercase font-bold tracking-wider">
+                                                                        City</p>
+                                                                    <p class="text-slate-700 font-semibold" id="city">
+                                                                        N/A
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex items-start space-x-3">
+                                                                <i class="fas fa-map-pin mt-1 text-slate-400"></i>
+                                                                <div>
+                                                                    <p
+                                                                        class="text-xs text-slate-400 uppercase font-bold tracking-wider">
+                                                                        Pincode</p>
+                                                                    <p class="text-slate-700 font-semibold"
+                                                                        id="pincode">N/A</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Right Section: Logistics & Pricing -->
+                                                    <div
+                                                        class="bg-slate-50 p-6 md:p-8 md:w-72 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-200">
+                                                        <div class="hidden md:block mb-6">
+                                                            <p
+                                                                class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">
+                                                                Charges</p>
+                                                            <div class="flex items-baseline space-x-1">
+                                                                <span class="text-3xl font-bold text-slate-800"
+                                                                    id="charges2">₹0</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="space-y-4">
+                                                            <div class="flex items-center justify-between text-sm">
+                                                                <span class="text-slate-500"><i
+                                                                        class="far fa-clock mr-2"></i>
+                                                                    <span class="font-bold text-slate-700"
+                                                                        id="days">N/A</span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <!-- Container for the EMPTY state -->
+                                    <div class="hidden w-full" id="noTransport">
+
+                                        <div
+                                            class="bg-white rounded-2xl shadow-sm border border-slate-200 border-dashed border-2 p-0 md:p-12 text-center">
+                                            <div class="relative inline-block">
+                                                <!-- Circular Background for Icon -->
+                                                <div
+                                                    class="mb-6 inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm text-blue-500">
+                                                    <i
+                                                        class="fas fa-hand-pointer text-2xl text-red-500 animate-bounce"></i>
+                                                </div>
+                                            </div>
+
+                                            <div class="max-w-sm mx-auto">
+                                                <h3 class="text-xl font-bold text-slate-800 mb-2">Transport Not Found
+                                                </h3>
+                                                <p class="text-slate-600 text-sm leading-relaxed mb-8">
+                                                    Please choose a specific transport provider from the available
+                                                    options to proceed.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                             <br>
@@ -1882,7 +2016,7 @@
                                         </div>
 
                                         <!-- Submit Button -->
-                                        <button type="submit" id="printBtn"
+                                        <button type="button" id="printBtn"
                                             style="width: 100%; padding: 14px; border: none; border-radius: 8px; background-color: #496e79; color: #ffffff; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center;">
                                             Update Order
                                         </button>
@@ -2236,6 +2370,118 @@
                 }
             });
 
+            ///// Search Transportation
+
+            async function fetchTransport(query) {
+
+                if (query === "") {
+                    renderTransportDropdown([]);
+                    return;
+                };
+
+                try {
+
+                    const response = await fetch(`/sales/input-transport/${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    renderTransportDropdown(data);
+
+                } catch (error) {
+                    console.error("API Error:", error);
+                }
+            }
+
+            const debouncedSearchForTransport = debounce(function (e) {
+                fetchTransport(e.target.value);
+            }, 500);
+
+            const searchInputForTransport = document.getElementById('transportSearch');
+            const transportDropdown = document.getElementById('transportSearchDropdown');
+            const transportCard = document.getElementById('transportCard');
+
+            searchInputForTransport.addEventListener("input", debouncedSearchForTransport);
+
+            function renderTransportDropdown(list) {
+
+                if (list.length === 0) {
+                    transportDropdown.innerHTML = '<div class="p-4 text-slate-400 text-sm">Not found</div>';
+                } else {
+                    transportDropdown.innerHTML = list.map(c => `
+                    <div 
+                    data-id="${c.id}"
+                    data-name="${encodeURIComponent(c.name)}"
+                    data-days="${c.days}"
+                    data-city="${c.city}"
+                    data-charges="${c.charges}"
+                    data-pincode="${c.pincode}"
+                    onclick="selectTransport(this)" 
+                    class="p-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 last:border-none transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-l font-bold text-slate-500">
+                            <i class="fas fa-truck-loading"></i>
+                        </div>
+                        <div>
+                            <div class="text-l font-medium text-slate-800">${c.pincode} - ${c.name} - ${c.city}</div>
+                        </div>
+                    </div>
+                `).join('');
+                }
+                transportDropdown.classList.remove('hidden');
+                if (list.length === 0) {
+                    setTimeout(() => {
+                        transportDropdown.classList.add('hidden');
+                    }, 1000); // Optional delay for smooth transition
+                }
+            }
+
+            // Selection logic
+            window.selectTransport = function (el) {
+
+                const id = el.dataset.id;
+                const name = decodeURIComponent(el.dataset.name);
+                const days = el.dataset.days;
+                const city = decodeURIComponent(el.dataset.city);
+                const charges = el.dataset.charges;
+                const pincode = el.dataset.pincode;
+
+                searchInput.value = '';
+                transportDropdown.classList.add('hidden');
+                transportCard.classList.remove('hidden');
+                document.getElementById('noTransport').classList.add('hidden');
+
+                document.getElementById('companyName').textContent = name;
+                document.getElementById('charges1').textContent = "₹" + charges;
+                document.getElementById('charges2').textContent = "₹" + charges;
+                document.getElementById('city').textContent = city;
+                document.getElementById('pincode').textContent = pincode;
+                document.getElementById('days').textContent = days + " - Days";
+                document.getElementById('transportCompany').value = id;
+            }
+
+            async function pincodeFetchTransport(query) {
+                try {
+                    const response = await fetch(`/sales/input-transport/${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        document.getElementById('noTransport').classList.add('hidden');
+                        document.getElementById('transportCard').classList.remove('hidden');
+                        document.getElementById('transportCompany').value = data[0].id;
+                        document.getElementById('companyName').textContent = data[0].name;
+                        document.getElementById('charges1').textContent = "₹" + data[0].charges;
+                        document.getElementById('charges2').textContent = "₹" + data[0].charges;
+                        document.getElementById('city').textContent = data[0].city;
+                        document.getElementById('pincode').textContent = data[0].pincode;
+                        document.getElementById('days').textContent = data[0].days + " - Days";
+                    }
+                    else {
+                        document.getElementById('noTransport').classList.remove('hidden');
+                        document.getElementById('transportCard').classList.add('hidden');
+                        document.getElementById('transportCompany').value = null;
+                    }
+                    return;
+
+                } catch (error) {
+                    console.error("API Error:", error);
+                }
+            }
 
             // Load customers and products from the server
             selectCustomer(invoiceData.c_mobile, invoiceData.c_name, invoiceData.c_address, invoiceData.c_pincode);
@@ -2260,8 +2506,22 @@
 
             // Set default selected option
             document.getElementById('deliveryMode').value = invoiceData.delivery_mode || 'at_store';
-            document.getElementById('transportCompanyGroup').style.display = invoiceData.delivery_mode === 'transport' ? 'block' : 'none';
-            document.getElementById('transportCompany').value = invoiceData.transport_company_name || '';
+
+            if (invoiceData.delivery_mode === 'transport') {
+                document.getElementById('transportCompanyGroup').style.display = 'block';
+                const el = document.createElement("div");
+                el.dataset.id = invoiceData.transport_id;
+                el.dataset.name = encodeURIComponent(invoiceData.t_name);
+                el.dataset.days = invoiceData.t_days;;
+                el.dataset.city = encodeURIComponent(invoiceData.t_city);
+                el.dataset.charges = invoiceData.t_charges;;
+                el.dataset.pincode = invoiceData.t_pincode;
+                selectTransport(el);
+            }
+            else {
+                document.getElementById('transportCompanyGroup').style.display = 'none';
+            }
+
             document.getElementById('paymentMode').value = invoiceData.payment_mode || 'cash';
 
             if (invoiceData.payment_note) { // This condition is true for non-empty strings
@@ -3082,7 +3342,7 @@
                 printModal.show();
 
                 // Step 1: Save invoice to database
-                fetch('/sales/save_invoice', {
+                fetch('/sales/update_invoice', {
                     method: 'POST',
                     body: formData
                 })

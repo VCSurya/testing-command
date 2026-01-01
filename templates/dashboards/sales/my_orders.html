@@ -196,13 +196,8 @@
         }
 
         .glass-panel {
-            background: var(--glass);
-            border-radius: 22px;
-            box-shadow: var(--glass-shadow);
-            border: 1.5px solid var(--glass-border);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            padding: 24px 20px;
+            background: transparent;
+            padding: 20px 10px;
             overflow: hidden;
             margin-bottom: 2rem;
         }
@@ -335,7 +330,8 @@
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
             overflow: auto;
-            scrollbar-width: thin; /* for Firefox */
+            scrollbar-width: thin;
+            /* for Firefox */
             scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
@@ -598,7 +594,7 @@
             flex: 1 1 45%;
             background: linear-gradient(to bottom right, #fafafa, #e1e6ee);
             border-left: 5px solid #4A90E2;
-            padding: 15px 0px 0px 20px;
+            padding: 10px 0px 0px 20px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
@@ -948,7 +944,95 @@
             color: #ffffff;
         }
     </style>
+    <style>
+        /* The Horizontal Row Container */
+        .transport-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-top: 5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
 
+        /* Individual Data Groups */
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            min-width: fit-content;
+        }
+
+        /* Highlighting the Transport Name */
+        .brand-group {
+            flex: 1.5;
+        }
+
+        .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.1rem;
+        }
+
+        .value {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .brand-name {
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .charges-value {
+            color: black;
+            font-weight: 800;
+        }
+
+        /* Responsive design for tablets and mobile */
+        @media (max-width: 850px) {
+            .transport-row {
+                flex-wrap: wrap;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .info-group {
+                flex: 1 1 150px;
+            }
+
+            .brand-group {
+                flex: 1 1 100%;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .transport-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .info-group {
+                flex: none;
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -1085,7 +1169,7 @@
                 <div class="modal-buttons-custom"
                     style="width:100%;justify-content:space-between;gap:1em;margin-top:0.2em;">
                     <button id="cancelOrderCancelBtn" type="button"
-                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Back</button>
+                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Cancel</button>
                     <button id="cancelOrderConfirmBtn" type="submit"
                         style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
                 </div>
@@ -1275,7 +1359,7 @@
                 const invoiceObj = {
                     number: inv.invoice_number,
                     date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.state + ', ' + inv.mobile,
+                    customer: inv.customer + ', '+ inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,
@@ -1290,7 +1374,12 @@
                     payment_note: inv.payment_note,
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id
+                    live_order_track_id: inv.live_order_track_id,
+                    transport_name: inv.transport_name,
+                    transport_city: inv.transport_city,
+                    transport_days: inv.transport_days,
+                    transport_charges: inv.transport_charges,
+                    transport_pincode: inv.transport_pincode
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -1349,36 +1438,12 @@
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--success-green); font-weight: 600;">Paid</span>
                                 </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                            ? invoiceObj.payment_mode
-                                .replace(/_/g, ' ')                 // replace underscores
-                                .toLowerCase()                      // make all lowercase
-                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                            : ''
-                        }
-                                </span>
-                                </div>
                             `
                         : invoiceObj.amount_paid > 0
                             ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
-                                </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                                ? invoiceObj.payment_mode
-                                    .replace(/_/g, ' ')
-                                    .toLowerCase()
-                                    .replace(/\b\w/g, c => c.toUpperCase())
-                                : ''
-                            }
-                                </span>
                                 </div>
                             `
                             : `
@@ -1390,19 +1455,61 @@
                     }
 
                         
-                        
-                       <div title="${invoiceObj.delivery_mode}">
-                        <strong>Delivery Mode:</strong>
-                        ${invoiceObj.delivery_mode
+                    ${invoiceObj.delivery_mode === 'transport' ? `
+                        <div title="${invoiceObj.delivery_mode}">
+                                <strong>Delivery Mode:</strong>
+                                ${invoiceObj.delivery_mode
                         ? invoiceObj.delivery_mode
                             .replace(/_/g, ' ')                // replace underscores with spaces
                             .toLowerCase()                     // make everything lowercase first
                             .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                        : ''
-                    }${invoiceObj.transport_company_name ? ` - ${invoiceObj.transport_company_name}` : ''}
+                        : ''}
                         </div>
+                        <!-- Static HTML Content -->
+                        <div class="transport-row">
+                            <div class="info-group brand-group">
+                                <span class="label">Transport Name</span>
+                                <span class="value brand-name">${invoiceObj.transport_name}</span>
+                            </div>
+                            
+                            <div class="info-group">
+                                <span class="label">City</span>
+                                <span class="value">${invoiceObj.transport_city}</span>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="label">Pincode</span>
+                                <span class="value">${invoiceObj.transport_pincode}</span>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="label">Charges</span>
+                                <span class="value charges-value">₹${invoiceObj.transport_charges}</span>
+                            </div>
+
+                            <div class="info-group">
+                                <span class="label">Delivery</span>
+                                <span class="value">${invoiceObj.transport_days} - Days</span>
+                            </div>
+                        </div>
+
+                    ` : `
+                        <div title="${invoiceObj.delivery_mode}">
+                                <strong>Delivery Mode:</strong>
+                                ${invoiceObj.delivery_mode
+                        ? invoiceObj.delivery_mode
+                            .replace(/_/g, ' ')                // replace underscores with spaces
+                            .toLowerCase()                     // make everything lowercase first
+                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                        : ''}
+                        </div>
+                    `}
+
+
+
+
                         
-                                               ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
+                        ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
                         
                             <div class="tracking-wrapper">
                             <div class="tracking-stepper">
@@ -1414,8 +1521,8 @@
                                     <div class="label-group">
                                         <div class="label">
                                             ${i === 0 && invoiceObj.trackingStatus === 0
-                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                            : step}
+                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                                : step}
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                     </div>
@@ -1495,7 +1602,13 @@
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
                                     <div style="color: var(--warning);">
                                         <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
+                                        ₹${invoiceObj.amount_paid.toLocaleString()} (${invoiceObj.payment_mode
+                            ? invoiceObj.payment_mode
+                                .replace(/_/g, ' ')                 // replace underscores
+                                .toLowerCase()                      // make all lowercase
+                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                            : ''
+                        })
                                     </div>
                                 </div>
 
@@ -1514,12 +1627,6 @@
                                 </div>
                             `
                             : `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--danger);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
-                                    </div>
-                                </div>
 
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
                                     <div style="color: var(--danger);">
@@ -1555,6 +1662,7 @@
                             ` : ''}
 
                         </div
+
                     </div>
 
                 `;

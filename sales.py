@@ -251,7 +251,7 @@ class Sales:
                 invoice_data['payment_mode'],
                 invoice_data['payment_note'],
                 invoice_data['sales_note'],
-                invoice_data['transport_id'],
+                invoice_data['transport_id'] if invoice_data['transport_id'] else None,
                 invoice_number,
                 invoice_data['event_id'] if invoice_data.get(
                     'event_id') else None,
@@ -636,7 +636,7 @@ def save_invoice_into_database():
         sales = Sales()
         if sales.data_base_connection_check():
             result = sales.add_invoice_detail(bill_data)
-
+            print(result)
             if result['invoice_id']:
 
                 if bill_data['completed'] == 0:
@@ -1266,7 +1266,12 @@ class MyOrders:
                 lot.cancel_order_status,
                 lot.verify_by_manager,
                 lot.verify_by_manager_id,
-                lot.verify_manager_date_time
+                lot.verify_manager_date_time,
+                transport.pincode AS transport_pincode,
+                transport.name AS transport_name,
+                transport.city AS transport_city,
+                transport.days AS transport_days,
+                transport.charges AS transport_charges
             
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
@@ -1274,6 +1279,7 @@ class MyOrders:
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
             LEFT JOIN products p ON ii.product_id = p.id
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            LEFT JOIN transport ON inv.transport_id = transport.id
 
             WHERE inv.invoice_created_by_user_id = %s
             AND lot.cancel_order_status = 0
@@ -2081,16 +2087,19 @@ class EditBill:
     def get_invoice(self, invoice_id):
 
         query = """
-        SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, invoices.grand_total,
-            invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
-            invoices.sales_note, invoices.payment_note, invoices.gst_included, 
-            invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id, 
-            ip.quantity, ip.total_amount, p.name as product_name 
-            FROM invoice_items ip 
-            JOIN products p ON ip.product_id = p.id 
-            JOIN invoices ON invoices.id = ip.invoice_id
-            JOIN buddy ON invoices.customer_id = buddy.id
-            WHERE ip.invoice_id = %s;
+                SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, invoices.grand_total,
+                invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
+                invoices.sales_note, invoices.payment_note, invoices.gst_included, 
+                invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id,t.name as t_name,
+                t.pincode as t_pincode, t.city as t_city , t.days as t_days , t.charges as t_charges,
+
+                ip.quantity, ip.total_amount, p.name as product_name 
+                FROM invoice_items ip 
+                JOIN products p ON ip.product_id = p.id 
+                JOIN invoices ON invoices.id = ip.invoice_id
+                JOIN buddy ON invoices.customer_id = buddy.id
+                LEFT JOIN transport t ON invoices.transport_id = t.id
+                WHERE ip.invoice_id = %s;
         """
 
         self.cursor.execute(query, (invoice_id,))
@@ -2098,6 +2107,7 @@ class EditBill:
 
         # Extract common fields
         common_keys = ['c_mobile','c_address','c_name','c_pincode' ,'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
+                       't_name','t_pincode', 't_city' , 't_days' , 't_charges',
                        'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
 
         # Build the unified dict with Decimal -> float conversion
@@ -2154,10 +2164,10 @@ class EditBill:
                     sales_note = %s,
                     transport_id = %s,
                     event_id = %s,
-                    completed = %s
+                    completed = %s,
+                    created_at = NOW()
                 WHERE id = %s
             """
-
             invoice_values = (
                 int(invoice_data['customer_id']),
                 invoice_data['delivery_mode'],
@@ -2169,7 +2179,7 @@ class EditBill:
                 invoice_data['payment_mode'],
                 invoice_data['payment_note'],
                 invoice_data['sales_note'],
-                invoice_data['transport_id'],
+                invoice_data['transport_id'] if invoice_data['transport_id'] else None,
                 invoice_data['event_id'] if invoice_data.get('event_id') else None,
                 invoice_data.get('completed', 0),
                 invoice_id
@@ -2268,9 +2278,9 @@ def update_invoice_into_database():
     try:
 
         # Get form data
-        customer_id = request.form.get('customer_id')
+        customer_id = request.form.get('customerId')
         delivery_mode = request.form.get('delivery_mode')
-        transport_id = request.form.get('transport_id')
+        transport_id = request.form.get('transport_id',None)
         payment_mode = request.form.get('payment_mode')
         payment_type = request.form.get('payment_type')
         paid_amount = float(request.form.get('paid_amount', 0))
@@ -2310,10 +2320,12 @@ def update_invoice_into_database():
         if not conn:
             return jsonify({'error': 'Database connection failed'}), 500
 
+        if not customer_id or customer_id == "": 
+            return jsonify({'error': 'Invalid mobile number'}), 500
+
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM buddy WHERE id = %s", (customer_id,))
+        cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
-        cursor.close()
         conn.close()
 
         if not customer:
@@ -2347,7 +2359,7 @@ def update_invoice_into_database():
         # Prepare bill data for database
         bill_data = {
             'invoice_id': invoice_id,
-            'customer_id': customer_id,
+            'customer_id': customer['id'],
             'delivery_mode': delivery_mode,
             'grand_total': grand_total,
             'payment_mode': payment_mode,
@@ -2367,7 +2379,7 @@ def update_invoice_into_database():
 
         if update:
             result = update.update_invoice_detail(bill_data)
-            
+            print(result)
             if result['status']:
                 # Return success with invoice ID
                 return jsonify({
@@ -2407,7 +2419,7 @@ def update_invoice_into_database():
 
         # Return success with invoice ID
         return jsonify({
-            'success': False,
+            'success': True,
             'invoice_number': invoice_number
         }), 200
 
