@@ -689,32 +689,12 @@
                     <!-- Main container: responsive padding and constrained width -->
                     <div class="p-0 md:p-8 max-w-8xl mx-auto">
                         <!-- Main KPI Cards (Revenue and Total Volume) -->
-                        <section id="kpi-overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-10">
-                            
-                            
-                            <!-- Total Orders (Volume) - Volume Count -->
-                            <div class="kpi-card border-b-4 border-slate-400">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase text-slate-500">Total Orders</span>
-                                    <i data-lucide="package" class="w-6 h-6 text-slate-400"></i>
-                                </div>
-                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.total_sales_orders.count)}</p>
-                            </div>
-
-                            <!-- Total Selling Orders (Amount) - Primary Focus, Gold Accent -->
-                            <div class="kpi-card border-b-4 border-amber-500">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase text-amber-600">Total Revenue</span>
-                                    <i data-lucide="dollar-sign" class="w-6 h-6 text-amber-500"></i>
-                                </div>
-                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatCurrency(apiData.total_sales_orders.sum)}</p>
-                            </div>
-
+                        <section id="kpi-overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-10">
                             
                             <!-- Today's Selling Orders (Count) - Quick Activity Check -->
                             <div class="kpi-card border-b-4 border-blue-600">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase text-blue-600">Today's Sales</span>
+                                    <span class="text-xs font-medium uppercase text-blue-600">Your Today's Sales</span>
                                     <i data-lucide="bar-chart-3" class="w-6 h-6 text-blue-600"></i>
                                 </div>
                                 <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.today_orders.count)}</p>
@@ -723,12 +703,21 @@
                             <!-- Today's Revenue (Amount) - Secondary Focus, Green Accent -->
                             <div class="kpi-card border-b-4 border-green-600">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase text-green-700">Today's Revenue</span>
+                                    <span class="text-xs font-medium uppercase text-green-700">Your Today's Revenue</span>
                                     <i data-lucide="badge-dollar-sign" class="w-6 h-6 text-green-600"></i>
                                 </div>
                                 <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatCurrency(apiData.today_orders.sum)}</p>
                             </div>
                             
+                            <!-- Total Orders (Volume) - Volume Count -->
+                            <div class="kpi-card border-b-4 border-slate-400">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium uppercase text-slate-500">Your Total Orders</span>
+                                    <i data-lucide="package" class="w-6 h-6 text-slate-400"></i>
+                                </div>
+                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.total_sales_orders.count)}</p>
+                            </div>
+ 
                         </section>
 
                         <!-- Detailed Status Breakdown Section -->
@@ -738,7 +727,7 @@
                                 
                                 <!-- Table Header - Hidden on small screens (mobile) -->
                                 <div class="hidden sm:grid grid-cols-7 gap-4 text-xs font-bold uppercase text-gray-600 py-3 px-3 bg-gray-100 rounded-t-xl border-b border-gray-200">
-                                    <div class="col-span-3">Status & Priority</div>
+                                    <div class="col-span-3">Your Orders Status</div>
                                     <div class="col-span-3 text-right">Count</div>
                                 </div>
 

@@ -112,10 +112,8 @@ class Dasebored:
             return float(value) if value is not None else 0.0
 
         response = {
-            "user_id": user_id,
             "total_sales_orders": {
                 "count": safe_int(result["total_sales_order_count"]),
-                "sum": safe_float(result["total_sales_order_sum"])
             },
             "completed_orders": {
                 "count": safe_int(result["completed_order_count"]),
@@ -445,8 +443,8 @@ def add_new_customer():
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
                        (name, address, state, pincode, mobile, session.get('user_id')))
         conn.commit()
-        
-        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
+        mobile = int(request.form['mobile'])
+        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile))
         exist = cursor.fetchone()
         
         cursor.close()
@@ -719,15 +717,29 @@ def generate_bill_pdf(invoice_id):
 
         # Get invoice details
         cursor.execute("""
-            SELECT i.*, c.name, c.mobile, c.address, c.pincode, c.state, lot.payment_confirm_status 
+            SELECT i.*, c.name as c_name, c.mobile as c_mobile, c.address as c_address, c.pincode as c_pincode, c.state as c_state, lot.payment_confirm_status, 
+            t.pincode AS transport_pincode,
+            t.name AS transport_name,
+            t.city AS transport_city,
+            t.days AS transport_days,
+            t.charges AS transport_charges
             FROM invoices i 
             JOIN buddy c ON i.customer_id = c.id
             JOIN live_order_track lot ON i.id = lot.invoice_id
-            WHERE i.id = %s AND lot.payment_confirm_status = 1
+            LEFT JOIN transport t ON i.transport_id = t.id
+            WHERE i.id = %s 
         """, (invoice_id,))
 
         invoice_data = cursor.fetchone()
 
+        # Extract data from database
+        customer = {
+            'name': invoice_data.get('c_name',''),
+            'mobile': invoice_data.get('c_mobile',''),
+            'address': invoice_data.get('c_address',''),
+            'pincode': invoice_data.get('c_pincode',''),
+            'state': invoice_data.get('c_state','')
+        }
 
         # Get invoice products
         cursor.execute("""
@@ -741,19 +753,14 @@ def generate_bill_pdf(invoice_id):
         cursor.close()
         conn.close()
 
-        # Extract data from database
-        customer = {
-            'name': invoice_data['name'],
-            'mobile': invoice_data['mobile'],
-            'address': invoice_data['address'],
-            'pincode': invoice_data['pincode'],
-            'state': invoice_data['state']
-        }
-
         # or however you store bill number
-        bill_no = invoice_data['invoice_number'] + str(invoice_data['id'])
+        bill_no = invoice_data['invoice_number']
         delivery_mode = invoice_data['delivery_mode']
-        transport_id = invoice_data['transport_id']
+        transport_name = invoice_data['transport_name']
+        transport_city = invoice_data['transport_city']
+        transport_days = invoice_data['transport_days']
+        transport_charges = invoice_data['transport_charges']
+        transport_pincode = invoice_data['transport_pincode']
         payment_mode = invoice_data['payment_mode']
         paid_amount = float(invoice_data['paid_amount'])
         grand_total = float(invoice_data['grand_total'])
@@ -953,16 +960,12 @@ def generate_bill_pdf(invoice_id):
                 result_words.append(' '.join(capitalized_parts))
             return ' '.join(result_words)
 
-        info_data = [
-            ["Payment Mode", capitalize_each_word(payment_mode)],
+        delivery_mode_table = [
             ["Delivery Mode", capitalize_each_word(delivery_mode)]
         ]
 
-        if delivery_mode == "transport":
-            info_data.append(["Transport Company", transport_id])
-
-        info_table = Table(info_data, colWidths=[2*inch, 6*inch])
-        info_table.setStyle(TableStyle([
+        delivery_mode_table = Table(delivery_mode_table, colWidths=[2.6*inch, 5.4*inch])
+        delivery_mode_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
             # Bold only the tag names column
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
@@ -973,6 +976,24 @@ def generate_bill_pdf(invoice_id):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ]))
+
+
+        if delivery_mode == "transport":
+            info_data = [
+                ["Transport Name", "City" , "Pincode" , "Charges" , "Delivery"]
+            ]
+            info_data.append([transport_name,transport_city,transport_pincode,transport_charges,f"{transport_days} Days"])
+
+            info_table = Table(info_data, colWidths=[2.6*inch, 3*inch,0.8*inch,0.8*inch,0.8*inch])
+            info_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ]))
 
         # Amount in words function
         def number_to_words(num):
@@ -1073,8 +1094,10 @@ def generate_bill_pdf(invoice_id):
         elements.append(product_table)
         elements.append(total_table)
         elements.append(Spacer(1, 10))
-        # elements.append(info_table)
-        # elements.append(Spacer(1, 10))
+        elements.append(delivery_mode_table)
+        if delivery_mode == "transport":
+            elements.append(info_table)
+        elements.append(Spacer(1, 10))
 
         if tax_summary_table:
             elements.append(tax_summary_table)
@@ -1105,7 +1128,8 @@ def generate_bill_pdf(invoice_id):
         )
 
     except Exception as e:
-        print(f"Error generating PDF: {e}")
+        import traceback
+        print(f"Error generating PDF: {traceback.print_exc()}")
         return jsonify({'error': 'Invoice Not Found!'}), 500
 
 
@@ -1870,8 +1894,14 @@ class Canceled_Orders:
                 c.id AS cancelled_orders_id,
                 c.cancelled_at,
                 c.reason AS cancelled_reason,
-                c.confirm_at
+                c.confirm_at,
 
+                -- transport_orders columns
+                t.pincode AS transport_pincode,
+                t.name AS transport_name,
+                t.city AS transport_city,
+                t.days AS transport_days,
+                t.charges AS transport_charges
 
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
@@ -1880,6 +1910,7 @@ class Canceled_Orders:
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
             LEFT JOIN cancelled_orders c ON inv.id = c.invoice_id
             LEFT JOIN users u ON c.cancelled_by = u.id
+            LEFT JOIN transport t ON inv.transport_id = t.id
             WHERE inv.invoice_created_by_user_id = %s
             AND c.confirm_by_saler = 0
             AND lot.cancel_order_status = 1
@@ -1891,7 +1922,7 @@ class Canceled_Orders:
                 OR lot.payment_confirm_status = 0 
                 OR lot.verify_by_manager = 0
             )
-            ORDER BY inv.created_at DESC
+            ORDER BY c.cancelled_at DESC
 
         """
         self.cursor.execute(query, (user_id,))
