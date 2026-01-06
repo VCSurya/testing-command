@@ -1119,9 +1119,9 @@
                                 <option value="all" selected>All</option>
                                 <option value="1">Payment</option>
                                 <option value="2">Packing</option>
-                                <option value="2">Transport</option>
-                                <option value="3">Builty</option>
-                                <option value="4">Verified</option>
+                                <option value="3">Transport</option>
+                                <option value="4">Builty</option>
+                                <option value="5">Verified</option>
                                 <!-- <option value="5">Delivered</option> -->
                             </select>
                         </div>
@@ -1352,7 +1352,16 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
+                list.innerHTML = `
+                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>
+                `;
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -1362,7 +1371,7 @@
                 const invoiceObj = {
                     number: inv.invoice_number,
                     date: inv.created_at,
-                    customer: inv.customer + ', '+ inv.mobile,
+                    customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,
@@ -1471,11 +1480,11 @@
                         <div title="${invoiceObj.delivery_mode}">
                                 <strong>Delivery Mode:</strong>
                                 ${invoiceObj.delivery_mode
-                        ? invoiceObj.delivery_mode
-                            .replace(/_/g, ' ')                // replace underscores with spaces
-                            .toLowerCase()                     // make everything lowercase first
-                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                        : ''}
+                            ? invoiceObj.delivery_mode
+                                .replace(/_/g, ' ')                // replace underscores with spaces
+                                .toLowerCase()                     // make everything lowercase first
+                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                            : ''}
                         </div>
                         <!-- Static HTML Content -->
                         <div class="transport-row">
@@ -1615,12 +1624,12 @@
                                     <div style="color: var(--warning);">
                                         <strong>Paid:</strong>
                                         ₹${invoiceObj.amount_paid.toLocaleString()} (${invoiceObj.payment_mode
-                            ? invoiceObj.payment_mode
-                                .replace(/_/g, ' ')                 // replace underscores
-                                .toLowerCase()                      // make all lowercase
-                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                            : ''
-                        })
+                                ? invoiceObj.payment_mode
+                                    .replace(/_/g, ' ')                 // replace underscores
+                                    .toLowerCase()                      // make all lowercase
+                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                : ''
+                            })
                                     </div>
                                 </div>
 

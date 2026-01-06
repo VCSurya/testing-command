@@ -332,7 +332,8 @@
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
             overflow: auto;
-            scrollbar-width: thin; /* for Firefox */
+            scrollbar-width: thin;
+            /* for Firefox */
             scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
@@ -1428,7 +1429,40 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
+                list.innerHTML = `
+                
+                <li class="w-full bg-white border border-slate-100 rounded-2xl shadow-sm p-6 text-center transition-all hover:shadow-md">
+                    
+                     
+                        <!-- Compact Animated Icon -->
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-2 float-animation">
+                            <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Open Box SVG Path -->
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                        </div>
+
+                        <!-- Text Content -->
+                        <h3 class="text-lg font-semibold text-slate-900 mb-1">No Order Yet</h3>
+                        <p class="text-sm text-slate-500 mb-6 px-4">
+                            Ready to make a new orders?
+                        </p>
+
+                        <!-- CTA Action -->
+                        <a href="/sales/sell" 
+                        class="max-w-sm inline-flex items-center justify-center w-full px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm shadow-indigo-200 transition-all active:scale-[0.98] group">
+                            <span>Make Order</span>
+                            <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                        </a>
+                        <br>
+                        <!-- Optional Subtle Refresh -->
+                        <button onclick="window.location.reload()" class="mt-4 text-l font-medium text-slate-800 hover:text-indigo-500 transition-colors">
+                            Check for updates
+                        </button>
+                    
+                </li>`;
                 return;
             }
             invoices.forEach((inv, idx) => {

@@ -1458,7 +1458,7 @@
             }
 
             .card-body {
-                padding: 20px 0px;
+                padding: 20px 5px;
             }
         }
     </style>
@@ -1650,7 +1650,7 @@
                             <div class="form-group" id="section">
                                 <div class="section-header">
                                     <span for="customerSelect" class="icon">📦</span>
-                                    PRODUCT TABLE
+                                    SELECT CUSTOMER
                                     <!-- <button type="button"
                                         style="border:none;padding: 0px 10px;float: right;background-color: #ffffff;color: #1e094d;"
                                         id="addCustomerBtn">
@@ -2782,7 +2782,17 @@
                 const customerMobile = document.getElementById('customerMobile').value;
 
                 if (!customerName || !customerAddress || !customerPincode || !customerMobile) {
-                    alert('Please fill in all fields.');
+                    alert('Please fill in all fields with valid information.');
+                    return;
+                }
+
+                if (!/^\d+$/.test(customerMobile)) {
+                    alert("Enter Valid Mobile Number");
+                    return;
+                }
+
+                if (!/^\d+$/.test(customerPincode)) {
+                    alert("Enter Valid PINCODE Number");
                     return;
                 }
 
@@ -2813,7 +2823,7 @@
                             document.getElementById('customerPincode').value = '';
                             document.getElementById('customerMobile').value = '';
 
-                            selectCustomer(data.data.mobile, data.data.name, data.data.address, data.data.pincode);
+                            selectCustomer(customerMobile, customerName, customerAddress, customerPincode);
 
                         } else {
                             alert(data.error);

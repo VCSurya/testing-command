@@ -1535,7 +1535,7 @@
             }
 
             .card-body {
-                padding: 20px 0px;
+                padding: 20px 5px;
             }
         }
     </style>
@@ -1750,7 +1750,7 @@
                             <div class="form-group" id="section">
                                 <div class="section-header">
                                     <span for="customerSelect" class="icon">📦</span>
-                                    PRODUCT TABLE
+                                    SELECT ITEMS
                                 </div>
                                 <br>
                                 <!-- Step 1: Search production Section -->
@@ -1851,8 +1851,8 @@
                                 <div class="form-group" id="transportCompanyGroup"
                                     style="display: none;margin-top: 20px;">
 
-                                    <input type="text" class="form-control" id="transportCompany"
-                                        name="transport_id" hidden>
+                                    <input type="text" class="form-control" id="transportCompany" name="transport_id"
+                                        hidden>
 
                                     <!-- Step 1: Search Section -->
                                     <div class="relative">
@@ -2861,7 +2861,17 @@
                 const customerMobile = document.getElementById('customerMobile').value;
 
                 if (!customerName || !customerAddress || !customerPincode || !customerMobile) {
-                    alert('Please fill in all fields.');
+                    alert('Please fill in all fields with valid information.');
+                    return;
+                }
+
+                if (!/^\d+$/.test(customerMobile)) {
+                    alert("Enter Valid Mobile Number");
+                    return;
+                }
+
+                if (!/^\d+$/.test(customerPincode)) {
+                    alert("Enter Valid PINCODE Number");
                     return;
                 }
 
@@ -2892,7 +2902,7 @@
                             document.getElementById('customerPincode').value = '';
                             document.getElementById('customerMobile').value = '';
 
-                            selectCustomer(data.data.mobile, data.data.name, data.data.address, data.data.pincode);
+                            selectCustomer(customerMobile, customerName, customerAddress, customerPincode);
 
                         } else {
                             alert(data.error);
@@ -3015,9 +3025,14 @@
                     
                     <tr>
                         <td colspan="5" class="empty-table">
-                                <div class="icon">🛒</div>
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-50 mb-4 float-animation">
+                                    <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <!-- Shopping Cart SVG Path -->
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
                                 <div>No products added yet</div>
-                                <div style="font-size: 12px; margin-top: 8px;">Click "Add Item" to add items</div>
+                                <div style="font-size: 12px; margin-top: 8px;">Your cart is currently empty. Start adding items</div>
                         </td>
                     </tr>
 
@@ -3313,7 +3328,7 @@
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
-                formData.append('customerId',customerId);
+                formData.append('customerId', customerId);
 
                 // Show the modal with loading animation
                 const loadingDots = document.getElementById('printLoadingDots');
@@ -3380,7 +3395,7 @@
                             modalFooter.style.display = 'none';
                             responseContent.innerHTML = `
                             <div class="alert alert-danger">
-                                Failed to process invoice: ${data.error || 'Failed to save invoice'}
+                                Failed To Save Invoice.
                             </div>`;
                         }
                     })
@@ -3391,7 +3406,7 @@
                         modalFooter.style.display = 'none';
                         responseContent.innerHTML = `
                 <div class="alert alert-danger">
-                    Failed to process invoice: ${error.message}
+                    Failed To Process Invoice.
                 </div>`;
                     });
             }

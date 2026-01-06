@@ -428,8 +428,14 @@ def add_new_customer():
             return jsonify({'success': False,'error': 'Database connection failed'}), 500
 
         if not all([name, address, state, pincode, mobile]):
-            return jsonify({'success': False,'error': 'Required fields are missing'}),500
+            return jsonify({'success': False,'error': 'Please fill in all fields with valid information.'}),500
 
+        if not mobile.isdigit():
+            return jsonify({'success': False,'error': 'Enter valid mobile number'}),500
+
+        if not pincode.isdigit():
+            return jsonify({'success': False,'error': 'Enter valid PINCODE number'}),500
+    
         cursor = conn.cursor(dictionary=True)
 
         # Check if username already exists
@@ -443,8 +449,9 @@ def add_new_customer():
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
                        (name, address, state, pincode, mobile, session.get('user_id')))
         conn.commit()
-        mobile = int(request.form['mobile'])
-        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile))
+        
+        mobile = int(mobile)
+        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
         exist = cursor.fetchone()
         
         cursor.close()
@@ -453,6 +460,9 @@ def add_new_customer():
         return jsonify({'success': True,"data":exist if exist else {}})
 
     except Exception as e:
+        print(e)
+        import traceback
+        print(traceback.print_exc())
         return jsonify({'success': False,'error': 'Internal server error'}), 500
 
 
