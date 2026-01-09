@@ -1725,7 +1725,10 @@
 
                         <div class="next-to-pack-container">
                             <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
-                                ${invoiceObj.delivery_mode === 'At store' ? 'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>' : 'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>'} 
+                                ${invoiceObj.delivery_mode === 'transport' || invoiceObj.delivery_mode === 'post' ? 
+                                'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>' :
+                                'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>' 
+                                } 
                             </button>
                         </div>
                     </div>

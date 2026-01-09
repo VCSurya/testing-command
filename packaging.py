@@ -1,6 +1,6 @@
 from flask import Blueprint, make_response, render_template, jsonify, request, session
 from sympy import im
-from utils import get_db_connection, login_required, encrypt_password,decrypt_password
+from utils import get_db_connection, login_required, get_invoice_id
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -45,27 +45,10 @@ class PackagingModel:
                         AND payment_confirm_status = 1 
                     THEN 1 END) AS total_draft_packing_order,
 
-                -- Total Proceed Packing Order From User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 1 
-                        AND packing_proceed_by = {user_id} 
-                    THEN 1 END) AS total_proceed_packing_order_from_user,
-
                 -- Replaced Canceled orders from cancelled_orders table
                 COALESCE(co.total_canceled_orders, 0) AS total_canceled_orders,
                 COALESCE(co.pending_canceled_orders, 0) AS pending_canceled_orders,
                 COALESCE(co.confirmed_canceled_orders, 0) AS confirmed_canceled_orders,
-
-                -- Total Order Which Is Packed But Not Transport
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 1 
-                        AND packing_proceed_by = {user_id}
-                        AND transport_proceed_for_builty = 0 
-                    THEN 1 END) AS total_packed_but_not_transport,
 
                 -- Total Today Order Packed By User
                 COUNT(CASE WHEN sales_proceed_for_packing = 1 
@@ -122,7 +105,8 @@ class PackagingModel:
                 if item['packing_proceed_for_transport']:
                     
                     if item['packing_proceed_for_transport']:
-                        trackingDates.append(item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p"))
+                        item['packing_date_time'] = item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p")
+                        trackingDates.append(item['packing_date_time'])
                     else:
                         trackingDates.append('')
                     trackingStatus = 2                
@@ -181,125 +165,79 @@ class PackagingModel:
     def fetch_packing_orders(self):
         query = f"""
                     SELECT
-                    
-                        inv.id,
-                    
+    
+                        inv.id,                    
                         inv.invoice_number,
-                    
                         inv.customer_id,
-                    
                         inv.grand_total,
-                    
                         inv.payment_mode,
-                    
                         inv.paid_amount,
-                    
                         inv.left_to_paid,
-                    
-                        inv.transport_company_name,
-                    
                         inv.sales_note,
-                    
                         inv.invoice_created_by_user_id,
-                    
                         inv.payment_note,
-                    
                         inv.gst_included,
-                    
                         inv.created_at,
-                    
                         inv.delivery_mode,
 
                         b.id AS buddy_id,
-                    
                         b.name AS customer,
-                    
                         b.address,
-                    
                         b.state,
-                    
                         b.pincode,
-                    
                         b.mobile,
 
                         u.id AS users_id,
-                    
                         u.username,
 
                         ii.id AS invoices_items_id,
-                    
                         ii.product_id,
-                    
                         ii.quantity,
-                    
                         ii.price,
-                    
                         ii.gst_tax_amount,
-                    
                         ii.total_amount,
-                    
                         ii.created_at,
 
                         p.id AS products_id,
-                    
                         p.name,
 
                         lot.id AS live_order_track_id,
-                    
                         lot.sales_proceed_for_packing,
-                    
                         lot.sales_date_time,
-                    
                         lot.packing_proceed_for_transport,
-                    
                         lot.packing_date_time,
-                    
                         lot.packing_proceed_by,
-                    
                         lot.transport_proceed_for_builty,
-                    
                         lot.transport_date_time,
-                    
                         lot.transport_proceed_by,
-                    
                         lot.builty_proceed_by,
-                    
                         lot.builty_received,
-                    
                         lot.builty_date_time,
-                    
                         lot.payment_confirm_status,
-                    
                         lot.cancel_order_status,
-
                         lot.verify_by_manager,
-
                         lot.verify_by_manager_id,
-
-                        lot.verify_manager_date_time
+                        lot.verify_manager_date_time,
+                        transport.pincode AS transport_pincode,
+                        transport.name AS transport_name,
+                        transport.city AS transport_city
 
                     FROM invoices inv
 
                     LEFT JOIN buddy b ON inv.customer_id = b.id
-
                     LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
                     LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
                     LEFT JOIN products p ON ii.product_id = p.id
-
                     LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                    LEFT JOIN transport ON inv.transport_id = transport.id
 
                         AND lot.cancel_order_status = 0
-
                         AND lot.sales_proceed_for_packing = 1
 
                     WHERE lot.packing_proceed_for_transport = 0
 
                     AND inv.completed = 0
-
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
-
                     AND lot.payment_confirm_status = 1
 
                     ORDER BY inv.created_at DESC;                
@@ -324,127 +262,81 @@ class PackagingModel:
                     SELECT
                     
                         inv.id,
-                    
                         inv.invoice_number,
-                    
                         inv.customer_id,
-                    
                         inv.grand_total,
-                    
                         inv.payment_mode,
-                    
                         inv.paid_amount,
-                    
                         inv.left_to_paid,
-                    
-                        inv.transport_company_name,
-                    
                         inv.sales_note,
-                    
                         inv.invoice_created_by_user_id,
-                    
                         inv.payment_note,
-                    
                         inv.gst_included,
-                    
-                        inv.created_at,
-                    
+                        inv.created_at,                    
                         inv.delivery_mode,
 
                         b.id AS buddy_id,
-                    
                         b.name AS customer,
-                    
                         b.address,
-                    
                         b.state,
-                    
                         b.pincode,
-                    
                         b.mobile,
 
                         u.id AS users_id,
-                    
                         u.username,
 
                         ii.id AS invoices_items_id,
-                    
                         ii.product_id,
-                    
                         ii.quantity,
-                    
                         ii.price,
-                    
                         ii.gst_tax_amount,
-                    
                         ii.total_amount,
-                    
                         ii.created_at,
 
                         p.id AS products_id,
-                    
                         p.name,
 
                         lot.id AS live_order_track_id,
-                    
                         lot.sales_proceed_for_packing,
-                    
                         lot.sales_date_time,
-                    
                         lot.packing_proceed_for_transport,
-                    
                         lot.packing_date_time,
-                    
                         lot.packing_proceed_by,
-                    
                         lot.transport_proceed_for_builty,
-                    
                         lot.transport_date_time,
-                    
                         lot.transport_proceed_by,
-                    
                         lot.builty_proceed_by,
-                    
                         lot.builty_received,
-                    
                         lot.builty_date_time,
-                    
                         lot.payment_confirm_status,
-                    
                         lot.cancel_order_status,
-
                         lot.verify_by_manager,
                         lot.verify_by_manager_id,
                         lot.verify_manager_date_time,
-                        lot.packing_note
+                        lot.packing_note,
 
+                        transport.pincode AS transport_pincode,
+                        transport.name AS transport_name,
+                        transport.city AS transport_city
 
                     FROM invoices inv
 
                     LEFT JOIN buddy b ON inv.customer_id = b.id
-
                     LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-
                     LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-
                     LEFT JOIN products p ON ii.product_id = p.id
-
                     LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                    LEFT JOIN transport ON inv.transport_id = transport.id
 
                         AND lot.cancel_order_status = 0
-
                         AND lot.sales_proceed_for_packing = 1
-
                         AND lot.packing_proceed_for_transport = 1
-
                         AND lot.transport_proceed_for_builty = 0 
 
                     WHERE lot.packing_proceed_by = %s
                     
                     AND inv.completed = 0
-
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
-
                     AND lot.payment_confirm_status = 1
 
                     ORDER BY inv.created_at DESC;                
@@ -540,7 +432,7 @@ class PackagingModel:
                     INSERT INTO packing_images (invoice_id, image_url, uploaded_by)
                     VALUES (%s, %s, %s)
                 """
-                self.cursor.execute(insert_query, (invoice_id[10:], db_path, session.get('user_id')))
+                self.cursor.execute(insert_query, (invoice_id, db_path, session.get('user_id')))
 
             self.conn.commit()
             return {"success": True}
@@ -552,11 +444,11 @@ class PackagingModel:
     def get_images(self, invoice_id):
         try:
             query = """
-                SELECT image_id, image_url
+                SELECT image_url
                 FROM packing_images
                 WHERE invoice_id = %s
             """
-            self.cursor.execute(query, (invoice_id[10:],))
+            self.cursor.execute(query, (invoice_id,))
             rows = self.cursor.fetchall()
             return {"success": True, "images": rows}
 
@@ -714,11 +606,18 @@ def uploaded_image(filename):
 @login_required('Packaging')
 def save_images():
     try:
-        invoice_id = request.form.get("invoiceId")
+        invoice_number = request.form.get("invoiceId")
         files = request.files.getlist("images")
 
-        if not invoice_id or not files:
+        if not invoice_number or not files:
             return jsonify({"success": False, "message": "Invalid data!"}), 400
+
+        result = get_invoice_id(invoice_number)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
 
         packaging_model = PackagingModel()
         result = packaging_model.save_images(invoice_id, files)
@@ -738,6 +637,14 @@ def save_images():
 def get_images(invoice_id):
     try:
         packaging_model = PackagingModel()
+
+        result = get_invoice_id(invoice_id)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({"success": True,'message': 'Invoice not found'}), 404
+
         images = packaging_model.get_images(invoice_id)
 
         return jsonify({"success": True, "images": images['images']}), 200
@@ -770,9 +677,19 @@ def delete_image():
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
-@packaging_bp.route('/packaging/images_page/<string:invoice_id>', methods=['GET'])
+@packaging_bp.route('/packaging/images_page/<string:invoice_number>', methods=['GET'])
 @login_required('Packaging')
-def show_images_page(invoice_id):
+def show_images_page(invoice_number):
     packaging_model = PackagingModel()
+
+    result = get_invoice_id(invoice_number)
+    invoice_id = None
+    
+    if result['status']:
+        invoice_id = result['invoice_id']
+    else:
+        return jsonify({'error': 'Invoice not found'}), 404
+
     images = packaging_model.get_images(invoice_id)
-    return render_template('dashboards/packaging/images_page.html', images=images, invoice_id=invoice_id)
+    print(images)
+    return render_template('dashboards/packaging/images_page.html', images=images, invoice_id=invoice_number)

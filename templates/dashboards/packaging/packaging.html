@@ -108,6 +108,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
         }
 
         /* Responsive */
@@ -392,7 +395,7 @@
                 </div>
 
 
-                <div class="container-fluid px-4" style="padding-top: 40px;">
+                <div class="container-fluid px-4" style="padding-top: 100px;">
                     <!-- Start: Main Reusable Dashboard Div -->
                     <div id="packing-dashboard-container">
                         <!-- Dashboard Grid -->
@@ -461,13 +464,13 @@
         // Map the JSON keys to display properties, colors, and icons.
         // Colors updated for a richer, classic palette.
         const statConfig = {
-            total_proceed_packing_order_from_user: {
-                title: "Total Packed Orders",
-                icon: "zap", // Lightning icon for high priority/active work
-                color: "bg-indigo-600",
-                shadow: "shadow-indigo-600/60",
-                description: "All confirmed packing orders by you."
-            },
+            // total_proceed_packing_order_from_user: {
+            //     title: "Total Packed Orders",
+            //     icon: "zap", // Lightning icon for high priority/active work
+            //     color: "bg-indigo-600",
+            //     shadow: "shadow-indigo-600/60",
+            //     description: "All confirmed packing orders by you."
+            // },
             total_draft_packing_order: {
                 title: "Draft Orders",
                 icon: "repeat", // Suggests refreshing/ready to move to next stage (The 'moving' animation)
@@ -475,34 +478,34 @@
                 shadow: "shadow-gray-500/60",
                 description: "Orders saved as drafts, ready to become active for packing."
             },
-            total_packed_but_not_transport: {
-                title: "Packed, Awaiting Transport",
-                icon: "truck",
-                color: "bg-emerald-600", // Richer green
-                shadow: "shadow-emerald-600/60",
-                description: "Ready packages waiting for transport."
-            },
+            // total_packed_but_not_transport: {
+            //     title: "Packed, Awaiting Transport",
+            //     icon: "truck",
+            //     color: "bg-emerald-600", // Richer green
+            //     shadow: "shadow-emerald-600/60",
+            //     description: "Ready packages waiting for transport."
+            // },
             total_today_order_packed_by_user: {
-                title: "Today's Your Packed Orders ",
+                title: "Today's Your Packed Orders",
                 icon: "check-circle",
                 color: "bg-green-700", // Deep green for success
                 shadow: "shadow-green-700/60",
                 description: "The total orders you have packed today."
             },
             pending_canceled_orders: {
-                title: "Pending Canceled Orders",
+                title: "Your Pending Canceled Orders",
                 icon: "alert-triangle",
                 color: "bg-yellow-600",
                 shadow: "shadow-yellow-600/60",
                 description: "Cancellations awaiting confirmation."
             },
-            confirmed_canceled_orders: {
-                title: "Confirmed Canceled Orders",
-                icon: "slash",
-                color: "bg-red-400",
-                shadow: "shadow-red-400/60",
-                description: "Cancellations that are finalized."
-            }
+            // confirmed_canceled_orders: {
+            //     title: "Confirmed Canceled Orders",
+            //     icon: "slash",
+            //     color: "bg-red-400",
+            //     shadow: "shadow-red-400/60",
+            //     description: "Cancellations that are finalized."
+            // }
         };
 
         // Utility function to get Lucide-like SVG icons
@@ -557,7 +560,11 @@
 
             // Card structure updated to put Title on top, and Value/Icon side-by-side
             return `
-                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between" 
+                onclick="
+                window.location.href = ''
+                ${config.title === 'Draft Orders' ? "+ '/ready-to-go-for-transport'" : config.title === "Today's Your Packed Orders" ? "+ '/my-packaging-orders'" : ''}"
+                >
                     
                     <!-- Title now takes the full top row -->
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${config.title}</h3>

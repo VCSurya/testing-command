@@ -123,6 +123,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
         }
 
         /* Responsive */
@@ -186,29 +189,20 @@
 
 
         .main-content-wrapper {
-            padding-top: 40px;
+            padding-top: 100px;
             min-height: 100vh;
         }
 
-        .main-content-wrapper {
-            padding-top: 50px;
-            min-height: 100vh;
-        }
 
         /* Invoice Panel Styles */
         .invoice-container {
             max-width: 100%;
-            padding: 24px 16px;
+            padding: 0px 16px;
         }
 
         .glass-panel {
-            background: var(--glass);
-            border-radius: 22px;
-            box-shadow: var(--glass-shadow);
-            border: 1.5px solid var(--glass-border);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            padding: 24px 20px;
+            background: transparent;
+            padding: 20px 10px;
             overflow: hidden;
             margin-bottom: 2rem;
         }
@@ -600,7 +594,7 @@
             flex: 1 1 45%;
             background: linear-gradient(to bottom right, #fafafa, #e1e6ee);
             border-left: 5px solid #4A90E2;
-            padding: 15px 0px 0px 20px;
+            padding: 5px 0px 5px 12px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
@@ -1127,6 +1121,118 @@
             color: #ffffff;
         }
     </style>
+
+    <style>
+        /* The Horizontal Row Container */
+        .transport-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-top: 5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Individual Data Groups */
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            min-width: fit-content;
+        }
+
+        /* Highlighting the Transport Name */
+        .brand-group {
+            flex: 1.5;
+        }
+
+        .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.1rem;
+        }
+
+        .value {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .brand-name {
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .charges-value {
+            color: black;
+            font-weight: 800;
+        }
+
+        /* Responsive design for tablets and mobile */
+        @media (max-width: 850px) {
+            .transport-row {
+                flex-wrap: wrap;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .info-group {
+                flex: 1 1 150px;
+            }
+
+            .brand-group {
+                flex: 1 1 100%;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .transport-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .info-group {
+                flex: none;
+                width: 100%;
+            }
+        }
+
+        /* Custom spinner animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            /* Blue 500 */
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1248,7 +1354,7 @@
                 <div class="modal-buttons-custom"
                     style="width:100%;justify-content:space-between;gap:1em;margin-top:0.2em;">
                     <button id="cancelOrderCancelBtn" type="button"
-                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Back</button>
+                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Cancel</button>
                     <button id="cancelOrderConfirmBtn" type="submit"
                         style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
                 </div>
@@ -1258,8 +1364,23 @@
 
     <!-- The Modal/Popup -->
     <div id="image-popup" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+
+
+
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 md:p-8 transform transition-all scale-95 opacity-0"
             id="popup-content">
+
+            <div id="upload-overlay"
+                class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 rounded-2xl hidden">
+                <p class="text-blue-600 font-semibold mb-3 flex items-center gap-2">
+                    <span id="process-message" class="text-xl"> Uploading...</span>
+                </p>
+                <div class="loader"></div>
+            </div>
+
+            <!-- Mock Image (Hidden initially) -->
+            <img id="preview-image" src="" alt="Preview" class="hidden w-full h-full object-cover">
+
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-2xl font-semibold text-gray-800" id="popup-title">Packing Images</h3>
@@ -1331,7 +1452,7 @@
 
             <!-- Footer Actions -->
             <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-                <div id="status-message" class="text-sm text-gray-600"></div>
+                <div id="status-message" class="text-xl text-green-600"></div>
                 <button id="save-btn"
                     class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 disabled:bg-indigo-300 disabled:cursor-not-allowed">
                     Save Images
@@ -1510,6 +1631,55 @@
             }
         }
 
+        const imageWorker = new Worker(
+            "/static/js/imageCompressor.worker.js",
+            { type: "module" } // optional but recommended
+        );
+
+        let workerRequestId = 0;
+        const workerResolvers = new Map();
+
+        imageWorker.onmessage = (e) => {
+            const { id, success, blob, error } = e.data;
+            const resolver = workerResolvers.get(id);
+            if (!resolver) return;
+            workerResolvers.delete(id);
+
+            if (success) resolver.resolve(blob);
+            else resolver.reject(error);
+        };
+
+        async function compressImageWorker(file, options = {}) {
+            return new Promise((resolve, reject) => {
+                const id = ++workerRequestId;
+
+                // Save resolver for this request
+                workerResolvers.set(id, { resolve, reject });
+
+                imageWorker.postMessage({
+                    id,
+                    file,
+                    maxWidth: options.maxWidth || 1200,
+                    maxHeight: options.maxHeight || 1200,
+                    quality: options.quality || 0.7
+                });
+            });
+        }
+
+
+        async function compressFiles(files) {
+            return Promise.all(
+                files.map(async (file) => {
+                    const blob = await compressImageWorker(file);
+                    return new File(
+                        [blob],
+                        file.name.replace(/\.\w+$/, ".jpg"),
+                        { type: "image/jpeg" }
+                    );
+                })
+            );
+        }
+
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
@@ -1525,11 +1695,10 @@
                 const products = Array.isArray(inv.products) ? inv.products : [];
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
-                    number: inv.invoice_number + inv.id,
+                    number: inv.invoice_number,
                     main_id: inv.id,
                     date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.state + ', ' + inv.mobile,
-                    customer_address: inv.address,
+                    customer: inv.customer + ', ' + inv.mobile,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,
                     transport_company_name: inv.transport_company_name,
@@ -1544,7 +1713,10 @@
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
                     live_order_track_id: inv.live_order_track_id,
-                    sales_by: inv.username
+                    sales_by: inv.username,
+                    transport_name: inv.transport_name,
+                    transport_city: inv.transport_city,
+                    transport_pincode: inv.transport_pincode
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -1580,7 +1752,7 @@
                         <div id="invoice_date_2" ><strong> Date:</strong> 
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
-                        <div title=${invoiceObj.customer_address}>
+                        <div title=${invoiceObj.customer}>
                             
                             <strong>Customer:</strong> ${invoiceObj.customer}
                              ${invoiceObj.gst_included == 1 ? `
@@ -1591,11 +1763,32 @@
                                 ` : ''}
     
                         </div>
-                        <div><strong>Payment Status:</strong> <span style="color:${invoiceObj.payment_status === 'Paid' ? 'var(--success-green)' : 'var(--warning)'};font-weight:600;">${invoiceObj.payment_status}</span>
-                            <span> (${invoiceObj.payment_mode}) </span>
-                        </div>
-                        <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
+                        
                         <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sales_by}</div>
+
+                         ${invoiceObj.delivery_mode === 'transport' ? `
+                    
+                           <!-- Static HTML Content -->
+                            <div class="transport-row">
+                                <div class="info-group brand-group">
+                                    <span class="label">Transport Name</span>
+                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
+                                </div>
+                                
+                                <div class="info-group">
+                                    <span class="label">City</span>
+                                    <span class="value">${invoiceObj.transport_city}</span>
+                                </div>
+
+                                <div class="info-group">
+                                    <span class="label">Pincode</span>
+                                    <span class="value">${invoiceObj.transport_pincode}</span>
+                                </div>
+                            </div>
+
+                        ` : ``}
+
+
                         
                         <table style="margin-top:10px;">
                             <thead>
@@ -1620,30 +1813,6 @@
                             </tbody>
                         </table>
 
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                <div>
-                                    <strong>Paid:</strong>
-                                    ₹${invoiceObj.amount_paid.toLocaleString()}
-                                </div>
-                            </div>
-
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                <div>
-                                    <strong>Left to Pay:</strong>
-                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div class="amounts-container3">
-                                <div>
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="note-container">
                             
                             ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
@@ -1653,12 +1822,6 @@
                                 </div>
                             ` : ''}
                             
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-
                             <textarea id="packing_note" placeholder="Enter Packing Regarding Note Here..."></textarea>
                             
                         </div
@@ -1772,6 +1935,10 @@
             const saveBtn = document.getElementById('save-btn');
             const statusMessage = document.getElementById('status-message');
 
+            const uploadOverlay = document.getElementById('upload-overlay');
+            const processMessage = document.getElementById('process-message');
+            const loader = document.querySelector('.loader');
+
             const cameraContainer = document.getElementById('camera-container');
             const cameraView = document.getElementById('camera-view');
             const photoCanvas = document.getElementById('photo-canvas');
@@ -1786,6 +1953,8 @@
             // ------------------------------------------------------------
             window.openPopup = function (invoiceId) {
                 currentInvoiceId = invoiceId;
+
+                uploadOverlay.classList.add('hidden');
 
                 imagePopup.classList.remove('hidden');
                 setTimeout(() => popupContent.classList.remove('scale-95', 'opacity-0'), 10);
@@ -1880,7 +2049,7 @@
                         return;
                     }
 
-                    if (!confirm("Delete this image?")) return;
+                    if (!confirm("Remove this image?")) return;
 
                     try {
                         const res = await fetch("/packaging/image/delete", {
@@ -1923,7 +2092,7 @@
                     // ✅ Check if no images found
                     if (!data.success || !data.images || data.images.length === 0) {
                         imagePreviewContainer.innerHTML =
-                            "<p class='placeholder-text text-green-500 text-center'>No images found, please upload the images.</p>";
+                            `<p class='placeholder-text text-red-400 text-center'>No images found, please upload the images.</p>`;
                     }
 
                     // ✅ Display images
@@ -2030,6 +2199,11 @@
             // ------------------------------------------------------------
             saveBtn.onclick = async () => {
 
+                processMessage.style.color = "blue";
+                processMessage.textContent = 'Uploading... Please wait.';
+                uploadOverlay.classList.remove('hidden')
+                loader.classList.remove("hidden");
+
                 const files = [...document.querySelectorAll('.preview-image')]
                     .filter(img => img.dataset.id === "0")
                     .map(img => img.file)
@@ -2040,28 +2214,75 @@
                     return;
                 }
 
-                const form = new FormData();
-                form.append("invoiceId", currentInvoiceId);
+                if (files.length > 5) {
 
-                files.forEach(f => form.append("images", f, f.name));
+                    statusMessage.textContent = "Upload max 5 images at a time";
+                    processMessage.style.color = "red";
+                    processMessage.textContent = 'Upload max 5 images at a time';
+                    uploadOverlay.classList.remove('hidden')
+                    loader.classList.add("hidden");
+
+
+                    setTimeout(() => {
+                        uploadOverlay.classList.add('hidden')
+                    }, 1500);
+
+                    return;
+                }
+
 
                 try {
+
+                    // 🔥 COMPRESS HERE
+                    const compressedFiles = await compressFiles(files);
+
+
+                    const form = new FormData();
+                    form.append("invoiceId", currentInvoiceId);
+
+                    compressedFiles.forEach(file =>
+                        form.append("images", file, file.name)
+                    );
+
                     const res = await fetch("/packaging/saveimages", {
                         method: "POST",
                         body: form
                     });
 
+
                     const data = await res.json();
 
                     if (data.success) {
+
+                        statusMessage.style.color = "green";
                         statusMessage.textContent = "Saved successfully!";
-                        setTimeout(closePopup, 1500);
+                        loader.classList.add("hidden");
+                        processMessage.style.color = "green";
+                        processMessage.textContent = 'Saved successfully!';
+                        saveBtn.style.display = "none";
+                        setTimeout(() => {
+                            uploadOverlay.classList.add('hidden');
+                            closePopup();
+                        }, 1500);
+
                     } else {
                         throw new Error();
                     }
 
                 } catch (err) {
+                    console.error(err);
+                    processMessage.style.color = "red";
+                    processMessage.textContent = 'Upload failed. Please try again.';
+                    uploadOverlay.classList.remove('hidden')
+                    loader.classList.add("hidden");
+
+                    statusMessage.style.color = "red";
                     statusMessage.textContent = "Upload failed.";
+
+                    setTimeout(() => {
+                        uploadOverlay.classList.add('hidden');
+                    }, 1800);
+
                 }
             };
 
