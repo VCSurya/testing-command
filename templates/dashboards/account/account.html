@@ -111,6 +111,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
         }
 
         /* Responsive */
@@ -327,7 +330,51 @@
             animation: float-glow 3s ease-in-out infinite;
         }
     </style>
+<style>
+        @keyframes checkmark {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+        
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .animate-checkmark {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkmark 0.8s ease-in-out forwards 0.4s;
+        }
+
+        .animate-scale-in {
+            animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        @keyframes burst {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0); opacity: 0; }
+        }
+
+        .animate-burst {
+            animation: burst 1s ease-out forwards;
+        }
+    </style>
 </head>
 
 <body>
@@ -388,11 +435,11 @@
                         <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Account Station</h4>
                     </div>
                 </div>
-                <div class="container-fluid px-4" style="padding-top: 40px;">
+                <div class="container-fluid px-4" style="padding-top: 100px;">
                     <!-- Start: Main Reusable Dashboard Div -->
                     <div id="packing-dashboard-container">
                         <!-- Dashboard Grid -->
-                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
                             <!-- Stats cards will be injected here by JavaScript -->
                             <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
                                 <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
@@ -456,13 +503,13 @@
         // Map the JSON keys to display properties, colors, and icons.
         // Colors updated for a richer, classic palette.
         const statConfig = {
-            total_proceed_payment_order_from_user: {
-                title: "Total Dispatched Orders",
-                icon: "zap", // Active/urgent task indicator
-                color: "bg-indigo-600",
-                shadow: "shadow-indigo-600/60",
-                description: "Total orders you have dispatched successfully and builty recived."
-            },
+            // total_proceed_payment_order_from_user: {
+            //     title: "Total Dispatched Orders",
+            //     icon: "zap", // Active/urgent task indicator
+            //     color: "bg-indigo-600",
+            //     shadow: "shadow-indigo-600/60",
+            //     description: "Total orders you have dispatched successfully and builty recived."
+            // },
             total_draft_payment_order: {
                 title: "Draft Payment Orders",
                 icon: "repeat", // Pending/ready to proceed
@@ -531,7 +578,10 @@
 
             // Card structure updated to put Title on top, and Value/Icon side-by-side
             return `
-                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
+                onclick=" window.location.href = ''
+                ${config.title === 'Draft Payment Orders' ? "+ '/account/verify-payment'" : ''}"
+                >
                     
                     <!-- Title now takes the full top row -->
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${config.title}</h3>

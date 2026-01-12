@@ -122,6 +122,13 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        #paymentModal {
+            z-index: 2001;
         }
 
         /* Responsive */
@@ -185,7 +192,7 @@
 
 
         .main-content-wrapper {
-            padding-top: 40px;
+            padding-top: 100px;
             min-height: 100vh;
         }
 
@@ -193,17 +200,12 @@
         /* Invoice Panel Styles */
         .invoice-container {
             max-width: 100%;
-            padding: 24px 16px;
+            padding: 0px 16px;
         }
 
         .glass-panel {
-            background: var(--glass);
-            border-radius: 22px;
-            box-shadow: var(--glass-shadow);
-            border: 1.5px solid var(--glass-border);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            padding: 24px 20px;
+            background: transparent;
+            padding: 20px 10px;
             overflow: hidden;
             margin-bottom: 2rem;
         }
@@ -335,6 +337,10 @@
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
+            overflow: auto;
+            scrollbar-width: thin;
+            /* for Firefox */
+            scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {
@@ -1080,6 +1086,87 @@
             transform: scale(1);
         }
     </style>
+
+    <style>
+
+        #success-overlay{
+            z-index: 3000;
+        }
+
+        @keyframes checkmark {
+            0% {
+                stroke-dashoffset: 100;
+            }
+
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .animate-checkmark {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkmark 0.8s ease-in-out forwards 0.4s;
+        }
+
+        .animate-scale-in {
+            animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        @keyframes burst {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .animate-burst {
+            animation: burst 1s ease-out forwards;
+        }
+    </style>
 </head>
 
 <body>
@@ -1210,7 +1297,7 @@
             onclick="event.stopPropagation()">
 
             <!-- Modal Header/Title -->
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+            <div class="p-6 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 class="text-2xl font-bold text-gray-800">Final Payment Confirmation</h2>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
                     <!-- Close Icon (Lucide X) -->
@@ -1228,16 +1315,25 @@
 
                 <!-- Dedicated Invoice/Reference Number Block (Highly Prominent) -->
                 <div class="bg-indigo-50 border-l-4 border-indigo-600 p-2 px-4 rounded-lg shadow-sm">
-                    <p class="text-xl font text-pink-700 tracking-wider break-all">Are you sure you received the amount
+                    <p class="text-xl text-pink-700 tracking-wider">
+                        Are you sure you received the amount
                         <span id="amountDueDisplay"
-                            class="text-1xl font-extrabold text-green-700 tracking-wide">N/A</span> for Invoice <span
-                            id="invoiceNumberDisplay"
-                            class="text-1xl font-extrabold text-green-700 tracking-wide">N/A</span>?</p>
+                            class="text-1xl font-extrabold text-green-700 tracking-wide whitespace-nowrap">
+                            N/A
+                        </span>
+                        for Invoice
+                        <span id="invoiceNumberDisplay"
+                            class="text-1xl font-extrabold text-green-700 tracking-wide whitespace-nowrap">
+                            N/A
+                        </span>?
+                    </p>
                 </div>
+
 
                 <!-- Payment Selection Element -->
                 <div class="space-y-2" id="paymentMethodContainer" style="display:none;">
-                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700">Select Payment Method</label>
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700">Select Payment
+                        Method</label>
                     <select id="paymentMethod"
                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm">
                         <option value="cash">Cash</option>
@@ -1265,6 +1361,52 @@
         </div>
     </div>
 
+    <!-- Success Modal Overlay -->
+    <div id="success-overlay"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+
+        <!-- Success Card -->
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in relative">
+
+            <!-- Confetti Container -->
+            <div id="confetti-box" class="absolute inset-0 pointer-events-none"></div>
+
+            <!-- Top Decorative Section -->
+            <div class="bg-emerald-50 h-32 flex items-center justify-center relative overflow-hidden">
+                <!-- Circular background elements -->
+                <div class="absolute w-48 h-48 bg-emerald-100/50 rounded-full -top-10 -right-10"></div>
+                <div class="absolute w-32 h-32 bg-emerald-100/30 rounded-full -bottom-10 -left-10"></div>
+
+                <!-- Animated Checkmark Circle -->
+                <div
+                    class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 z-10 relative">
+                    <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="3">
+                        <path class="animate-checkmark" stroke-linecap="round" stroke-linejoin="round"
+                            d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Content Section -->
+            <div class="p-8 text-center">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Payment Successful!</h2>
+                <p class="text-slate-500 text-sm mb-6 leading-relaxed">
+                    Your transaction has been completed.
+                </p>
+
+                <!-- Action Button -->
+                <button onclick="hideSuccess()"
+                    class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 rounded-2xl transition-all shadow-md active:scale-[0.98]">
+                    Done
+                </button>
+
+                <p class="mt-4 text-xs text-slate-600">
+                    Redirecting in <span id="countdown">5</span>s...
+                </p>
+            </div>
+        </div>
+    </div>
     <script>
         // Get the modal element
         const modal = document.getElementById('paymentModal');
@@ -1277,14 +1419,14 @@
             }
             modal.classList.remove('active');
             // Return focus back to the button that opened the modal
-            openBtn.focus();
+            // openBtn.focus();
         }
 
         async function submitForm() {
             const accountNote = document.getElementById('account_note').value.trim();
             const invoice_id = document.getElementById('invoiceNumberDisplay').textContent.trim().replace('#', '');
             let paymentMethod = document.getElementById('paymentMethod').value;
-            
+
             if (document.getElementById("paymentMethodContainer").style.display === "none") {
                 paymentMethod = "not_paid";
             }
@@ -1306,12 +1448,22 @@
                 }
 
                 const data = await response.json();
-                location.reload(); // Refresh to update UI
+
+                if (data.success) {
+                    
+                    // Show success modal
+                    setTimeout(() => {
+                        showSuccess();
+                    }, 13); // Reload after 6 seconds
+
+                } else {
+                    alert(data.error);
+                }
 
             } catch (err) {
                 console.error("Error starting shipment:", err);
                 alert("Something went wrong. Please try again.");
-            }finally{
+            } finally {
                 closeModal();
             }
         }
@@ -1396,7 +1548,7 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber,btn) {
+        function openCancelOrderModal(invoiceNumber, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
@@ -1424,7 +1576,7 @@
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
             try {
-                const resp = await cancelOrder(cancelOrderInvoiceNumber,reason);
+                const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
                 } else {
@@ -1448,7 +1600,7 @@
             } catch (e) {
                 return { success: false, message: e.message };
             }
-        }   
+        }
 
         async function confirmAndStart(invoice_id, amount_paid, grand_total) {
 
@@ -1460,7 +1612,7 @@
                 amount = grand_total - amount_paid;
                 document.getElementById("paymentMethodContainer").style.display = 'block';
             }
-            
+
             modal.classList.add('active');
             document.getElementById("invoiceNumberDisplay").textContent = '#' + invoice_id;
             document.getElementById("amountDueDisplay").textContent = '₹' + amount.toLocaleString();
@@ -1703,7 +1855,71 @@
                 list.appendChild(li);
             });
         }
+        function createConfetti() {
+            const container = document.getElementById('confetti-box');
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
+            for (let i = 0; i < 40; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti animate-burst';
+
+                // Random position and direction
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 100 + Math.random() * 150;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = '50%';
+                confetti.style.top = '25%';
+                confetti.style.setProperty('--tw-translate-x', `${x}px`);
+                confetti.style.setProperty('--tw-translate-y', `${y}px`);
+                confetti.style.animationDelay = `${Math.random() * 0.2}s`;
+
+                container.appendChild(confetti);
+
+                // Cleanup
+                setTimeout(() => confetti.remove(), 1200);
+            }
+        }
+
+        let countdownInterval;
+
+        function showSuccess() {
+            const overlay = document.getElementById('success-overlay');
+
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.add('opacity-100');
+                createConfetti();
+            }, 10);
+
+            // Start countdown
+            let count = 5;
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.innerText = count;
+
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                count--;
+                countdownEl.innerText = count;
+                if (count <= 0) {
+                    hideSuccess();
+                }
+            }, 1000);
+        }
+
+        function hideSuccess() {
+            const overlay = document.getElementById('success-overlay');
+
+            overlay.classList.remove('opacity-100');
+            clearInterval(countdownInterval);
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+            location.reload();
+        }
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');

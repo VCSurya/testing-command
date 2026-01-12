@@ -122,6 +122,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
         }
 
         /* Responsive */
@@ -185,24 +188,19 @@
 
 
         .main-content-wrapper {
-            padding-top: 40px;
+            padding-top: 100px;
             min-height: 100vh;
         }
 
         /* Invoice Panel Styles */
         .invoice-container {
             max-width: 100%;
-            padding: 24px 16px;
+            padding: 0px 16px;
         }
 
         .glass-panel {
-            background: var(--glass);
-            border-radius: 22px;
-            box-shadow: var(--glass-shadow);
-            border: 1.5px solid var(--glass-border);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            padding: 24px 20px;
+            background: transparent;
+            padding: 20px 10px;
             overflow: hidden;
             margin-bottom: 2rem;
         }
@@ -334,6 +332,10 @@
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
+            overflow: auto;
+            scrollbar-width: thin;
+            /* for Firefox */
+            scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {
@@ -1018,7 +1020,116 @@
             color: #ffffff;
         }
     </style>
+    <style>
+        /* The Horizontal Row Container */
+        .transport-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            margin-top: 5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
 
+        /* Individual Data Groups */
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            min-width: fit-content;
+        }
+
+        /* Highlighting the Transport Name */
+        .brand-group {
+            flex: 1.5;
+        }
+
+        .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.1rem;
+        }
+
+        .value {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .brand-name {
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .charges-value {
+            color: black;
+            font-weight: 800;
+        }
+
+        /* Responsive design for tablets and mobile */
+        @media (max-width: 850px) {
+            .transport-row {
+                flex-wrap: wrap;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .info-group {
+                flex: 1 1 150px;
+            }
+
+            .brand-group {
+                flex: 1 1 100%;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .transport-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .info-group {
+                flex: none;
+                width: 100%;
+            }
+        }
+
+        /* Custom spinner animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            /* Blue 500 */
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -1048,10 +1159,6 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="/transport/ready-to-go-for-transport"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My
-                            Orders</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link " href="/logout">
@@ -1219,12 +1326,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, main_id, invoice_Id, btn) {
+        function openCancelOrderModal(invoiceNumber, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
-            cancelOrderInvoiceid = main_id;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoice_Id + '>';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoiceNumber + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1248,7 +1354,7 @@
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
             try {
-                const resp = await cancelOrder(cancelOrderInvoiceNumber, cancelOrderInvoiceid, reason);
+                const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
                 } else {
@@ -1260,12 +1366,12 @@
             closeCancelOrderModal();
         };
 
-        async function cancelOrder(invoiceNumber, Invoiceid, reason) {
+        async function cancelOrder(invoiceNumber, reason) {
             try {
                 const response = await fetch('/transport/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_order_id: invoiceNumber, invoice_id: Invoiceid, reason: reason })
+                    body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
                 });
                 if (!response.ok) throw new Error('Failed to cancel');
                 return await response.json();
@@ -1274,7 +1380,7 @@
             }
         }
 
-        async function confirmAndStart(live_order_track_id, invoice_id) {
+        async function confirmAndStart(invoice_id) {
             const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${invoice_id}>`);
             if (!userConfirmed) return;
 
@@ -1285,7 +1391,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        lot_id: live_order_track_id,
+                        invoice_number: invoice_id,
                         transportNote: transportNote
                     })
                 });
@@ -1333,10 +1439,10 @@
                 const products = Array.isArray(inv.products) ? inv.products : [];
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
-                    number: inv.invoice_number + inv.id,
+                    number: inv.invoice_number,
                     main_id: inv.id,
                     date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.state + ', ' + inv.mobile,
+                    customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,
@@ -1356,7 +1462,12 @@
                     pack_note: inv.packing_note,
                     pack_by: inv.pack_by,
                     sale_date: inv.sales_date_time,
-                    pack_date: inv.packing_date_time
+                    pack_date: inv.packing_date_time,
+                    transport_name: inv.transport_name,
+                    transport_city: inv.transport_city,
+                    transport_days: inv.transport_days,
+                    transport_charges: inv.transport_charges,
+                    transport_pincode: inv.transport_pincode
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -1364,7 +1475,7 @@
                     <div class="invoice-header">
                         <span>❑ ${invoiceObj.number}</span>
                         <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.pack_date}</span>
 
                             <div class="invoice-actions">
                                 <button class="glass-btn" title="Download PDF" onclick="
@@ -1378,7 +1489,7 @@
                                 </button>
 
                                 
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.main_id}','${invoiceObj.number}', this)">
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}', this)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -1389,7 +1500,7 @@
                     </div>
                     <div class="invoice-details">
                         <div id="invoice_date_2" ><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.pack_date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
                             
@@ -1402,14 +1513,33 @@
                                 ` : ''}
     
                         </div>
-                        <div><strong>Payment Status:</strong> <span style="color:${invoiceObj.payment_status === 'Paid' ? 'var(--success-green)' : 'var(--warning)'};font-weight:600;">${invoiceObj.payment_status}</span>
-                            <span> (${invoiceObj.payment_mode}) </span>
-                        </div>
-                        <div title=${invoiceObj.delivery_mode}><strong>Delivery:</strong> ${invoiceObj.transport_company_name} (${invoiceObj.delivery_mode}) </div>
-                        
+                                
                         <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sale_date} (${invoiceObj.sales_by})</div>
 
                         <div title=${invoiceObj.pack_by}><strong>Packaging:</strong> ${invoiceObj.pack_date} (${invoiceObj.pack_by})</div>
+                        ${invoiceObj.delivery_mode === 'transport' ? `
+                    
+                           <!-- Static HTML Content -->
+                            <div class="transport-row">
+                                <div class="info-group brand-group">
+                                    <span class="label">Transport Name</span>
+                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
+                                </div>
+                                
+                                <div class="info-group">
+                                    <span class="label">City</span>
+                                    <span class="value">${invoiceObj.transport_city}</span>
+                                </div>
+
+                                <div class="info-group">
+                                    <span class="label">Pincode</span>
+                                    <span class="value">${invoiceObj.transport_pincode}</span>
+                                </div>
+                            </div>
+
+                        ` : ``}
+
+                        
                         
                         <table style="margin-top:10px;">
                             <thead>
@@ -1434,29 +1564,6 @@
                             </tbody>
                         </table>
 
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                <div>
-                                    <strong>Paid:</strong>
-                                    ₹${invoiceObj.amount_paid.toLocaleString()}
-                                </div>
-                            </div>
-
-                            <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                <div>
-                                    <strong>Left to Pay:</strong>
-                                    ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div class="amounts-container3">
-                                <div>
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="note-container">
                             
@@ -1466,13 +1573,7 @@
                                 <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
+                             
                             ${invoiceObj.pack_note && invoiceObj.pack_note.trim() !== '' ? `
                                 <div class="note pack-note">
                                 <p> <span>Packing Note: </span> ${invoiceObj.pack_note.toLocaleString()}</p>
@@ -1486,7 +1587,7 @@
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.live_order_track_id}','${invoiceObj.number}')">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}')">
                                 Transport Handover Done 
                             </button>
                         </div>

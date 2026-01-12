@@ -361,7 +361,7 @@ def payment_recived():
             return jsonify({'error': 'Invalid Payment Method!'}), 400
 
         result = get_invoice_id(data.get('inv_id'))
-        invoice_id = None
+
         if result['status']:
             data['inv_id'] = result['invoice_id']
         else:
@@ -369,15 +369,15 @@ def payment_recived():
         
         pay_obj = AccountModel()
         response = pay_obj.payment_recived(data)
-        print(response)
+
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
 
         pay_obj.close()
-        return jsonify({"success": False, "message": f"Somthing went wrong!"}),500
+        return jsonify({"success": False, "error": f"Somthing went wrong!"}),500
     
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "error": f"From Server Side: {e}"}), 500
 
 @account_bp.route('/account/cancel_order', methods=['POST'])
 @login_required('Account')
