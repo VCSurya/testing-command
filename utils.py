@@ -157,7 +157,11 @@ def invoice_detailes(invoice_number=None):
 
                     live_order_track.transport_proceed_for_builty AS TRANSPORT,
                     live_order_track.transport_date_time as TRANSPORT_DATE,
-                    invoices.transport_company_name AS TRANSPORT_COMPANY,
+                    transport.pincode AS TRANSPORT_PINCODE,
+                    transport.name AS TRANSPORT_COMPANY,
+                    transport.city AS TRANSPORT_CITY,
+                    transport.days AS TRANSPORT_DAYS,
+                    transport.charges AS TRANSPORT_CHARGES,
                     tu.username AS TRANSPORT_USER,
 
 
@@ -200,6 +204,7 @@ def invoice_detailes(invoice_number=None):
                     LEFT JOIN users bu ON live_order_track.builty_proceed_by = bu.id
                     LEFT JOIN users vu ON live_order_track.verify_by_manager_id = vu.id
                     LEFT JOIN users cancelu ON cancelled_orders.cancelled_by = cancelu.id
+					LEFT JOIN transport ON invoices.transport_id = transport.id
 
                     WHERE invoices.invoice_number = %s
                     AND live_order_track.sales_proceed_for_packing = 1;

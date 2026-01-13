@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transport</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -973,7 +974,7 @@
             font-style: italic;
         }
     </style>
-<style>
+    <style>
         .user-card {
             display: flex;
             align-items: center;
@@ -1138,7 +1139,7 @@
 
     <div class="container-fluid p-0">
         <div class="row g-0">
-            
+
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
                 <div class="sidebar-logo mb-4 d-flex">
@@ -1153,8 +1154,7 @@
 
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link " href="/dashboard"><i
-                                class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/transport/ready-to-go-for-transport"><i
@@ -1199,6 +1199,10 @@
                         <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                             <input type="text" id="invoiceSearchInput" class="form-control"
                                 placeholder="Search by Invoice ID...">
+                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
+                                <option value="all" selected>All</option>
+                                <!-- <option value="5">Delivered</option> -->
+                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -1478,6 +1482,11 @@
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.pack_date}</span>
 
                             <div class="invoice-actions">
+
+                                <button class="glass-btn" title="Images" onclick="event.stopPropagation();checkAndOpenImages('${invoiceObj.number}')">
+                                    <i class="fa-solid fa-image"></i>
+                                </button>
+
                                 <button class="glass-btn" title="Download PDF" onclick="
                                     event.stopPropagation();
                                     window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
@@ -1604,6 +1613,22 @@
             });
         }
 
+        function checkAndOpenImages(invoiceId) {
+            fetch(`/transport/images/${invoiceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.images.length > 0) {
+                        window.open(`/transport/images_page/${invoiceId}`, '_blank');
+                    } else {
+                        alert(data.message || 'No images found!');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('An error occurred while fetching images.');
+                });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
@@ -1640,10 +1665,44 @@
                 hideButton.addEventListener('click', hideSidebar);
             }
 
+            if (trackingStatusFilter) {
+                trackingStatusFilter.value = 'all';
+
+                trackingStatusFilter.addEventListener('change', () => {
+                    localStorage.setItem('trackingStatus', trackingStatusFilter.value);
+                    filterAndRenderInvoices();
+                });
+            }
+
+            function populateTransportOptions() {
+                if (!trackingStatusFilter) return;
+
+                // Get unique, non-empty transport names
+                const uniqueTransports = [
+                    ...new Set(
+                        allInvoices
+                            .map(inv => inv.transport_name)
+                            .filter(name => name && name.trim() !== '')
+                    )
+                ];
+
+                // Append options
+                uniqueTransports.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    trackingStatusFilter.appendChild(option);
+                });
+            }
+            
+
             function filterAndRenderInvoices() {
                 const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
+
                 let filtered = [...allInvoices];
 
+                // Search filter
                 if (query !== '') {
                     filtered = filtered.filter(inv => {
                         const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
@@ -1651,16 +1710,25 @@
                     });
                 }
 
+                // Transport name filter
+                if (selectedTracking !== 'all') {
+                    filtered = filtered.filter(inv => inv.transport_name === selectedTracking);
+                }
+
                 renderInvoices(filtered);
             }
+
 
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);
             }
 
             fetchInvoices().then(() => {
+                populateTransportOptions();
                 filterAndRenderInvoices();
             });
+
+
         });
 
     </script>

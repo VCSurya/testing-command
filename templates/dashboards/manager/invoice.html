@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -313,6 +314,10 @@
                                 <p class="font-medium text-gray-400">Transport Company:</p>
                                 <p class="font-semibold text-gray-100">${data.data.TRANSPORT_COMPANY.toUpperCase()}</p>
                             </div>
+                            <div>
+                                <p class="font-semibold text-gray-300">₹${data.data.TRANSPORT_CHARGES} / ${data.data.TRANSPORT_DAYS} Days</p>
+                                <p class="font-semibold text-gray-300">${data.data.TRANSPORT_CITY}- ${data.data.TRANSPORT_PINCODE}</p>
+                            </div>
                             `:``}
                             
                         </div>
@@ -377,11 +382,11 @@
                                     <tr class="bg-gray-800">
                                             <td class="px-3 py-4 whitespace-nowrap text-xl font-extrabold text-gray-100">Grand Total:</td>
                                             <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">${totalQty}</td>
-                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalPrice}</td>
+                                            <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalPrice.toFixed(2)}</td>
                                             ${data.data.GST === 1
                     ?
                     `
-                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalTax}</td>
+                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">₹${totalTax.toFixed(2)}</td>
 
                                                 `
                     : ""

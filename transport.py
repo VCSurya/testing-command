@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, jsonify, request, session
+from flask import Blueprint, render_template, jsonify, request, send_from_directory, session
+from packaging import UPLOAD_FOLDER
 from utils import get_db_connection, login_required, get_invoice_id
 from datetime import datetime
 import pytz
@@ -332,6 +333,20 @@ class TransportModel:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
 
+    def get_images(self, invoice_id):
+        try:
+            query = """
+                SELECT image_url
+                FROM packing_images
+                WHERE invoice_id = %s
+            """
+            self.cursor.execute(query, (invoice_id,))
+            rows = self.cursor.fetchall()
+            return {"success": True, "images": rows}
+
+        except Exception as e:
+            return {"success": False, "message": f"From Server Side: {e}"}
+    
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -436,6 +451,45 @@ def done_transportaion():
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
+@transport_bp.route("/transport/uploads/packaging/<filename>")
+@login_required('Transport')
+def uploaded_image(filename):
+    print(filename)
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+@transport_bp.route('/transport/images/<string:invoice_id>', methods=['GET'])
+@login_required('Transport')
+def get_images(invoice_id):
+    try:
+        transport_model = TransportModel()
+
+        result = get_invoice_id(invoice_id)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({"success": True,'message': 'Invoice not found'}), 404
+
+        images = transport_model.get_images(invoice_id)
+
+        return jsonify({"success": True, "images": images['images']}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
+@transport_bp.route('/transport/images_page/<string:invoice_number>', methods=['GET'])
+@login_required('Transport')
+def show_images_page(invoice_number):
+    transport_model = TransportModel()
 
+    result = get_invoice_id(invoice_number)
+    invoice_id = None
+    
+    if result['status']:
+        invoice_id = result['invoice_id']
+    else:
+        return jsonify({'error': 'Invoice not found'}), 404
+
+    images = transport_model.get_images(invoice_id)
+    return render_template('dashboards/transport/images_page.html', images=images, invoice_id=invoice_number)

@@ -160,7 +160,6 @@ class BuiltyModel:
                         inv.payment_mode,
                         inv.paid_amount,
                         inv.left_to_paid,
-                        inv.transport_company_name,
                         inv.sales_note,
                         inv.invoice_created_by_user_id,
                         inv.payment_note,
@@ -210,7 +209,13 @@ class BuiltyModel:
                         lot.verify_by_manager_id,
                         lot.verify_manager_date_time,
                         lot.packing_note,
-                        lot.transport_note
+                        lot.transport_note,
+                        
+                        transport.pincode AS transport_pincode,
+                        transport.name AS transport_name,
+                        transport.city AS transport_city,
+                        transport.days AS transport_days,
+                        transport.charges AS transport_charges
 
                     FROM invoices inv
 
@@ -227,6 +232,7 @@ class BuiltyModel:
                     LEFT JOIN users ut ON lot.transport_proceed_by = ut.id
                     LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
                     LEFT JOIN products p ON ii.product_id = p.id
+                    LEFT JOIN transport ON inv.transport_id = transport.id
 
                     WHERE lot.builty_received = 0
                         AND inv.completed = 0

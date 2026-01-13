@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Builty</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -110,6 +111,9 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             padding: 1rem;
             /* margin-bottom: 1.5rem; */
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
         }
 
         /* Responsive */
@@ -394,7 +398,7 @@
                     <!-- Start: Main Reusable Dashboard Div -->
                     <div id="packing-dashboard-container">
                         <!-- Dashboard Grid -->
-                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
                             <!-- Stats cards will be injected here by JavaScript -->
                             <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
                                 <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
@@ -459,13 +463,13 @@
         // Map the JSON keys to display properties, colors, and icons.
         // Colors updated for a richer, classic palette.
         const statConfig = {
-            total_proceed_builty_order_from_user: {
-                title: "Total Dispatched Orders",
-                icon: "zap", // Active/urgent task indicator
-                color: "bg-indigo-600",
-                shadow: "shadow-indigo-600/60",
-                description: "Total orders you have dispatched successfully and builty recived."
-            },
+            // total_proceed_builty_order_from_user: {
+            //     title: "Total Dispatched Orders",
+            //     icon: "zap", // Active/urgent task indicator
+            //     color: "bg-indigo-600",
+            //     shadow: "shadow-indigo-600/60",
+            //     description: "Total orders you have dispatched successfully and builty recived."
+            // },
             total_draft_builty_order: {
                 title: "Draft Builty Orders",
                 icon: "repeat", // Pending/ready to proceed
@@ -534,7 +538,11 @@
 
             // Card structure updated to put Title on top, and Value/Icon side-by-side
             return `
-                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between">
+                <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
+                onclick="
+                window.location.href = ''
+                ${config.title === 'Draft Builty Orders' ? "+ '/builty/ready-to-go'" : ''}"
+                >
                     
                     <!-- Title now takes the full top row -->
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${config.title}</h3>

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Dashboard</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -529,7 +530,11 @@
                 <div class="border-b border-gray-200 last:border-b-0 transition-colors ${rowClass} p-3 sm:p-0">
                     
                     <!-- DESKTOP/TABLET VIEW (sm: and up) -->
-                    <div class="hidden sm:grid grid-cols-7 gap-4 py-2 px-1 items-center min-w-full">
+                    <div class="hidden sm:grid grid-cols-7 gap-4 py-2 px-1 items-center min-w-full" 
+                    onclick="
+                window.location.href = ''
+                ${data.status === 'Draft Orders' ? "+ '/sales/ready-to-go-orders'" : data.status === "In Process... " ? "+ '/sales/my-orders'" : ''}"
+                    >
                         <!-- Status Column (Col 3) -->
                         <div class="col-span-3 flex items-center">
                             <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${data.bg} border border-opacity-50">
@@ -548,7 +553,11 @@
                     </div>
                     
                     <!-- MOBILE VIEW (default, hidden on sm: and up) -->
-                    <div class="sm:hidden flex flex-col">
+                    <div class="sm:hidden flex flex-col"
+                    onclick="
+                window.location.href = ''
+                ${data.status === 'Draft Orders' ? "+ '/sales/ready-to-go-orders'" : data.status === "In Process... " ? "+ '/sales/my-orders'" : ''}"
+                    >
                         <!-- Mobile Status Header -->
                         <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                             <div class="flex items-center">
@@ -581,7 +590,9 @@
                 <div class="bg-red-50 border-l-4 border-red-500 rounded-b-xl shadow-inner mt-2 p-0 sm:p-0">
                     
                     <!-- DESKTOP/TABLET VIEW (sm: and up) -->
-                    <div class="hidden sm:grid grid-cols-7 gap-1 py-4 items-center pl-4 pr-3 min-w-full">
+                    <div class="hidden sm:grid grid-cols-7 gap-1 py-4 items-center pl-4 pr-3 min-w-full"
+                    onclick="
+                window.location.href = '/sales/cancel-orders'">
                         
                         <!-- Status Column (Col 3) -->
                         <div class="col-span-3 flex items-center">
@@ -601,7 +612,9 @@
                     </div>
                     
                     <!-- MOBILE VIEW (default, hidden on sm: and up) -->
-                    <div class="sm:hidden flex flex-col p-2">
+                    <div class="sm:hidden flex flex-col p-2"
+                    onclick="
+                window.location.href = '/sales/cancel-orders'">
                          <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <i data-lucide="shield-alert" class="w-5 h-5 mr-3 text-red-700"></i>
@@ -668,14 +681,14 @@
                         totalCount: apiData.running_orders.count,
                         description: "Revenue-generating orders in progress."
                     },
-                    {
-                        status: "Completed Orders",
-                        icon: "check-circle",
-                        color: "text-green-700",
-                        bg: "bg-green-50",
-                        totalCount: apiData.completed_orders.count,
-                        description: "Orders successfully fulfilled and closed."
-                    }
+                    // {
+                    //     status: "Completed Orders",
+                    //     icon: "check-circle",
+                    //     color: "text-green-700",
+                    //     bg: "bg-green-50",
+                    //     totalCount: apiData.completed_orders.count,
+                    //     description: "Orders successfully fulfilled and closed."
+                    // }
                 ];
 
                 // Map the specific canceled metric
@@ -685,6 +698,7 @@
 
                 // 1. Generate Status Rows HTML
                 const statusRowsHtml = orderData.map(renderRow).join('');
+                console.log("Status Rows HTML:", statusRowsHtml);
                 const canceledSpecialRowHtml = renderCanceledSpecialRow(inProcessCanceledCount);
 
                 // 2. Main HTML Structure (Classic & Attactive Design)
@@ -692,7 +706,7 @@
                     <!-- Main container: responsive padding and constrained width -->
                     <div class="p-0 md:p-8 max-w-8xl mx-auto">
                         <!-- Main KPI Cards (Revenue and Total Volume) -->
-                        <section id="kpi-overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-10">
+                        <section id="kpi-overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-10">
                             
                             <!-- Today's Selling Orders (Count) - Quick Activity Check -->
                             <div class="kpi-card border-b-4 border-blue-600">
@@ -712,15 +726,6 @@
                                 <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatCurrency(apiData.today_orders.sum)}</p>
                             </div>
                             
-                            <!-- Total Orders (Volume) - Volume Count -->
-                            <div class="kpi-card border-b-4 border-slate-400">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase text-slate-500">Your Total Orders</span>
-                                    <i data-lucide="package" class="w-6 h-6 text-slate-400"></i>
-                                </div>
-                                <p class="text-3xl sm:text-4xl font-extrabold mt-3 text-gray-900">${formatNumber(apiData.total_sales_orders.count)}</p>
-                            </div>
- 
                         </section>
 
                         <!-- Detailed Status Breakdown Section -->

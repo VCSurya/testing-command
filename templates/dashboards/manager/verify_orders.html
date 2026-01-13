@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
@@ -484,7 +485,7 @@
         /* Invoice Panel Styles */
         .invoice-container {
             max-width: 100%;
-            padding: 24px 16px;
+            padding: 0px 16px;
         }
 
         .glass-panel {
@@ -1419,7 +1420,7 @@
                         return response.json();
                     })
                     .then(data => {
-                        alert("Shipment started successfully!");
+                        alert("Successfully Verified!");
                         location.reload(); // Refresh to update UI
                     })
                     .catch(err => {
@@ -1445,7 +1446,7 @@
                 const invoiceObj = {
                     number: inv.invoice_number,
                     date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.state + ', ' + inv.mobile,
+                    customer: inv.customer +', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,

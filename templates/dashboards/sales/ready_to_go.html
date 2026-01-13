@@ -5,13 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draft Orders</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-
-
 
     <style>
         :root {
@@ -1114,6 +1113,155 @@
             }
         }
     </style>
+
+    <style>
+        @keyframes modalEntry {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-8px);
+            }
+
+            75% {
+                transform: translateX(8px);
+            }
+        }
+
+        @keyframes truckMove {
+            0% {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+
+            50% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulse-custom {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes progress {
+            0% {
+                width: 0%;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes drawCheck {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .animate-modal {
+            animation: modalEntry 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .truck-animation {
+            animation: truckMove 2s infinite linear;
+        }
+
+        .progress-bar-fill {
+            animation: progress 2.5s linear forwards;
+        }
+
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            display: none;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .step-active {
+            color: #10b981;
+            transform: scale(1.1);
+        }
+
+        /* Confetti Styles */
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            top: -10px;
+            z-index: 60;
+            animation: confettiFall 3s linear forwards;
+        }
+
+        /* Checkmark Animation */
+        .checkmark-path {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: drawCheck 0.6s ease-out 0.4s forwards;
+        }
+
+        #successOverlay,
+        #processingOverlay,
+        #failedOverlay {
+            z-index: 1500;
+        }
+
+        #confettiContainer{
+            z-index: 1600;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1244,6 +1392,123 @@
                         style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div id="confettiContainer" class="fixed inset-0 pointer-events-none z-[60]"></div>
+
+    <!-- Main Container -->
+    <!-- <div class="max-w-md w-full p-8 bg-white rounded-3xl shadow-xl text-center mx-4 border border-slate-100">
+        <div class="mb-6 flex justify-center">
+            <div class="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
+                <i data-lucide="shopping-bag" class="w-8 h-8"></i>
+            </div>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Order Management</h1>
+        <p class="text-slate-500 mb-8">Test the shipment process workflow by clicking the buttons below.</p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button id="successBtn" onclick="handleSuccessClick()"
+                class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                <span>Success</span>
+            </button>
+            <button onclick="showStatus('failed')"
+                class="flex-1 bg-rose-500 hover:bg-rose-600 active:scale-95 transition-all text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-200">
+                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                Failed
+            </button>
+        </div>
+    </div> -->
+
+    <!-- Enhanced Processing Overlay -->
+    <div id="processingOverlay" class="overlay fixed inset-0 z-50 items-center justify-center p-4">
+        <div
+            class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-modal text-center relative border border-slate-100">
+            <div class="mb-8 relative flex justify-center">
+                <div class="absolute inset-0 bg-emerald-400 blur-2xl opacity-20 animate-pulse"></div>
+                <div
+                    class="relative w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500">
+                    <i data-lucide="refresh-cw" class="w-10 h-10 animate-spin"></i>
+                </div>
+            </div>
+            <h2 id="processHeading" class="text-2xl font-bold text-slate-800 mb-2">Initializing...</h2>
+            <p id="processSubtext" class="text-slate-500 mb-8 h-6">Securing shipment details</p>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-8">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full
+         w-0 transition-[width] duration-700 ease-out">
+                </div>
+            </div>
+            <div class="flex justify-between items-center px-2">
+                <div id="step1" class="flex flex-col items-center gap-1 transition-all duration-300">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Verify</span>
+                </div>
+                <div class="h-[1px] flex-1 bg-slate-100 mx-2"></div>
+                <div id="step2" class="flex flex-col items-center gap-1 transition-all duration-300 text-slate-300">
+                    <i data-lucide="box" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Pack</span>
+                </div>
+                <div class="h-[1px] flex-1 bg-slate-100 mx-2"></div>
+                <div id="step3" class="flex flex-col items-center gap-1 transition-all duration-300 text-slate-300">
+                    <i data-lucide="truck" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Ship</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW ATTRACTIVE Success Popup Overlay -->
+    <div id="successOverlay" class="overlay fixed inset-0 z-50 items-center justify-center p-4">
+        <div
+            class="bg-white rounded-[2rem] p-10 max-w-sm w-full shadow-2xl animate-modal text-center relative overflow-hidden border border-emerald-50">
+            <!-- Background Decoration -->
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-50 rounded-full opacity-50"></div>
+            <div class="absolute -bottom-12 -left-12 w-24 h-24 bg-emerald-50 rounded-full opacity-50"></div>
+
+            <!-- Drawing Checkmark Icon -->
+            <div class="mb-6 flex justify-center relative">
+                <div
+                    class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200">
+                    <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="3">
+                        <path class="checkmark-path" stroke-linecap="round" stroke-linejoin="round"
+                            d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <!-- Mini Floating Particles -->
+                <div class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-bounce"></div>
+                <div class="absolute top-10 -left-4 w-3 h-3 bg-emerald-300 rounded-full animate-pulse"></div>
+            </div>
+
+            <h2 class="text-3xl font-extrabold text-slate-800 mb-3">All Set!</h2>
+            <p class="text-slate-600 mb-8 leading-relaxed">
+                Woohoo! Your order has been processed successfully.
+            </p>
+
+            <button onclick="closePopups()"
+                class="w-full bg-emerald-500 text-white font-bold py-2 rounded-2xl hover:bg-emerald-600 hover:shadow-lg transition-all active:scale-95">
+                Awesome!
+            </button>
+        </div>
+    </div>
+
+    <!-- Failed Popup Overlay -->
+    <div id="failedOverlay" class="overlay fixed inset-0 z-50 items-center justify-center p-4">
+        <div id="failedCard"
+            class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-modal text-center relative border border-rose-50">
+            <div class="mb-6 flex justify-center">
+                <div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center text-rose-600">
+                    <i data-lucide="alert-triangle" class="w-10 h-10"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">Process Failed</h2>
+            <p class="text-slate-600 mb-8 leading-relaxed">We encountered an error while starting the shipment process.
+            </p>
+            <button onclick="closePopups()"
+                class="w-full bg-rose-500 text-white font-semibold py-3 rounded-xl hover:bg-rose-600 transition-colors">Try
+                Again</button>
         </div>
     </div>
 
@@ -1384,28 +1649,126 @@
             }
         }
 
-        async function confirmAndStart(invoiceNumber) {
-            if (confirm("Are you sure ?")) {
-                fetch('/start-shipment', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ invoiceNumber })
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error("Request failed");
-                        return response.json();
-                    })
-                    .then(data => {
-                        alert("Shipment started successfully!");
-                        location.reload(); // Refresh to update UI
-                    })
-                    .catch(err => {
-                        console.error("Error:", err);
-                        alert("Something went wrong.");
-                    });
+        function createConfetti() {
+            const container = document.getElementById('confettiContainer');
+            const colors = ['#10b981', '#34d399', '#facc15', '#fbbf24', '#60a5fa'];
+
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.width = Math.random() * 8 + 4 + 'px';
+                confetti.style.height = confetti.style.width;
+                container.appendChild(confetti);
+
+                // Remove after animation
+                setTimeout(() => confetti.remove(), 4000);
             }
+        }
+
+        function updateStep(stepNum, head) {
+            document.getElementById('processHeading').innerText = head;
+            const el = document.getElementById(`step${stepNum}`);
+            el.classList.remove('text-slate-300');
+            el.classList.add('step-active');
+        }
+
+        function resetSteps() {
+            [1, 2, 3].forEach(n => {
+                const el = document.getElementById(`step${n}`);
+                el.classList.remove('step-active');
+                if (n > 1) el.classList.add('text-slate-300');
+            });
+        }
+
+        function showStatus(type) {
+            const successOverlay = document.getElementById('successOverlay');
+            const failedOverlay = document.getElementById('failedOverlay');
+            const failedCard = document.getElementById('failedCard');
+
+            if (type === 'success') {
+                successOverlay.classList.add('active');
+                createConfetti();
+            } else {
+                failedOverlay.classList.add('active');
+                failedCard.classList.remove('animate-shake');
+                void failedCard.offsetWidth;
+                failedCard.classList.add('animate-shake');
+            }
+        }
+
+        function closePopups() {
+            document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
+            document.getElementById('confettiContainer').innerHTML = '';
+        }
+
+        window.onclick = function (event) {
+            if (event.target.classList.contains('overlay')) closePopups();
+        }
+
+
+        async function confirmAndStart(invoiceNumber) {
+
+
+            const processingOverlay = document.getElementById('processingOverlay');
+            // const successBtn = document.getElementById('successBtn');
+            const progressBar = document.getElementById('progressBar');
+
+            progressBar.style.width = '0%';
+            resetSteps();
+
+            processingOverlay.classList.add('active');
+            // successBtn.disabled = true;
+
+            updateStep(1, "Verifying...");
+            setTimeout(() => updateStep(2, "Preparing..."), 800);
+            setTimeout(() => updateStep(3, "Updating..."), 1600);
+            setTimeout(() => updateStep(4, "Finalizing..."), 3200);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    progressBar.style.width = '50%';
+                });
+            });
+
+            fetch('/start-shipment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ invoiceNumber })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        showStatus('failed')
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    
+                    fetchInvoices().then(() => {
+                        filterAndRenderInvoices();
+                    });
+
+                    setTimeout(() => {
+                        progressBar.style.width = '100%';
+                    }, 2000);
+
+                    setTimeout(() => {
+                        processingOverlay.classList.remove('active');
+                        progressBar.classList.remove('progress-bar-fill');
+                        showStatus('success');
+                        // successBtn.disabled = false;
+                    }, 2500);
+                    // alert("Shipment started successfully!");
+                })
+                .catch(err => {
+                    showStatus('failed')
+                    console.error("Error:", err);
+                    // alert("Something went wrong.");
+                });
         }
 
         // Fetch invoices from backend and render
@@ -1725,10 +2088,10 @@
 
                         <div class="next-to-pack-container">
                             <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
-                                ${invoiceObj.delivery_mode === 'transport' || invoiceObj.delivery_mode === 'post' ? 
-                                'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>' :
-                                'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>' 
-                                } 
+                                ${invoiceObj.delivery_mode === 'transport' || invoiceObj.delivery_mode === 'post' ?
+                        'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>' :
+                        'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>'
+                    } 
                             </button>
                         </div>
                     </div>
@@ -1742,6 +2105,21 @@
                 });
                 list.appendChild(li);
             });
+        }
+
+        function filterAndRenderInvoices() {
+            const searchInput = document.getElementById('invoiceSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            let filtered = [...allInvoices];
+
+            if (query !== '') {
+                filtered = filtered.filter(inv => {
+                    const invoiceId = (String(inv.invoice_number)).toLowerCase();
+                    return invoiceId.includes(query);
+                });
+            }
+
+            renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -1791,19 +2169,7 @@
                 });
             }
 
-            function filterAndRenderInvoices() {
-                const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                let filtered = [...allInvoices];
 
-                if (query !== '') {
-                    filtered = filtered.filter(inv => {
-                        const invoiceId = (String(inv.invoice_number)).toLowerCase();
-                        return invoiceId.includes(query);
-                    });
-                }
-
-                renderInvoices(filtered);
-            }
 
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);
