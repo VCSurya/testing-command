@@ -2054,10 +2054,6 @@
                 </div>
                 <div class="modal-footer" id="printPopupFooter" style="display: none;">
                     <input type="hidden" id="invoiceNumber_for_sharing" name="invoiceNumber_value_for_sharing" value="">
-                    <button type="button" class="btn btn-primary" id="shareBtn" style="width: 100%;"><i
-                            class="bi bi-share"></i>
-                        Share</button>
-
                 </div>
             </div>
         </div>
@@ -2496,7 +2492,7 @@
             document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
             document.getElementById('printBtn').addEventListener('click', printBill);
-            document.getElementById('shareBtn').addEventListener('click', shareBill);
+            // document.getElementById('shareBtn').addEventListener('click', shareBill);
             document.getElementById('popupCloseBtn').addEventListener('click', popupClose);
 
             // Modal event listeners
@@ -3205,61 +3201,6 @@
             };
 
 
-            // Handle form submission
-            function shareBill() {
-                const invoiceInput = document.getElementById('invoiceNumber_for_sharing');
-                const invoiceNumber = invoiceInput.value.trim();
-                const selectedText = document.querySelector('#select2-customerSelect-container').textContent;
-
-                if (!invoiceNumber) {
-                    alert('Error: Invoice number is missing. Please generate the invoice before proceeding.');
-                    return;
-                }
-
-
-                fetch(`/sales/share_invoice_pdf/${invoiceNumber}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ invoice_id: invoiceNumber })
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        // Get the PDF as blob instead of JSON
-                        return response.blob();
-                    })
-                    .then(pdfBlob => {
-                        // Create a File object from the blob for sharing
-                        const pdfFile = new File([pdfBlob], `${selectedText}_${invoiceNumber}.pdf`, {
-                            type: 'application/pdf'
-                        });
-
-                        // Check if Web Share API supports files
-                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-                            navigator.share({
-                                title: 'Sales Bill',
-                                text: `Here is your invoice #${invoiceNumber} from SalesPro!`,
-                                files: [pdfFile]
-                            }).then(() => {
-                                console.log('PDF shared successfully');
-                            }).catch(err => {
-                                console.error('Sharing failed:', err);
-
-                                // Fallback to download
-                                downloadPDF(pdfBlob, `${selectedText}_${invoiceNumber}.pdf`);
-                            });
-                        } else {
-                            // Fallback: Download the PDF
-                            downloadPDF(pdfBlob, `${selectedText}_${invoiceNumber}.pdf`);
-                        }
-                    })
-                    .catch(err => {
-                        alert('Error while sharing invoice: ' + err.message);
-                    })
-
-            }
-
             window.copyLink = function () {
                 const invoiceNumberElement = document.getElementById('invoiceNumber_for_sharing');
 
@@ -3338,6 +3279,8 @@
                 const loadingDots = document.getElementById('printLoadingDots');
                 const responseContent = document.getElementById('printResponseContent');
                 const modalFooter = document.getElementById('printPopupFooter');
+                const popupCloseBtn = document.getElementById('popupCloseBtn');
+                
 
                 // Reset modal states before showing
                 loadingDots.style.display = 'flex';
@@ -3350,6 +3293,7 @@
                     backdrop: 'static',
                     keyboard: false
                 });
+                popupCloseBtn.disabled = true;
                 printModal.show();
 
                 // Step 1: Save invoice to database
@@ -3387,12 +3331,12 @@
                                 `;
 
                                 document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number;
-
-
-
+                                popupCloseBtn.disabled = false;
+                                
                             }, 1000); // Optional delay for smooth transition
 
                         } else {
+                            popupCloseBtn.disabled = false;
                             // throw new Error(data.error || 'Failed to save invoice');
                             loadingDots.style.display = 'none';
                             responseContent.style.display = 'block';
@@ -3404,6 +3348,7 @@
                         }
                     })
                     .catch(error => {
+                        popupCloseBtn.disabled = false;
                         console.error('Error:', error);
                         loadingDots.style.display = 'none';
                         responseContent.style.display = 'block';
@@ -3413,6 +3358,7 @@
                     Failed to process invoice: ${error.message}
                 </div>`;
                     });
+
             }
 
             // Helper functions for UI feedback

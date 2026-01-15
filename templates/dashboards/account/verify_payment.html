@@ -1408,6 +1408,7 @@
             </div>
         </div>
     </div>
+    
     <script>
         // Get the modal element
         const modal = document.getElementById('paymentModal');
@@ -1433,24 +1434,24 @@
             }
 
             try {
-                const response = await fetch('/account/payment-recived', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        inv_id: invoice_id,
-                        accountNote: accountNote,
-                        paymentMethod: paymentMethod
-                    })
-                });
+                // const response = await fetch('/account/payment-recived', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         inv_id: invoice_id,
+                //         accountNote: accountNote,
+                //         paymentMethod: paymentMethod
+                //     })
+                // });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server responded with error: ${errorText}`);
-                }
+                // if (!response.ok) {
+                //     const errorText = await response.text();
+                //     throw new Error(`Server responded with error: ${errorText}`);
+                // }
 
-                const data = await response.json();
+                // const data = await response.json();
 
-                if (data.success) {
+                if (true) {
                     
                     // Show success modal
                     setTimeout(() => {

@@ -1272,8 +1272,18 @@ class MyOrders:
                 b.state,
                 b.pincode,
                 b.mobile,
+                
                 u.id AS users_id,
                 u.username,
+
+                up.username AS pu_name, 
+
+                ut.username AS tu_name, 
+
+                ub.username AS bu_name, 
+
+                upay.username AS payu_name,
+
                 ii.id AS invoices_items_id,
                 ii.product_id,
                 ii.quantity,
@@ -1309,11 +1319,16 @@ class MyOrders:
             
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
-            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
             LEFT JOIN products p ON ii.product_id = p.id
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
             LEFT JOIN transport ON inv.transport_id = transport.id
+            
+            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
+            LEFT JOIN users up ON lot.packing_proceed_by = up.id 
+            LEFT JOIN users ut ON lot.transport_proceed_by = ut.id 
+            LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
+            LEFT JOIN users upay ON lot.payment_verify_by = upay.id 
 
             WHERE inv.invoice_created_by_user_id = %s
             AND lot.cancel_order_status = 0
@@ -1437,21 +1452,24 @@ class MyOrders:
 
             UPDATE live_order_track
             SET cancel_order_status = 1
-            WHERE id = %s;
+            WHERE invoice_id = %s;
             """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
+            self.cursor.execute(update_query, (invoice_id,))
 
             update_query = """
 
             UPDATE invoices
             SET cancel_order_status = 1
-            WHERE invoices.id = (SELECT invoice_id from live_order_track WHERE id = %s );
+            WHERE id = %s;
             """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
+            self.cursor.execute(update_query, (invoice_id,))
             
-
+            lot_id_querry = """
+            SELECT id from live_order_track WHERE invoice_id = %s;
+            """
+            self.cursor.execute(lot_id_querry, (invoice_id,))
+            lot_id = self.cursor.fetchone()
+                
             insert_query = """
                 
                 INSERT INTO cancelled_orders (
@@ -1459,8 +1477,8 @@ class MyOrders:
                 ) VALUES (%s, %s, %s,%s)
             """
 
-            self.cursor.execute(insert_query, (invoice_id, session.get(
-                'user_id'), data.get('reason'), data.get('track_order_id'),))
+            self.cursor.execute(insert_query, (invoice_id, session.get('user_id'), data.get('reason'), lot_id.get('id'),))
+            
             self.conn.commit()  # commit on connection, not cursor
 
             return {"success": True, "message": f"Order successfully Cancel"}
@@ -1561,29 +1579,24 @@ class MyOrders:
 def cancel_order():
     try:
         data = request.get_json()
-        track_order_id = data.get('track_order_id')
+        invoiceNumber = data.get('invoiceNumber')
 
-        if not track_order_id or not str(track_order_id).isdigit():
-            return jsonify({"success": False, "message": "Invalid track_order_id"}), 400
+        if not invoiceNumber:
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
 
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({"success": False, "message": 'Database connection failed'}), 500
+        result = get_invoice_id(invoiceNumber)
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
 
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT invoice_id
-            FROM live_order_track
-            WHERE id = %s;
-        """, (track_order_id,))
-        invoice_data = cursor.fetchone()
-
-        if invoice_data is None:
+        if invoice_id is None:
             return jsonify({"success": False, "message": "Order not found"}), 404
 
         for_cancel_order = MyOrders()
         response = for_cancel_order.cancel_order(
-            invoice_data['invoice_id'], data)
+            invoice_id, data)
 
         if response.get('success'):
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
@@ -1598,7 +1611,7 @@ def cancel_order():
 @login_required('Sales')
 def delete_invoice(invoice_number):
     try:
-
+        
         result = get_invoice_id(invoice_number)
         invoice_id = None
         if result['status']:
