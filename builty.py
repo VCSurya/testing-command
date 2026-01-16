@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
-from utils import get_db_connection, login_required, encrypt_password,decrypt_password
-import mysql.connector
+from utils import get_db_connection, login_required, get_invoice_id
 from datetime import datetime
 import pytz
 
@@ -291,14 +290,14 @@ class BuiltyModel:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
-    def builty_recived(self,data):
+    def builty_recived(self,invoice_id,data):
         try:
             update_query = """
             UPDATE live_order_track
             SET builty_received = 1, builty_note = %s, builty_proceed_by = %s,builty_date_time = NOW()
-            WHERE id = %s;
+            WHERE invoice_id = %s;
             """
-            self.cursor.execute(update_query, (data.get('builtyNote'),session.get('user_id'),data.get('lot_id'),))
+            self.cursor.execute(update_query, (data.get('builtyNote'),session.get('user_id'),invoice_id,))
             self.conn.commit() 
             return {"success": True}
             
@@ -384,11 +383,24 @@ def send_for_builty():
 def builty_recived():
     try:
         data = request.get_json()
-        if not data.get('lot_id'):
-            return jsonify({'error': 'Missing Some IMP Information!'}), 400
+        invoiceNumber = data.get('invoiceNumber')
+
+        if not invoiceNumber:
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
+
+        result = get_invoice_id(invoiceNumber)
+
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
+
+        if invoice_id is None:
+            return jsonify({"success": False, "message": "Order not found"}), 404
 
         builty_obj = BuiltyModel()
-        response = builty_obj.builty_recived(data)
+        response = builty_obj.builty_recived(invoice_id,data)
 
         if response.get('success'):
             return jsonify({"success": True, "message": "Builty Recived Successfully"}),200

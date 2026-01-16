@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 
 
     <style>
@@ -1131,6 +1132,102 @@
             }
         }
     </style>
+    <style>
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes reveal {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-subtle {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .path-animate {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 0.6s ease-out 0.4s forwards;
+        }
+
+        .stagger-1 {
+            animation: reveal 0.5s ease-out 0.1s both;
+        }
+
+        .stagger-2 {
+            animation: reveal 0.5s ease-out 0.2s both;
+        }
+
+        .stagger-3 {
+            animation: reveal 0.5s ease-out 0.3s both;
+        }
+
+        .stagger-4 {
+            animation: reveal 0.5s ease-out 0.4s both;
+        }
+
+        .pulse-container {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        .shimmer-bg {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite linear;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-left-color: currentColor;
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            animation: spin-slow 1s linear infinite;
+        }
+
+        #modalOverlay {
+            z-index: 1100;
+        }
+    </style>
 </head>
 
 <body>
@@ -1259,12 +1356,135 @@
         </div>
     </div>
 
+    <!-- Modal Overlay -->
+    <div id="modalOverlay"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden opacity-0 transition-all duration-500">
+
+        <!-- Modal Content Container -->
+        <div id="modalContent"
+            class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden transform transition-all duration-500 translate-y-8 opacity-0">
+
+            <div id="modalInner" class="p-10 text-center relative transition-opacity duration-300">
+                <!-- Decorative background elements -->
+                <div id="blobBg"
+                    class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-3xl opacity-20 -z-10 rounded-full">
+                </div>
+
+                <!-- Icon Container -->
+                <div id="iconWrapper"
+                    class="relative mx-auto w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 pulse-container shadow-inner stagger-1">
+                    <!-- Icon injected here -->
+                </div>
+
+                <!-- Text Content -->
+                <h3 id="modalTitle" class="text-2xl font-extrabold tracking-tight text-slate-800 mb-3 stagger-2"></h3>
+                <p id="modalMessage" class="text-slate-500 text-base leading-relaxed mb-10 px-2 stagger-3"></p>
+
+                <!-- Action Button -->
+                <button onclick="closeModal()" id="actionBtn"
+                    class="relative overflow-hidden w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] stagger-4">
+                    <span id="btnText" class="relative z-10">Got it</span>
+                    <div class="absolute inset-0 shimmer-bg"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
 
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const modalInner = document.getElementById('modalInner');
+        const iconWrapper = document.getElementById('iconWrapper');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const actionBtn = document.getElementById('actionBtn');
+        const btnText = document.getElementById('btnText');
+        const blobBg = document.getElementById('blobBg');
+
+        const processingStyles = {
+            title: "Processing...",
+            message: "Submitting your dispatch request. Please wait a moment.",
+            icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
+            bg: "bg-blue-50",
+            blob: "bg-blue-400",
+            btn: "bg-slate-200 text-slate-400 cursor-not-allowed",
+            btnText: "Please wait..."
+        };
+
+        const successStyles = {
+            title: "Success!",
+            message: "Your dispatched request has been submitted. We will process it shortly.",
+            icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
+            bg: "bg-green-50",
+            blob: "bg-green-400",
+            btn: "bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-200 text-white",
+            btnText: "Great, thanks!"
+        };
+
+        const RemoveProcessingStyles = {
+            title: "Processing...",
+            message: "Submitting your cancellation request. Please wait a moment.",
+            icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
+            bg: "bg-blue-50",
+            blob: "bg-blue-400",
+            btn: "bg-slate-200 text-slate-400 cursor-not-allowed",
+            btnText: "Please wait..."
+        };
+
+        const RemoveSuccessStyles = {
+            title: "Success!",
+            message: "Your cancellation request has been submitted. We will process it shortly.",
+            icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
+            bg: "bg-green-50",
+            blob: "bg-green-400",
+            btn: "bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-200 text-white",
+            btnText: "Great, thanks!"
+        };
+
+        const errorStyles = {
+            title: "Something went wrong",
+            message: "We couldn't process your request. Please check your connection or try again later.",
+            icon: `<svg class="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>`,
+            bg: "bg-red-50",
+            blob: "bg-red-400",
+            btn: "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-200 text-white",
+            btnText: "Try again"
+        };
+
+        function updateModalContent(style) {
+            modalTitle.innerText = style.title;
+            modalMessage.innerText = style.message;
+            iconWrapper.innerHTML = style.icon;
+            btnText.innerText = style.btnText;
+
+            // Apply theme classes
+            iconWrapper.className = `relative mx-auto w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 pulse-container shadow-inner stagger-1 ${style.bg}`;
+            actionBtn.className = `relative overflow-hidden w-full py-4 rounded-2xl font-bold shadow-lg transition-all hover:brightness-110 active:scale-[0.97] stagger-4 ${style.btn}`;
+            blobBg.className = `absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-3xl opacity-20 -z-10 rounded-full ${style.blob}`;
+
+            // Disable button if processing
+            actionBtn.disabled = style.title === "Processing...";
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('opacity-0');
+            modalContent.classList.add('translate-y-8', 'opacity-0');
+            modalContent.classList.remove('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                modalOverlay.classList.add('hidden');
+            }, 500);
+        }
+
+        // Close on clicking overlay
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
+        });
 
 
         // Modal logic
@@ -1342,8 +1562,6 @@
         }
         function closeCancelOrderModal() {
             document.getElementById('cancelOrderModal').classList.remove('show');
-            cancelOrderInvoiceNumber = null;
-            cancelOrderTargetLi = null;
         }
         document.getElementById('cancelOrderCancelBtn').onclick = closeCancelOrderModal;
         document.getElementById('cancelOrderModal').onclick = function (e) {
@@ -1357,17 +1575,45 @@
                 return;
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
+
+            closeCancelOrderModal();
+            // 1. Show processing first
+            updateModalContent(RemoveProcessingStyles);
+
+            // Show Modal
+            modalOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('translate-y-8', 'opacity-0');
+                modalContent.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
             try {
                 const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
+
+                    fetchInvoices().then(() => {
+                        filterAndRenderInvoices();
+                        populateTransportOptions();
+                    });
+
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(RemoveSuccessStyles);
+                    modalInner.classList.remove('opacity-0');
+
                 } else {
-                    alert(resp && resp.message ? resp.message : 'Failed to cancel order.');
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(errorStyles);
+                    modalInner.classList.remove('opacity-0');
+                    console.log(resp && resp.message ? resp.message : 'Failed to cancel order.');
                 }
             } catch (err) {
-                alert('Error cancelling order.');
+                modalInner.classList.add('opacity-0');
+                updateModalContent(errorStyles);
+                modalInner.classList.remove('opacity-0');
+                console.log('Error cancelling order.');
             }
-            closeCancelOrderModal();
         };
 
         async function cancelOrder(invoiceNumber, reason) {
@@ -1385,10 +1631,21 @@
         }
 
         async function confirmAndStart(invoice_id) {
-            const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${invoice_id}>`);
+            const userConfirmed = confirm(`Quick check — please confirm whether all packages have been delivered to the transporter.? <${invoice_id}>`);
             if (!userConfirmed) return;
 
             const transportNote = document.getElementById('transport_note').value.trim();
+
+            // 1. Show processing first
+            updateModalContent(processingStyles);
+
+            // Show Modal
+            modalOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('translate-y-8', 'opacity-0');
+                modalContent.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
 
             try {
                 const response = await fetch('/transport/done-transportation', {
@@ -1399,18 +1656,34 @@
                         transportNote: transportNote
                     })
                 });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
 
-                if (!response.ok) {
+
+                    fetchInvoices().then(() => {
+                        filterAndRenderInvoices();
+                        populateTransportOptions();
+                    });
+
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(successStyles);
+                    modalInner.classList.remove('opacity-0');
+
+                } else {
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(errorStyles);
+                    modalInner.classList.remove('opacity-0');
                     const errorText = await response.text();
-                    throw new Error(`Server responded with error: ${errorText}`);
+                    console.log(errorText);
                 }
 
-                const data = await response.json();
-                location.reload(); // Refresh to update UI
-
             } catch (err) {
+                modalInner.classList.add('opacity-0');
+                updateModalContent(errorStyles);
+                modalInner.classList.remove('opacity-0');
                 console.error("Error starting shipment:", err);
-                alert("Something went wrong. Please try again.");
             }
         }
 
@@ -1435,7 +1708,15 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
+                list.innerHTML =
+                    `<li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>`;
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -1629,6 +1910,55 @@
                 });
         }
 
+        function filterAndRenderInvoices() {
+            const searchInput = document.getElementById('invoiceSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+            const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
+
+            let filtered = [...allInvoices];
+
+            // Search filter
+            if (query !== '') {
+                filtered = filtered.filter(inv => {
+                    const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
+                    return invoiceId.includes(query);
+                });
+            }
+
+            // Transport name filter
+            if (selectedTracking !== 'all') {
+                filtered = filtered.filter(inv => inv.transport_name === selectedTracking);
+            }
+            renderInvoices(filtered);
+        }
+
+        function populateTransportOptions() {
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+            if (!trackingStatusFilter) return;
+
+            // Keep only the first option ("All")
+            trackingStatusFilter.innerHTML = '<option value="all" selected>All</option>';
+
+            // Get unique, non-empty transport names
+            const uniqueTransports = [
+                ...new Set(
+                    allInvoices
+                        .map(inv => inv.transport_name)
+                        .filter(name => name && name.trim() !== '')
+                )
+            ];
+
+            // Append options
+            uniqueTransports.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                trackingStatusFilter.appendChild(option);
+            });
+        }
+
+
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
@@ -1674,58 +2004,13 @@
                 });
             }
 
-            function populateTransportOptions() {
-                if (!trackingStatusFilter) return;
-
-                // Get unique, non-empty transport names
-                const uniqueTransports = [
-                    ...new Set(
-                        allInvoices
-                            .map(inv => inv.transport_name)
-                            .filter(name => name && name.trim() !== '')
-                    )
-                ];
-
-                // Append options
-                uniqueTransports.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    trackingStatusFilter.appendChild(option);
-                });
-            }
-            
-
-            function filterAndRenderInvoices() {
-                const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
-
-                let filtered = [...allInvoices];
-
-                // Search filter
-                if (query !== '') {
-                    filtered = filtered.filter(inv => {
-                        const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
-                        return invoiceId.includes(query);
-                    });
-                }
-
-                // Transport name filter
-                if (selectedTracking !== 'all') {
-                    filtered = filtered.filter(inv => inv.transport_name === selectedTracking);
-                }
-
-                renderInvoices(filtered);
-            }
-
-
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);
             }
 
             fetchInvoices().then(() => {
-                populateTransportOptions();
                 filterAndRenderInvoices();
+                populateTransportOptions();
             });
 
 

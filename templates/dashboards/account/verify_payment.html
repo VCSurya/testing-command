@@ -1089,8 +1089,7 @@
     </style>
 
     <style>
-
-        #success-overlay{
+        #success-overlay {
             z-index: 3000;
         }
 
@@ -1166,6 +1165,110 @@
 
         .animate-burst {
             animation: burst 1s ease-out forwards;
+        }
+    </style>
+
+    <style>
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 2s linear infinite;
+        }
+
+        /* Celebration Confetti Animations */
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100%) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            top: -20px;
+            z-index: 60;
+            pointer-events: none;
+        }
+
+        /* Checkmark Draw Animation */
+        @keyframes stroke {
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes scale {
+
+            0%,
+            100% {
+                transform: none;
+            }
+
+            50% {
+                transform: scale3d(1.1, 1.1, 1);
+            }
+        }
+
+        @keyframes fill {
+            100% {
+                box-shadow: inset 0px 0px 0px 40px #10b981;
+            }
+        }
+
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 2;
+            stroke-miterlimit: 10;
+            stroke: #10b981;
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 4;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            box-shadow: inset 0px 0px 0px #10b981;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+
+        #modalBackdrop {
+            z-index: 1100;
+        }
+
+        #statusModal {
+            z-index: 1200;
+        }
+
+        #confettiContainer {
+            z-index: 1200;
         }
     </style>
 </head>
@@ -1291,7 +1394,7 @@
 
     <!-- The Modal Overlay (Hidden by Default) -->
     <div id="paymentModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-opacity-70 p-4"
-        onclick="closeModal(event, true)" style="background-color: #313131a6;">
+        onclick="PaymentcloseModal(event, true)" style="background-color: #313131a6;">
 
         <!-- Modal Content Container - Added max-h-[90vh] and overflow-y-auto for better responsiveness on short screens -->
         <div class="modal-content-container bg-white rounded-xl shadow-2xl w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto"
@@ -1300,7 +1403,7 @@
             <!-- Modal Header/Title -->
             <div class="p-6 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 class="text-2xl font-bold text-gray-800">Final Payment Confirmation</h2>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
+                <button onclick="PaymentcloseModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
                     <!-- Close Icon (Lucide X) -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1362,64 +1465,212 @@
         </div>
     </div>
 
-    <!-- Success Modal Overlay -->
-    <div id="success-overlay"
-        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+    <!-- Overlay / Modal Backdrop -->
+    <div id="modalBackdrop"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-40 transition-opacity duration-300 opacity-0">
+    </div>
 
-        <!-- Success Card -->
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in relative">
+    <!-- Modal Container -->
+    <div id="statusModal"
+        class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-[2.5rem] shadow-2xl z-50 hidden transition-all duration-300 scale-95 opacity-0 overflow-hidden">
 
-            <!-- Confetti Container -->
-            <div id="confetti-box" class="absolute inset-0 pointer-events-none"></div>
+        <!-- Processing State -->
+        <div id="stateProcessing" class="p-10 flex flex-col items-center text-center hidden">
+            <div class="relative w-20 h-20 mb-6">
+                <div class="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin">
+                </div>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800" id="processingText">Verifying Transaction</h3>
+            <p class="text-slate-500 mt-2" id="processingSubText">Wait and Please do not refresh the page...</p>
+        </div>
 
-            <!-- Top Decorative Section -->
-            <div class="bg-emerald-50 h-32 flex items-center justify-center relative overflow-hidden">
-                <!-- Circular background elements -->
-                <div class="absolute w-48 h-48 bg-emerald-100/50 rounded-full -top-10 -right-10"></div>
-                <div class="absolute w-32 h-32 bg-emerald-100/30 rounded-full -bottom-10 -left-10"></div>
+        <!-- Success State -->
+        <div id="stateSuccess" class="hidden">
+            <div
+                class="relative bg-gradient-to-b from-emerald-500 to-emerald-600 p-10 flex flex-col items-center justify-center overflow-hidden">
+                <!-- Background Decoration -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                    <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <circle cx="10" cy="10" r="20" fill="white" />
+                        <circle cx="90" cy="80" r="15" fill="white" />
+                        <circle cx="50" cy="10" r="10" fill="white" />
+                    </svg>
+                </div>
 
-                <!-- Animated Checkmark Circle -->
-                <div
-                    class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 z-10 relative">
-                    <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="3">
-                        <path class="animate-checkmark" stroke-linecap="round" stroke-linejoin="round"
-                            d="M5 13l4 4L19 7" />
+                <!-- Animated Checkmark -->
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                </svg>
+            </div>
+            <div class="p-8 text-center bg-white">
+                <h3 class="text-2xl font-bold text-slate-800 mb-2" id="successText">Payment Successful!</h3>
+                <p class="text-slate-500 leading-relaxed" id="successSubText">Your order <span
+                        class="font-semibold text-slate-700" id="ProceedInvoiceNumber"></span>
+                    transaction has been completed.</p>
+
+                <div class="mt-8 space-y-3">
+                    <button onclick="closeModal()"
+                        class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-[0.98]">
+                        Great, Thanks!
+                    </button>
+                    <p class="text-xs text-slate-400 font-medium">Redirecting to home in <span id="countdownDisplay"
+                            class="font-bold text-emerald-600">5</span> seconds...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Failed State -->
+        <div id="stateFailed" class="hidden">
+            <div class="bg-rose-500 p-10 flex justify-center">
+                <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                            d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </div>
             </div>
-
-            <!-- Content Section -->
             <div class="p-8 text-center">
-                <h2 class="text-2xl font-bold text-slate-800 mb-2">Payment Successful!</h2>
-                <p class="text-slate-500 text-sm mb-6 leading-relaxed">
-                    Your transaction has been completed.
-                </p>
-
-                <!-- Action Button -->
-                <button onclick="hideSuccess()"
-                    class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 rounded-2xl transition-all shadow-md active:scale-[0.98]">
-                    Done
-                </button>
-
-                <p class="mt-4 text-xs text-slate-600">
-                    Redirecting in <span id="countdown">5</span>s...
-                </p>
+                <h3 class="text-2xl font-bold text-slate-800">Request Failed</h3>
+                <p class="text-slate-500 mt-2">We couldn't process your request. Please check your connection or try
+                    again later.</p>
+                <div class="mt-6 flex flex-col gap-3">
+                    <button onclick="closeModal()"
+                        class="w-full py-3 bg-rose-500 text-white rounded-xl font-semibold hover:bg-rose-600 transition-colors shadow-lg shadow-rose-100">
+                        Try Again
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        // Get the modal element
-        const modal = document.getElementById('paymentModal');
 
-        function closeModal(event, isOverlayClick = false) {
+    <!-- Confetti Container -->
+    <div id="confettiContainer" class="fixed inset-0 pointer-events-none z-[100]"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+
+        const backdrop = document.getElementById('modalBackdrop');
+        const modal = document.getElementById('statusModal');
+        const processing = document.getElementById('stateProcessing');
+        const success = document.getElementById('stateSuccess');
+        const failed = document.getElementById('stateFailed');
+        const confettiContainer = document.getElementById('confettiContainer');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+
+        // State trackers
+        let isProcessingState = false;
+        let countdownInterval = null;
+
+        function createConfetti() {
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `confetti-fall ${Math.random() * 3 + 2}s linear forwards`;
+                confetti.style.width = Math.random() * 8 + 5 + 'px';
+                confetti.style.height = confetti.style.width;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                confettiContainer.appendChild(confetti);
+
+                // Cleanup
+                setTimeout(() => confetti.remove(), 5000);
+            }
+        }
+
+        function hideAllStates() {
+            processing.classList.add('hidden');
+            success.classList.add('hidden');
+            failed.classList.add('hidden');
+        }
+
+        function showModal() {
+            backdrop.classList.remove('hidden');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.add('opacity-100');
+                modal.classList.add('opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            // Prevent closing if we are currently in a processing state
+            if (isProcessingState) return;
+
+            // Clear any active countdown timers
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
+            backdrop.classList.remove('opacity-100');
+            modal.classList.remove('opacity-100', 'scale-100');
+            setTimeout(() => {
+                backdrop.classList.add('hidden');
+                modal.classList.add('hidden');
+                hideAllStates();
+                confettiContainer.innerHTML = ''; // Clear confetti
+            }, 300);
+        }
+
+        function startCountdown(seconds) {
+            let timeLeft = seconds;
+            countdownDisplay.textContent = timeLeft;
+
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                timeLeft -= 1;
+                countdownDisplay.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    closeModal();
+                }
+            }, 1000);
+        }
+
+        function handlePayment(type) {
+            hideAllStates();
+            showModal();
+
+            if (type === 'success') {
+                isProcessingState = true;
+                processing.classList.remove('hidden');
+
+                setTimeout(() => {
+                    isProcessingState = false; // Transaction finished
+                    processing.classList.add('hidden');
+                    success.classList.remove('hidden');
+                    createConfetti(); // Trigger the celebration!
+                    startCountdown(5); // Start the 5-second countdown to close
+                }, 2000);
+            } else {
+                isProcessingState = false;
+                failed.classList.remove('hidden');
+            }
+        }
+
+        // Close on backdrop click (guarded by isProcessingState check inside closeModal)
+        backdrop.addEventListener('click', closeModal);
+
+        const ConfirumModal = document.getElementById('paymentModal');
+
+        function PaymentcloseModal(event, isOverlayClick = false) {
             // Only close if it was a direct button click or an overlay click
             if (isOverlayClick) {
                 // Ensure the click was directly on the overlay, not a child element
-                if (event.target !== modal) return;
+                if (event.target !== ConfirumModal) return;
             }
-            modal.classList.remove('active');
+            ConfirumModal.classList.remove('active');
             // Return focus back to the button that opened the modal
             // openBtn.focus();
         }
@@ -1428,63 +1679,71 @@
             const accountNote = document.getElementById('account_note').value.trim();
             const invoice_id = document.getElementById('invoiceNumberDisplay').textContent.trim().replace('#', '');
             let paymentMethod = document.getElementById('paymentMethod').value;
+            document.getElementById('ProceedInvoiceNumber').textContent = invoice_id;
 
             if (document.getElementById("paymentMethodContainer").style.display === "none") {
                 paymentMethod = "not_paid";
             }
 
+            PaymentcloseModal();
+            hideAllStates();
+            showModal();
+            isProcessingState = true;
+            processing.classList.remove('hidden');
+
             try {
-                // const response = await fetch('/account/payment-recived', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({
-                //         inv_id: invoice_id,
-                //         accountNote: accountNote,
-                //         paymentMethod: paymentMethod
-                //     })
-                // });
+                const response = await fetch('/account/payment-recived', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        inv_id: invoice_id,
+                        accountNote: accountNote,
+                        paymentMethod: paymentMethod
+                    })
+                });
 
-                // if (!response.ok) {
-                //     const errorText = await response.text();
-                //     throw new Error(`Server responded with error: ${errorText}`);
-                // }
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server responded with error: ${errorText}`);
+                }
 
-                // const data = await response.json();
+                const data = await response.json();
 
-                if (true) {
-                    
-                    // Show success modal
-                    setTimeout(() => {
-                        showSuccess();
-                    }, 13); // Reload after 6 seconds
+                if (data.success) {
+
+                    fetchInvoices().then(() => {
+                        filterAndRenderInvoices();
+                    });
+
+                    isProcessingState = false; // Transaction finished
+                    processing.classList.add('hidden');
+                    success.classList.remove('hidden');
+                    createConfetti(); // Trigger the celebration!
+                    startCountdown(5); // Start the 5-second countdown to close
 
                 } else {
-                    alert(data.error);
+
+                    isProcessingState = false;
+                    processing.classList.add('hidden');
+                    failed.classList.remove('hidden');
+                    console.log(data.error);
                 }
 
             } catch (err) {
                 console.error("Error starting shipment:", err);
-                alert("Something went wrong. Please try again.");
-            } finally {
-                closeModal();
+                isProcessingState = false;
+                processing.classList.add('hidden');
+                failed.classList.remove('hidden');
+                console.log(data.error);
             }
         }
 
         // Event listener for keyboard shortcuts (e.g., Escape key to close)
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeModal();
+            if (e.key === 'Escape' && ConfirumModal.classList.contains('active')) {
+                PaymentcloseModal();
             }
         });
-
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-
 
 
         // Modal logic
@@ -1562,8 +1821,6 @@
         }
         function closeCancelOrderModal() {
             document.getElementById('cancelOrderModal').classList.remove('show');
-            cancelOrderInvoiceNumber = null;
-            cancelOrderTargetLi = null;
         }
         document.getElementById('cancelOrderCancelBtn').onclick = closeCancelOrderModal;
         document.getElementById('cancelOrderModal').onclick = function (e) {
@@ -1577,17 +1834,42 @@
                 return;
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
+
+            closeCancelOrderModal();
+            document.getElementById('processingText').textContent = 'Processing...';
+            document.getElementById('processingSubText').textContent = 'Submitting your cancellation request. Please wait a moment...';
+            hideAllStates();
+            showModal();
+            isProcessingState = true;
+            processing.classList.remove('hidden');
+
             try {
                 const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
                 if (resp && resp.success) {
-                    if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
+                    if (cancelOrderTargetLi) {
+                        cancelOrderTargetLi.remove();
+                    }
+                    fetchInvoices().then(() => {
+                        filterAndRenderInvoices();
+                    });
+
+                    document.getElementById('successText').textContent = 'Success!';
+                    document.getElementById('successSubText').textContent = 'Your cancellation request has been submitted.';
+
+                    isProcessingState = false; // Transaction finished
+                    processing.classList.add('hidden');
+                    success.classList.remove('hidden');
+                    startCountdown(5); // Start the 5-second countdown to close
+
                 } else {
-                    alert(resp && resp.message ? resp.message : 'Failed to cancel order.');
+                    isProcessingState = false;
+                    processing.classList.add('hidden');
+                    failed.classList.remove('hidden');
+                    console.log(resp && resp.message ? resp.message : 'Failed to cancel order.');
                 }
             } catch (err) {
-                alert('Error cancelling order.');
+                console.log(err);
             }
-            closeCancelOrderModal();
         };
 
         async function cancelOrder(invoiceNumber, reason) {
@@ -1615,11 +1897,12 @@
                 document.getElementById("paymentMethodContainer").style.display = 'block';
             }
 
-            modal.classList.add('active');
+            ConfirumModal.classList.add('active');
             document.getElementById("invoiceNumberDisplay").textContent = '#' + invoice_id;
             document.getElementById("amountDueDisplay").textContent = '₹' + amount.toLocaleString();
+            document.getElementById('account_note').value = '';
             // Accessibility focus management
-            const closeBtn = modal.querySelector('button');
+            const closeBtn = ConfirumModal.querySelector('button');
             if (closeBtn) closeBtn.focus();
 
         }
@@ -1857,71 +2140,22 @@
                 list.appendChild(li);
             });
         }
-        function createConfetti() {
-            const container = document.getElementById('confetti-box');
-            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
-            for (let i = 0; i < 40; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti animate-burst';
+        function filterAndRenderInvoices() {
+            const searchInput = document.getElementById('invoiceSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            let filtered = [...allInvoices];
 
-                // Random position and direction
-                const angle = Math.random() * Math.PI * 2;
-                const distance = 100 + Math.random() * 150;
-                const x = Math.cos(angle) * distance;
-                const y = Math.sin(angle) * distance;
-
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                confetti.style.left = '50%';
-                confetti.style.top = '25%';
-                confetti.style.setProperty('--tw-translate-x', `${x}px`);
-                confetti.style.setProperty('--tw-translate-y', `${y}px`);
-                confetti.style.animationDelay = `${Math.random() * 0.2}s`;
-
-                container.appendChild(confetti);
-
-                // Cleanup
-                setTimeout(() => confetti.remove(), 1200);
+            if (query !== '') {
+                filtered = filtered.filter(inv => {
+                    const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
+                    return invoiceId.includes(query);
+                });
             }
+
+            renderInvoices(filtered);
         }
 
-        let countdownInterval;
-
-        function showSuccess() {
-            const overlay = document.getElementById('success-overlay');
-
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                overlay.classList.add('opacity-100');
-                createConfetti();
-            }, 10);
-
-            // Start countdown
-            let count = 5;
-            const countdownEl = document.getElementById('countdown');
-            countdownEl.innerText = count;
-
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                count--;
-                countdownEl.innerText = count;
-                if (count <= 0) {
-                    hideSuccess();
-                }
-            }, 1000);
-        }
-
-        function hideSuccess() {
-            const overlay = document.getElementById('success-overlay');
-
-            overlay.classList.remove('opacity-100');
-            clearInterval(countdownInterval);
-
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-            }, 300);
-            location.reload();
-        }
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
@@ -1956,19 +2190,6 @@
                 hideButton.addEventListener('click', hideSidebar);
             }
 
-            function filterAndRenderInvoices() {
-                const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                let filtered = [...allInvoices];
-
-                if (query !== '') {
-                    filtered = filtered.filter(inv => {
-                        const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
-                        return invoiceId.includes(query);
-                    });
-                }
-
-                renderInvoices(filtered);
-            }
 
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);

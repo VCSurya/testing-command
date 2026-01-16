@@ -231,11 +231,11 @@ class PackagingModel:
                     LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
                     LEFT JOIN transport ON inv.transport_id = transport.id
 
-                        AND lot.cancel_order_status = 0
-                        AND lot.sales_proceed_for_packing = 1
+                    WHERE 
 
-                    WHERE lot.packing_proceed_for_transport = 0
-
+                    lot.packing_proceed_for_transport = 0
+                    AND lot.cancel_order_status = 0
+                    AND lot.sales_proceed_for_packing = 1
                     AND inv.completed = 0
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
                     AND lot.payment_confirm_status = 1
@@ -356,26 +356,29 @@ class PackagingModel:
 
         return merged_orders
 
-    def cancel_order(self,data):
+    def cancel_order(self,invoice_id,data):
         try:
             update_query = """
 
             UPDATE live_order_track
             SET cancel_order_status = 1
-            WHERE id = %s;
+            WHERE invoice_id = %s;
             """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
+            self.cursor.execute(update_query, (invoice_id,))
+
             update_query = """
 
             UPDATE invoices
             SET cancel_order_status = 1
-            WHERE invoices.id = (SELECT invoice_id from live_order_track WHERE id = %s );
+            WHERE id = %s;
             """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
+            self.cursor.execute(update_query, (invoice_id,))
+
+            lot_id_querry = """
+            SELECT id from live_order_track WHERE invoice_id = %s;
+            """
+            self.cursor.execute(lot_id_querry, (invoice_id,))
+            lot_id = self.cursor.fetchone()    
 
             insert_query = """
                 
@@ -384,7 +387,7 @@ class PackagingModel:
                 ) VALUES (%s, %s, %s,%s)
             """
 
-            self.cursor.execute(insert_query, (data.get('invoice_id'),session.get('user_id'),data.get('reason'),data.get('track_order_id'),))
+            self.cursor.execute(insert_query, (invoice_id, session.get('user_id'), data.get('reason'), lot_id.get('id'),))
             self.conn.commit()  # commit on connection, not cursor
             
             return {"success": True, "message": f"Order successfully Cancel"}
@@ -522,12 +525,24 @@ def packaging_my_pack_list():
 def cancel_order():
     try:
         data = request.get_json()
-        track_order_id = data.get('track_order_id') #reason
-        if not track_order_id or not str(track_order_id).isdigit() or not data.get('invoice_id'):
-            return jsonify({"success": False, "message": "Invalid Order!"}), 400
+        invoiceNumber = data.get('invoiceNumber')
+
+        if not invoiceNumber:
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
+
+        result = get_invoice_id(invoiceNumber)
+
+        invoice_id = None
+        if result['status']:
+            invoice_id = result['invoice_id']
+        else:
+            return jsonify({'error': 'Invoice not found'}), 404
+
+        if invoice_id is None:
+            return jsonify({"success": False, "message": "Order not found"}), 404
 
         for_cancel_order = PackagingModel()
-        response = for_cancel_order.cancel_order(data)
+        response = for_cancel_order.cancel_order(invoice_id,data)
 
         if response.get('success'):
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200

@@ -1418,7 +1418,16 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
+                list.innerHTML = `
+                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>
+                `;
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -1449,7 +1458,8 @@
                     pack_note: inv.packing_note,
                     transport_name: inv.transport_name,
                     transport_city: inv.transport_city,
-                    transport_pincode: inv.transport_pincode
+                    transport_pincode: inv.transport_pincode,
+                    created_at : inv.created_at
 
                 };
                 const li = document.createElement('li');
@@ -1477,12 +1487,6 @@
                                     </svg>
                                 </button>
 
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.live_order_track_id}','${invoiceObj.main_id}','${invoiceObj.number}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>   
-                                
                             </div>
                         </div>
                     </div>
@@ -1501,7 +1505,7 @@
                                 ` : ''}
                         </div>
                         
-                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sales_by}</div>
+                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sales_by} - ${invoiceObj.created_at}</div>
 
                          ${invoiceObj.delivery_mode === 'transport' ? `
                     
@@ -1525,32 +1529,6 @@
 
                         ` : ``}
                         
-                        ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
-                        
-                            <div class="tracking-wrapper">
-                            <div class="tracking-stepper">
-                                <div class="tracking-steps">
-                                
-                                ${['Sell', 'Packing', 'Transport'].map((step, i) => `
-                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                    <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                    <div class="label-group">
-                                        <div class="label">
-                                            ${i === 0 && invoiceObj.trackingStatus === 0
-                        ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                        : step}
-                                        </div>
-                                        <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
-                                    </div>
-                                    ${i < 4 ? '<div class="bar"></div>' : ''}
-                                </div>
-                                `).join('')}
-
-                                </div>
-                            </div>
-                            </div>
-
-                        ` : ''}
 
                         <table style="margin-top:10px;">
                             <thead>
@@ -1581,12 +1559,6 @@
                                 <div class="note sales-note">
                                 
                                 <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
                             
