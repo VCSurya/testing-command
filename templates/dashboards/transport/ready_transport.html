@@ -1793,15 +1793,7 @@
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.pack_date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
-                            
                             <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
-    
                         </div>
                                 
                         <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sale_date} (${invoiceObj.sales_by})</div>

@@ -1678,28 +1678,42 @@
                                 </div>
                                 ` : ''}
                         </div>
-                        
-                                              ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
+                    
+                    
+                    ${invoiceObj.trackingStatus < 2 ? `
+                    
+                    ${invoiceObj.amount_paid === invoiceObj.grand_total
+                            ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--success-green); font-weight: 600;">Paid</span>
                                 </div>
                             `
-                        : invoiceObj.amount_paid > 0
-                            ? `
+                            : invoiceObj.amount_paid > 0
+                                ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
                                 </div>
                             `
-                            : `
+                                : `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
                                 </div>
                             `
-                    }
+                        }
+                    
+                    ` : `
+                    
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
+                                </div>
+
+                    `}
+
+                    
 
                         
                     ${invoiceObj.delivery_mode === 'transport' ? `
@@ -1853,9 +1867,11 @@
                         </table>
                         
                         <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
+                        
+                        ${invoiceObj.trackingStatus < 2 ? `
+                         
+                        ${invoiceObj.amount_paid === invoiceObj.grand_total
+                            ? `
                                 <div class="amounts-container3">
                                     <div style="color: var(--success-green);">
                                         <strong>Grand Total:</strong>
@@ -1863,18 +1879,18 @@
                                     </div>
                                 </div>
                             `
-                        : invoiceObj.amount_paid > 0
-                            ? `
+                            : invoiceObj.amount_paid > 0
+                                ? `
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
                                     <div style="color: var(--warning);">
                                         <strong>Paid:</strong>
                                         ₹${invoiceObj.amount_paid.toLocaleString()} (${invoiceObj.payment_mode
-                                ? invoiceObj.payment_mode
-                                    .replace(/_/g, ' ')                 // replace underscores
-                                    .toLowerCase()                      // make all lowercase
-                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                : ''
-                            })
+                                    ? invoiceObj.payment_mode
+                                        .replace(/_/g, ' ')                 // replace underscores
+                                        .toLowerCase()                      // make all lowercase
+                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                                    : ''
+                                })
                                     </div>
                                 </div>
 
@@ -1892,7 +1908,7 @@
                                     </div>
                                 </div>
                             `
-                            : `
+                                : `
 
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
                                     <div style="color: var(--danger);">
@@ -1908,7 +1924,16 @@
                                     </div>
                                 </div>
                             `
-                    }
+                        }` : `
+                        
+                            <div class="amounts-container3">
+                                <div style="color: var(--success-green);">
+                                    <strong>Grand Total:</strong>
+                                    ₹${invoiceObj.grand_total.toLocaleString()}
+                                </div>
+                            </div>
+                        `}
+
 
                         </div>
                         

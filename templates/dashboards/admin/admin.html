@@ -1017,6 +1017,48 @@
                             : ""
                         }
 
+                        ${performers.Account && performers.Account.length > 0
+                            ?
+                            `
+                            <div
+                            class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-indigo-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
+                            <div class="flex items-center mb-4">
+                                <!-- Briefcase Icon (Manually embedded SVG) -->
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    class="w-6 h-6 mr-3 text-indigo-400">
+                                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                </svg>
+                                <h2 class="text-xl font-bold text-white">ACCOUNTING</h2>
+                            </div>
+
+                            <div class="space-y-3 max-h-48 overflow-y-auto">
+
+                                     ${performers.Account.map(item => `
+                                        <div
+                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-3 bg-indigo-400"></div>
+                                                <span class="font-semibold text-gray-100">${item.username}</span>
+                                            </div>
+                                            <div class="text-xl font-bold">
+                                                <span class="text-indigo-400">${item.total}</span>
+                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
+                                            </div>
+                                        </div>
+
+                                    `).join('')}
+                                </div>
+
+                            </div>    
+                            
+                            `
+
+                            : ""
+                        }
+
+
                         ${performers.Packaging && performers.Packaging.length > 0
                             ?
                             `
@@ -1105,47 +1147,7 @@
                             : ""
                         }
 
-                        ${performers.Account && performers.Account.length > 0
-                            ?
-                            `
-                            <div
-                            class="flex-shrink-0 w-full sm:w-80 min-w-64 rounded-xl shadow-2xl p-6 bg-indigo-800/50 border-t-4 border-b-4 border-transparent hover:border-white transition duration-300">
-                            <div class="flex items-center mb-4">
-                                <!-- Briefcase Icon (Manually embedded SVG) -->
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                    class="w-6 h-6 mr-3 text-indigo-400">
-                                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                </svg>
-                                <h2 class="text-xl font-bold text-white">ACCOUNTING</h2>
-                            </div>
-
-                            <div class="space-y-3 max-h-48 overflow-y-auto">
-
-                                     ${performers.Account.map(item => `
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg shadow-md transition duration-300 hover:bg-gray-700">
-                                            <div class="flex items-center">
-                                                <div class="w-2 h-2 rounded-full mr-3 bg-indigo-400"></div>
-                                                <span class="font-semibold text-gray-100">${item.username}</span>
-                                            </div>
-                                            <div class="text-xl font-bold">
-                                                <span class="text-indigo-400">${item.total}</span>
-                                                <span class="text-gray-400 text-sm ml-1">Orders</span>
-                                            </div>
-                                        </div>
-
-                                    `).join('')}
-                                </div>
-
-                            </div>    
-                            
-                            `
-
-                            : ""
-                        }
-
+                        
                         ${performers.Builty && performers.Builty.length > 0
                             ?
                             `

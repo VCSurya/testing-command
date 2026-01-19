@@ -2040,16 +2040,9 @@
                         <div id="invoice_date_2" ><strong> Date:</strong> 
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
+
                         <div title=${invoiceObj.customer}>
-                            
                             <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
-    
                         </div>
                         
                         <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sales_by}</div>
@@ -2143,7 +2136,7 @@
                     if (data.success && data.images.length > 0) {
                         window.open(`/packaging/images_page/${invoiceId}`, '_blank');
                     } else {
-                        alert(data.message || 'No images found!');
+                        alert(data.message || 'Please upload the images');
                     }
                 })
                 .catch(err => {
@@ -2322,6 +2315,8 @@
             // ------------------------------------------------------------
             function addImageToPreview(src, id, file = null) {
 
+                console.log(id);
+
                 const placeholder = imagePreviewContainer.querySelector('.placeholder-text');
                 if (placeholder) placeholder.remove();
 
@@ -2344,6 +2339,7 @@
                 const btn = document.createElement('button');
                 btn.innerHTML = "&times;";
                 btn.classList.add("remove-image-btn");
+                
 
                 btn.onclick = async () => {
 

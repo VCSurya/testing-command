@@ -85,9 +85,9 @@ class Dasebored:
             JOIN invoices ON invoices.id = live_order_track.invoice_id      
             WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS draft_order_count,
         
-        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id}) AS total_cancelled_orders,
-        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id} AND confirm_by_saler = 0) AS pending_cancelled_orders,
-        (SELECT COUNT(*) FROM cancelled_orders WHERE cancelled_by = {user_id} AND confirm_by_saler = 1) AS confirmed_cancelled_orders,
+        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id}) AS total_cancelled_orders,
+        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id} AND cancelled_orders.confirm_by_saler = 0) AS pending_cancelled_orders,
+        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id} AND cancelled_orders.confirm_by_saler = 1) AS confirmed_cancelled_orders,
         
         (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_count,
         (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_sum,
@@ -701,9 +701,31 @@ def generate_bill_pdf(invoice_id):
         from reportlab.lib.pagesizes import A4, inch
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
         from reportlab.lib import colors
+        from reportlab.lib.units import inch
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from io import BytesIO
         import datetime
+
+        def watermark(canvas, doc):
+            width, height = A4
+
+            canvas.saveState()
+
+            # Low opacity
+            canvas.setFillAlpha(0.5)
+
+            # Font & color
+            canvas.setFont("Helvetica-Bold", 130)
+            canvas.setFillColor(colors.lightpink)
+
+            # Center & rotate
+            canvas.translate(width / 2, height / 2)
+            canvas.rotate(30)
+
+            # Draw text
+            canvas.drawCentredString(0, 0, 'UNPAID')
+
+            canvas.restoreState()
 
         # Get invoice data from database
         conn = get_db_connection()
@@ -714,9 +736,7 @@ def generate_bill_pdf(invoice_id):
 
         # Check invoice_number and invoice_id details
         cursor.execute("""
-            SELECT invoice_number
-            FROM invoices
-            WHERE id = %s;
+            SELECT invoice_id FROM `live_order_track` WHERE sales_proceed_for_packing = 1 AND cancel_order_status = 0 and invoice_id = %s;
         """, (invoice_id,))
         invoice_data = cursor.fetchone()
         
@@ -775,6 +795,7 @@ def generate_bill_pdf(invoice_id):
         paid_amount = float(invoice_data['paid_amount'])
         grand_total = float(invoice_data['grand_total'])
         IncludeGST = invoice_data['gst_included']
+        payment_confirm_status = invoice_data['payment_confirm_status']
 
         # payment_type = invoice_data.get('payment_type', '')
 
@@ -904,19 +925,25 @@ def generate_bill_pdf(invoice_id):
                 ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
                  "", "", f"Rs {grand_total:.2f}"],
             ]
-        elif paid_amount == 0:
-            total_data = [
-                ["", "GRAND TOTAL Not Paid", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
-                 "", "", f"Rs {grand_total:.2f}"],
-            ]
+
         elif paid_amount < grand_total:
-            total_data = [
-                ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
-                 "", "", f"Rs {grand_total:.2f}"],
-                ["", "RECEIVED AMOUNT", "", "", "", f"Rs {paid_amount:.2f}"],
-                ["", "REMAINING AMOUNT", "", "", "",
-                    f"Rs {(grand_total - paid_amount):.2f}"],
-            ]
+            
+            if payment_confirm_status == 1:
+                
+                total_data = [
+                    ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
+                    "", "", f"Rs {grand_total:.2f}"],
+                ]
+
+            else:
+
+                total_data = [
+                    ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
+                    "", "", f"Rs {grand_total:.2f}"],
+                    ["", "RECEIVED AMOUNT", "", "", "", f"Rs {paid_amount:.2f}"],
+                    ["", "REMAINING AMOUNT", "", "", "",
+                        f"Rs {(grand_total - paid_amount):.2f}"],
+                ]
 
         total_table = Table(total_data, colWidths=[
                             0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
@@ -1126,7 +1153,16 @@ def generate_bill_pdf(invoice_id):
 
         # Build PDF
         doc.title = f"{customer['name']}"
-        doc.build(elements)
+        
+        if payment_confirm_status == 1:
+            doc.build(elements)
+        else:
+            doc.build(
+                elements,
+                onFirstPage=lambda c, d: watermark(c, d),
+                onLaterPages=lambda c, d: watermark(c, d),  
+            )
+
         buffer.seek(0)
 
         # Return PDF file

@@ -447,7 +447,7 @@ class PackagingModel:
     def get_images(self, invoice_id):
         try:
             query = """
-                SELECT image_url
+                SELECT image_id , image_url
                 FROM packing_images
                 WHERE invoice_id = %s
             """
