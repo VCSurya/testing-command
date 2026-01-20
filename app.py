@@ -132,7 +132,7 @@ def login():
     
     try:
         # Query the database for the user
-        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        cursor.execute("SELECT * FROM users WHERE username = %s AND active = 1", (username,))
         user = cursor.fetchone()
         
         if not user:

@@ -340,8 +340,9 @@ def builty_my_pack_list():
 @builty_bp.route('/builty/builty-dasebored-orders', methods=['GET'])
 @login_required('Builty')
 def builty_dasebored():
+    my_pack = BuiltyModel()
+    
     try:
-        my_pack = BuiltyModel()
         orders = my_pack.get_dasebored_data(session.get('user_id'))
         return jsonify(orders)
 

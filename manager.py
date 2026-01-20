@@ -764,8 +764,8 @@ def get_users_data():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
-        SELECT id, name, username, role, created_by, updated_by
-        FROM users WHERE boss = 0 AND active = 1 AND role != 'Manager' AND role != 'Admin'""")
+        SELECT id, name, username, role, created_by, updated_by, active
+        FROM users WHERE boss = 0 AND role != 'Manager' AND role != 'Admin'""")
 
         users = cursor.fetchall()
         return jsonify(users)
@@ -774,6 +774,32 @@ def get_users_data():
         cursor.close()
         conn.close()
 
+
+@manager_bp.route('/manager/users/<int:user_id>/restore', methods=['PUT'])
+@login_required('Manager')
+def restor_user(user_id):
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        
+        # Update user in database
+        cursor.execute("""
+            UPDATE users
+            SET active = 1
+            WHERE id = %s AND boss = 0 AND role != 'Manager' AND role != 'Admin'
+        """, (user_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'User restore successfully'})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': str(err)})
+    finally:
+        cursor.close()
+        conn.close()
 
 @manager_bp.route('/manager/users/add', methods=['POST'])
 @login_required('Manager')

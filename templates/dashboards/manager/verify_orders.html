@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-      <script src="{{url_for('static',filename='tailwind.js')}}"></script>
+    <script src="{{url_for('static',filename='tailwind.js')}}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
 
@@ -1324,6 +1324,103 @@
             }
         }
     </style>
+
+    <style>
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes reveal {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-subtle {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .path-animate {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 0.6s ease-out 0.4s forwards;
+        }
+
+        .stagger-1 {
+            animation: reveal 0.5s ease-out 0.1s both;
+        }
+
+        .stagger-2 {
+            animation: reveal 0.5s ease-out 0.2s both;
+        }
+
+        .stagger-3 {
+            animation: reveal 0.5s ease-out 0.3s both;
+        }
+
+        .stagger-4 {
+            animation: reveal 0.5s ease-out 0.4s both;
+        }
+
+        .pulse-container {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        .shimmer-bg {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite linear;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-left-color: currentColor;
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            animation: spin-slow 1s linear infinite;
+        }
+
+        #modalOverlay {
+            z-index: 3000;
+        }
+    </style>
 </head>
 
 <body>
@@ -1331,15 +1428,22 @@
     <aside class="custom-sidebar" id="sidebar">
         <h1 class="sidebar-title">Manager<span style="color: rgb(250, 250, 121);">Pro</span></h1>
         <ul class="sidebar-menu">
-            <li><a href="/manager/dashboard" class="sidebar-link "><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
-            <li><a href="/manager/verify-orders" class="sidebar-link active"><i class="bi bi-calendar-check"></i> <span>Verify Order</span></a></li>
-            <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i><span>All Orders</span></a></li>
+            <li><a href="/manager/dashboard" class="sidebar-link "><i
+                        class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="/manager/verify-orders" class="sidebar-link active"><i class="bi bi-calendar-check"></i>
+                    <span>Verify Order</span></a></li>
+            <li><a href="/manager/all-orders" class="sidebar-link"><i class="bi bi-clipboard-data"></i><span>All
+                        Orders</span></a></li>
             <li><a href="/manager/users" class="sidebar-link"><i class="bi bi-people"></i> <span>Users</span></a></li>
-            <li><a href="/manager/customers" class="sidebar-link"><i class="bi bi-person-lines-fill"></i><span>Customers</span></a></li>
-            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i><span>Products</span></a></li>
-            <li><a href="/manager/transport" class="sidebar-link"><i class="bi bi-truck"></i><span>Transport</span></a></li>
+            <li><a href="/manager/customers" class="sidebar-link"><i
+                        class="bi bi-person-lines-fill"></i><span>Customers</span></a></li>
+            <li><a href="/manager/products" class="sidebar-link"><i class="bi bi-box-seam"></i><span>Products</span></a>
+            </li>
+            <li><a href="/manager/transport" class="sidebar-link"><i class="bi bi-truck"></i><span>Transport</span></a>
+            </li>
             <li><a href="/manager/events" class="sidebar-link"><i class="bi-megaphone"></i> <span>Events</span></a></li>
-            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a></li>
+            <li><a href="/logout" class="sidebar-link"><i class="bi bi-box-arrow-right me-2"></i><span>Logout</span></a>
+            </li>
         </ul>
         <!-- User Card -->
         <div class="sidebar-user-card" style="color: #4fffb0;">
@@ -1382,6 +1486,69 @@
 
     </main>
 
+    <!-- Modal Overlay -->
+    <div id="modalOverlay"
+        class="fixed inset-0 bg-black/70 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden opacity-0 transition-all duration-500">
+
+        <!-- Modal Content Container -->
+        <div id="modalContent" class="bg-gradient-to-br from-[#0b0b0f] via-[#111118] to-[#0b0b0f]
+               w-full max-w-sm rounded-[2.5rem]
+               shadow-[0_30px_80px_rgba(0,0,0,0.8)]
+               border border-white/5
+               overflow-hidden transform transition-all duration-500 translate-y-8 opacity-0">
+
+            <div id="modalInner" class="p-10 text-center relative transition-opacity duration-300">
+
+                <!-- Decorative glow background -->
+                <div id="blobBg" class="absolute top-0 left-1/2 -translate-x-1/2
+                       w-48 h-48 blur-[90px] opacity-30
+                       bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
+                       -z-10 rounded-full">
+                </div>
+
+                <!-- Icon Container -->
+                <div id="iconWrapper" class="relative mx-auto w-24 h-24 rounded-[2rem]
+                       flex items-center justify-center mb-8
+                       bg-white/5 backdrop-blur-xl
+                       border border-white/10
+                       shadow-[inset_0_0_20px_rgba(255,255,255,0.05),0_0_40px_rgba(99,102,241,0.25)]
+                       stagger-1">
+                    <!-- Icon injected here -->
+                </div>
+
+                <!-- Text Content -->
+                <h3 id="modalTitle" class="text-2xl font-extrabold tracking-tight
+                       text-white mb-3 stagger-2">
+                </h3>
+
+                <p id="modalMessage" class="text-gray-400 text-base leading-relaxed
+                       mb-10 px-2 stagger-3">
+                </p>
+
+                <!-- Action Button -->
+                <button onclick="closeModal()" id="actionBtn" class="relative overflow-hidden w-full py-4 rounded-2xl
+                       font-bold text-white
+                       bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600
+                       shadow-[0_15px_40px_rgba(168,85,247,0.5)]
+                       transition-all hover:brightness-125 active:scale-[0.97]
+                       stagger-4">
+
+                    <span id="btnText" class="relative z-10 tracking-wide">
+                        Got it
+                    </span>
+
+                    <div class="absolute inset-0 opacity-30
+                            bg-gradient-to-r from-white/10 via-white/20 to-white/10
+                            animate-pulse">
+                    </div>
+                </button>
+
+            </div>
+        </div>
+    </div>
+
+
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -1391,6 +1558,76 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const modalInner = document.getElementById('modalInner');
+        const iconWrapper = document.getElementById('iconWrapper');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const actionBtn = document.getElementById('actionBtn');
+        const btnText = document.getElementById('btnText');
+        const blobBg = document.getElementById('blobBg');
+
+        const processingStyles = {
+            title: "Processing...",
+            message: "Submitting your verify order request. Please wait a moment.",
+            icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
+            bg: "bg-blue-50",
+            blob: "bg-blue-400",
+            btn: "bg-slate-200 text-slate-400 cursor-not-allowed",
+            btnText: "Please wait..."
+        };
+
+        const successStyles = {
+            title: "Success!",
+            message: "Your order has been verfiyed successfully.",
+            icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
+            bg: "bg-green-50",
+            blob: "bg-green-400",
+            btn: "bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-200 text-white",
+            btnText: "Great, thanks!"
+        };
+
+        const errorStyles = {
+            title: "Something went wrong",
+            message: "We couldn't verify your order. Please check your connection or try again later.",
+            icon: `<svg class="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>`,
+            bg: "bg-red-50",
+            blob: "bg-red-400",
+            btn: "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-200 text-white",
+            btnText: "Try again"
+        };
+
+        function updateModalContent(style) {
+            modalTitle.innerText = style.title;
+            modalMessage.innerText = style.message;
+            iconWrapper.innerHTML = style.icon;
+            btnText.innerText = style.btnText;
+
+            // Apply theme classes
+            iconWrapper.className = `relative mx-auto w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 pulse-container shadow-inner stagger-1 ${style.bg}`;
+            actionBtn.className = `relative overflow-hidden w-full py-4 rounded-2xl font-bold shadow-lg transition-all hover:brightness-110 active:scale-[0.97] stagger-4 ${style.btn}`;
+            blobBg.className = `absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-3xl opacity-20 -z-10 rounded-full ${style.blob}`;
+
+            // Disable button if processing
+            actionBtn.disabled = style.title === "Processing...";
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('opacity-0');
+            modalContent.classList.add('translate-y-8', 'opacity-0');
+            modalContent.classList.remove('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                modalOverlay.classList.add('hidden');
+            }, 500);
+        }
+
+        // Close on clicking overlay
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
+        });
 
         // Fetch invoices from backend and render
         async function fetchInvoices() {
@@ -1407,7 +1644,19 @@
         }
 
         async function confirmAndStart(InvoiceNumber) {
-            if (confirm("Are you sure ?")) {
+            if (confirm("<" + InvoiceNumber + "> Are you sure  ?")) {
+
+                // 1. Show processing first
+                updateModalContent(processingStyles);
+
+                // Show Modal
+                modalOverlay.classList.remove('hidden');
+                setTimeout(() => {
+                    modalOverlay.classList.remove('opacity-0');
+                    modalContent.classList.remove('translate-y-8', 'opacity-0');
+                    modalContent.classList.add('translate-y-0', 'opacity-100');
+                }, 10);
+
                 fetch('/manager/order-verify', {
                     method: 'POST',
                     headers: {
@@ -1416,16 +1665,27 @@
                     body: JSON.stringify({ InvoiceNumber })
                 })
                     .then(response => {
-                        if (!response.ok) throw new Error("Request failed");
+                        if (!response.ok) {
+                            modalInner.classList.add('opacity-0');
+                            updateModalContent(errorStyles);
+                            modalInner.classList.remove('opacity-0');
+                            console.log(err);
+                        }
                         return response.json();
                     })
                     .then(data => {
-                        alert("Successfully Verified!");
-                        location.reload(); // Refresh to update UI
+                        fetchInvoices().then(() => {
+                            filterAndRenderInvoices();
+                        });
+                        modalInner.classList.add('opacity-0');
+                        updateModalContent(successStyles);
+                        modalInner.classList.remove('opacity-0');
                     })
                     .catch(err => {
-                        console.error("Error:", err);
-                        alert("Something went wrong.");
+                        modalInner.classList.add('opacity-0');
+                        updateModalContent(errorStyles);
+                        modalInner.classList.remove('opacity-0');
+                        console.log(err);
                     });
             }
         }
@@ -1436,7 +1696,14 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
+                list.innerHTML =  `<li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>`;
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -1446,7 +1713,7 @@
                 const invoiceObj = {
                     number: inv.invoice_number,
                     date: inv.created_at,
-                    customer: inv.customer +', ' + inv.mobile,
+                    customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
                     gst_included: inv.gst_included,
@@ -1791,7 +2058,29 @@
             });
         }
 
+        function filterAndRenderInvoices() {
+            const searchInput = document.getElementById('invoiceSearchInput');
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
+            let filtered = [...allInvoices];
 
+            if (query !== '') {
+                filtered = filtered.filter(inv => {
+                    const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
+                    return invoiceId.includes(query);
+                });
+            }
+
+            if (trackingStatusFilter && selectedTracking !== 'all') {
+                filtered = filtered.filter(inv => {
+                    const status = typeof inv.trackingStatus !== 'undefined' ? Number(inv.trackingStatus) : 0;
+                    return status === Number(selectedTracking);
+                });
+            }
+
+            renderInvoices(filtered);
+        }
 
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
@@ -1842,28 +2131,6 @@
                     localStorage.setItem('trackingStatus', trackingStatusFilter.value);
                     filterAndRenderInvoices();
                 });
-            }
-
-            function filterAndRenderInvoices() {
-                const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-                const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
-                let filtered = [...allInvoices];
-
-                if (query !== '') {
-                    filtered = filtered.filter(inv => {
-                        const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
-                        return invoiceId.includes(query);
-                    });
-                }
-
-                if (trackingStatusFilter && selectedTracking !== 'all') {
-                    filtered = filtered.filter(inv => {
-                        const status = typeof inv.trackingStatus !== 'undefined' ? Number(inv.trackingStatus) : 0;
-                        return status === Number(selectedTracking);
-                    });
-                }
-
-                renderInvoices(filtered);
             }
 
             if (searchInput) {

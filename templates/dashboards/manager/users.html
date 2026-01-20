@@ -1062,7 +1062,7 @@
 
             // Filter by name
             $('#nameFilter').on('keyup', function () {
-                usersTable.column(1).search(this.value).draw();
+                usersTable.column(2).search(this.value).draw();
             });
 
             // Save new user
@@ -1145,6 +1145,24 @@
                     });
                 }
             });
+
+            // restore user
+            $(document).on('click', '.restore-user', function () {
+                if (confirm('Are you sure you want to restore this user?')) {
+                    const userId = $(this).data('id');
+                    $.ajax({
+                        url: `/manager/users/${userId}/restore`,
+                        method: 'PUT',
+                        success: function (response) {
+                            if (response.success) {
+                                usersTable.ajax.reload();
+                            }
+                            alert(response.message);
+                        }
+                    });
+                }
+            });
+
         });
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
         document.addEventListener('DOMContentLoaded', function () {
