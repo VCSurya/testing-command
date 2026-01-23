@@ -736,7 +736,7 @@
             </h1>
 
             <!-- 1. Key Metrics Section: Revenue and Paid Total -->
-            <div id="key-metrics-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div id="key-metrics-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Data will be injected here -->
             </div>
             <div id="breakdown-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -782,7 +782,8 @@
                 todayPaidTotal: newMockEnvVars.today_paid_amount || 0,
                 cash: { count: newMockEnvVars.Total_cash_transaction || 0, amount: newMockEnvVars.Total_cash_amount || 0 },
                 online: { count: newMockEnvVars.Total_online_transaction || 0, amount: newMockEnvVars.Total_online_amount || 0 },
-                card: { count: newMockEnvVars.Total_card_transaction || 0, amount: newMockEnvVars.Total_card_amount || 0 }
+                card: { count: newMockEnvVars.Total_card_transaction || 0, amount: newMockEnvVars.Total_card_amount || 0 },
+                TodaySales : newMockEnvVars.Today_sales || 0
             };
 
 
@@ -806,15 +807,17 @@
              * @param {string} colorClass - Tailwind color class for the background/accent
              * @returns {string} HTML string
              */
-            const createKeyMetricCard = (title, amount, colorClass) => {
+            const createKeyMetricCard = (title, amount, colorClass,bio) => {
                 return `
             <div class="bg-dark-card p-6 rounded-xl shadow-xl card-transition border-t-4 ${colorClass}">
                 <p class="text-text-muted text-sm uppercase tracking-wider">${title}</p>
                 <p class="text-4xl font-bold mt-2 text-text-light">
-                    ${formatCurrency(amount)}
+                    ${ title === 'Today Sales' ? amount : 
+                    formatCurrency(amount)
+                    }
                 </p>
                 <p class="text-text-muted text-xs mt-1">
-                    Total for today's operations.
+                    ${bio}
                 </p>
             </div>
         `;
@@ -932,8 +935,9 @@
 
                 // 1. Render Key Metrics (Revenue and Paid Total)
                 const keyMetricsHtml = [
-                    createKeyMetricCard("Today Revenue", data.todayRevenue, "border-primary"),
-                    createKeyMetricCard("Today Received", data.todayPaidTotal, "border-secondaryd")
+                    createKeyMetricCard("Today Sales", data.TodaySales, "border-secondaryd", "Count for today's orders."),
+                    createKeyMetricCard("Today Revenue", data.todayRevenue, "border-primary", "Total for today's orders." ),
+                    createKeyMetricCard("Today Received", data.todayPaidTotal, "border-secondaryd", "Total for today's recived amount of orders."),
                 ].join('');
                 keyMetricsContainer.innerHTML = keyMetricsHtml;
 
@@ -1280,6 +1284,15 @@
                 }
             })();
 
+        });
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on("force_logout", () => {
+            // Optional: call logout endpoint
+            window.location.href = "/logout";
         });
     </script>
 </body>

@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <script src="{{url_for('static',filename='tailwind.js')}}"></script>
+    <script src="{{url_for('static',filename='tailwind.js')}}"></script>
 
 
     <style>
@@ -1403,7 +1403,7 @@
 
         const processingStyles = {
             title: "Processing...",
-            message: "Submitting your dispatch request. Please wait a moment.",
+            message: "Submitting your request. Please wait a moment.",
             icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
             bg: "bg-blue-50",
             blob: "bg-blue-400",
@@ -1413,7 +1413,7 @@
 
         const successStyles = {
             title: "Success!",
-            message: "Your dispatch request has been submitted. We will process it shortly.",
+            message: "Your request has been submitted. We will process it shortly.",
             icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
             bg: "bg-green-50",
             blob: "bg-green-400",
@@ -1610,7 +1610,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok && data.success) {
 
                     fetchInvoices().then(() => {
@@ -1709,7 +1709,7 @@
                     </div>
                     <div class="invoice-details">
                         <div id="invoice_date_2" ><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.trans_date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
                             <strong>Customer:</strong> ${invoiceObj.customer}
@@ -1837,6 +1837,15 @@
             });
         });
 
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on("force_logout", () => {
+            // Optional: call logout endpoint
+            window.location.href = "/logout";
+        });
     </script>
 
 </body>

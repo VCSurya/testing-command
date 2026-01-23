@@ -1,9 +1,10 @@
-from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session
+from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session,current_app
 from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes
 import mysql.connector
 from datetime import datetime
 import pytz
 from collections import defaultdict
+
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -63,6 +64,24 @@ class AdminModel:
                 AND inv.cancel_order_status = 0
 
                 ) AS Today_revenue,
+
+                 -- Today Sales
+            
+            	(SELECT COUNT(inv.id)
+
+                FROM invoices inv
+
+                JOIN live_order_track lot ON lot.invoice_id = inv.id
+
+                WHERE DATE(inv.created_at) = CURRENT_DATE()
+
+                AND lot.sales_proceed_for_packing = 1
+
+                AND lot.cancel_order_status = 0
+
+                AND inv.cancel_order_status = 0
+
+                ) AS Today_sales,
             
                 -- Today Not-Paid Money
 
@@ -400,11 +419,10 @@ def show_invoice(invoice_number):
     result = invoice_detailes(invoice_number)
     return render_template('dashboards/admin/invoice.html', data=result)
 
-
 # Admin Dashboard
 @admin_bp.route('/admin/dashboard')
 @login_required('Admin')
-def manager_dashboard():
+def admin_dashboard():
     my_mang = AdminModel()
     orders = my_mang.get_dashboard_data()
     my_mang.close()
@@ -836,6 +854,31 @@ def update_user(user_id):
         cursor.close()
         conn.close()
 
+@admin_bp.route('/admin/users/deactivate-all', methods=['POST'])
+@login_required('Admin')
+def deactive_users():
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+    
+        cursor.execute("""
+            UPDATE users
+            SET active = 0
+        """)
+        conn.commit()
+        current_app.deactivate_all_user()
+        return jsonify({'success': True, 'message': "All User's deactivat successfully"})
+    except mysql.connector.Error as err:
+        return jsonify({'success': False, 'message': str(err)})
+    finally:
+        cursor.close()
+        conn.close()
+
 @admin_bp.route('/admin/users/<int:user_id>/restore', methods=['PUT'])
 @login_required('Admin')
 def restor_user(user_id):
@@ -878,6 +921,7 @@ def delete_user(user_id):
             WHERE id = %s AND boss = 0
         """, (user_id,))
         conn.commit()
+        current_app.deactivate_user(user_id)
         return jsonify({'success': True, 'message': 'User deleted successfully'})
     
     except mysql.connector.Error as err:

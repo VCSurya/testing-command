@@ -1459,7 +1459,7 @@
                     transport_name: inv.transport_name,
                     transport_city: inv.transport_city,
                     transport_pincode: inv.transport_pincode,
-                    created_at : inv.created_at
+                    created_at: inv.created_at
 
                 };
                 const li = document.createElement('li');
@@ -1541,15 +1541,15 @@
                             </thead>
                             <tbody>
                                 ${invoiceObj.products.map(p => {
-                            const name = p && typeof p.name === 'string' ? p.name : '';
-                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                    const name = p && typeof p.name === 'string' ? p.name : '';
+                    const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                            const base_price = p && typeof p.price === 'number' ? p.price : '';
-                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                            const total_price = base_price + tax_price;
+                    const base_price = p && typeof p.price === 'number' ? p.price : '';
+                    const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                    const total_price = base_price + tax_price;
 
-                            return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                        }).join('')}
+                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                }).join('')}
                             </tbody>
                         </table>
 
@@ -1653,6 +1653,15 @@
             });
         });
 
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on("force_logout", () => {
+            // Optional: call logout endpoint
+            window.location.href = "/logout";
+        });
     </script>
 </body>
 

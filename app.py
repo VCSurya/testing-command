@@ -16,6 +16,8 @@ from account import account_bp
 from admin import admin_bp
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, disconnect
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,6 +25,10 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
+
+socketio = SocketIO(app, manage_session=False)
+user_sockets = {}
 
 # Constants for encryption
 SECRET_KEY = os.getenv('ENCRYPTION_SECRET_KEY')
@@ -220,5 +226,41 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
+
+@socketio.on('connect')
+def handle_connect():
+    user_id = session.get('user_id')
+
+    if not user_id:
+        disconnect()
+        return
+
+    if user_id in user_sockets:
+        deactivate_user(user_id)
+
+    user_sockets[user_id] = request.sid
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    user_id = session.get('user_id')
+
+    if user_id and user_sockets.get(user_id) == request.sid:
+        del user_sockets[user_id]
+
+def deactivate_user(user_id):
+    # 1. Emit logout event
+    if user_id in user_sockets:
+        socketio.emit('force_logout', to=user_sockets[user_id])
+
+def deactivate_all_user():
+    # 1. Emit logout events
+    for i in list(user_sockets.values()):
+        socketio.emit('force_logout', to=i)
+
+app.deactivate_user = deactivate_user
+app.deactivate_all_user = deactivate_all_user
+
 if __name__ == '__main__':
-    app.run(debug=True,host='0.0.0.0',port=5000)  # Set debug=False in production
+    # app.run(debug=True,host='0.0.0.0',port=5000)  # Set debug=False in production
+    socketio.run(app, debug=True,host='0.0.0.0',port=5000)

@@ -13,7 +13,7 @@
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- Tailwind CSS for styling -->
-      <script src="{{url_for('static',filename='tailwind.js')}}"></script>
+    <script src="{{url_for('static',filename='tailwind.js')}}"></script>
     <!-- Google Fonts for a modern look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1641,7 +1641,7 @@
                         <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
                             <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Billing</h4>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Selling</h4>
                     </div>
                 </div>
 
@@ -3387,7 +3387,7 @@
 
                                 document.getElementById('invoiceNumber_for_sharing').value = data.invoice_number;
                                 popupCloseBtn.disabled = false;
-                                
+
                             }, 1000); // Optional delay for smooth transition
 
                         } else {
@@ -3463,6 +3463,15 @@
         document.getElementById('billingForm').addEventListener('reset', hideLoading);
         // Hide loading spinner on page load
         window.addEventListener('load', hideLoading);
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on("force_logout", () => {
+            // Optional: call logout endpoint
+            window.location.href = "/logout";
+        });
     </script>
 </body>
 
