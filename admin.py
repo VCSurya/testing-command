@@ -894,7 +894,7 @@ def restor_user(user_id):
         # Update user in database
         cursor.execute("""
             UPDATE users
-            SET active = 1
+            SET active = 1, 
             WHERE id = %s AND boss = 0
         """, (user_id,))
         conn.commit()

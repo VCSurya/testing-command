@@ -1752,9 +1752,9 @@
 
                 if (result.success) {
 
-                    fetchInvoices().then(() => {
-                        filterAndRenderInvoices();
-                    });
+                    await fetchInvoices();
+                    filterAndRenderInvoices();
+
 
                     modalInner.classList.add('opacity-0');
                     updateModalContent(successStyles);
@@ -1912,19 +1912,42 @@
             if (event.target.classList.contains('overlay')) closePopups();
         }
 
+        // Fetch invoices from backend and render
+        async function fetchInvoices() {
+            const list = document.getElementById('invoiceList');
+            list.innerHTML = `
+                <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
+                    <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                            stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    Fetching Data...
+                </div>
+            `;
+            try {
+                const response = await fetch('/sales/my-ready-to-go-orders-list');
+                if (!response.ok) throw new Error('Failed to fetch invoices');
+                const data = await response.json();
+                allInvoices = Array.isArray(data) ? data : [];
+                // Note: don't call renderInvoices here; let filtering handle rendering
+            } catch (err) {
+                console.error('Error fetching invoices:', err);
+                allInvoices = [];
+            }
+        }
 
         async function confirmAndStart(invoiceNumber) {
-
-
             const processingOverlay = document.getElementById('processingOverlay');
-            // const successBtn = document.getElementById('successBtn');
             const progressBar = document.getElementById('progressBar');
 
             progressBar.style.width = '0%';
             resetSteps();
 
             processingOverlay.classList.add('active');
-            // successBtn.disabled = true;
 
             updateStep(1, "Verifying...");
             setTimeout(() => updateStep(2, "Preparing..."), 800);
@@ -1937,57 +1960,40 @@
                 });
             });
 
-            fetch('/start-shipment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ invoiceNumber })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        showStatus('failed')
-                    }
-                    return response.json();
-                })
-                .then(data => {
-
-                    fetchInvoices().then(() => {
-                        filterAndRenderInvoices();
-                    });
-
-                    setTimeout(() => {
-                        progressBar.style.width = '100%';
-                    }, 2000);
-
-                    setTimeout(() => {
-                        processingOverlay.classList.remove('active');
-                        progressBar.classList.remove('progress-bar-fill');
-                        showStatus('success');
-                        // successBtn.disabled = false;
-                    }, 2500);
-                    // alert("Shipment started successfully!");
-                })
-                .catch(err => {
-                    showStatus('failed')
-                    console.error("Error:", err);
-                    // alert("Something went wrong.");
-                });
-        }
-
-        // Fetch invoices from backend and render
-        async function fetchInvoices() {
             try {
-                const response = await fetch('/sales/my-ready-to-go-orders-list');
-                if (!response.ok) throw new Error('Failed to fetch invoices');
+                const response = await fetch('/start-shipment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceNumber })
+                });
+
+                if (!response.ok) {
+                    showStatus('failed');
+                    return;
+                }
+
                 const data = await response.json();
-                allInvoices = Array.isArray(data) ? data : [];
-                // Note: don't call renderInvoices here; let filtering handle rendering
+
+                // ✅ NOW this truly waits
+                await fetchInvoices();
+                filterAndRenderInvoices();
+
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                }, 2000);
+
+                setTimeout(() => {
+                    processingOverlay.classList.remove('active');
+                    progressBar.classList.remove('progress-bar-fill');
+                    showStatus('success');
+                }, 2500);
+
             } catch (err) {
-                console.error('Error fetching invoices:', err);
-                allInvoices = [];
+                showStatus('failed');
+                console.error("Error:", err);
             }
         }
+
 
 
         // Render invoices from dynamic backend data
