@@ -474,7 +474,7 @@
                     : data.data.LEFT_TO_PAID === data.data.GRAND_TOTAL
                         ? `
 
-                                            ${data.data.PAYMENT_CONFIRM == 1 ?
+                                            ${data.data.PAYMENT_CONFIRM == 1 && data.data.PAYMENT_2_MODE != "not_paid" ?
                             `
                                              <tr>
                                                     <td class="px-3 py-3 whitespace-nowrap text-gray-300">${formatEventDate(data.data.PAYMENT_2_DATE)}</td>
@@ -567,19 +567,23 @@
                     </div>
                 </section>
                 
-                ${data.data.PAYMENT_NOTE_1.length > 0 ?
+                ${data.data.PAYMENT_NOTE_1 != null || data.data.PAYMENT_NOTE_2 != null ?
                     `
                     <!-- Payment Notes/Remarks Section -->
                     <section class="mb-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
 
+                        ${ data.data.PAYMENT_NOTE_1 != null && data.data.PAYMENT_NOTE_1 != "" ?
+                        `
                             <!-- Payment Note 1 -->
                             <div class="p-4 bg-gray-700/50 border-l-4 border-blue-400 rounded-lg shadow-sm">
                                 <p class="font-semibold text-blue-400 mb-1">Payment Note By Salesman:</p>
                                 <p class="text-gray-300 italic">${data.data.PAYMENT_NOTE_1}</p>
                             </div>
-                            
-                            ${data.data.PAYMENT_NOTE_2 !== "" && data.data.PAYMENT_NOTE_2 !== null ?
+                        `
+                        : ``}
+                        
+                            ${data.data.PAYMENT_NOTE_2 != null && data.data.PAYMENT_NOTE_2 != "" ?
                         `
                             <!-- Payment Note 2 -->
                             <div class="p-4 bg-gray-700/50 border-l-4 border-yellow-400 rounded-lg shadow-sm">

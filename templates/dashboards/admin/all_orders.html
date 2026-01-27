@@ -623,8 +623,9 @@
                         <option value="Transport">Transport</option>
                         <option value="Builty">Builty</option>
                         <option value="Verify Order">Verify Order</option>
-                        <option value="Completed">Completed</option>
+                        <!-- <option value="Completed">Completed</option> -->
                         <option value="Cancelled">Cancelled</option>
+                        <option value="Unpaid Order">Unpaid Order</option>
                     </select>
                 </div>
                 <!-- No Results Message (Hidden by default, shown when no invoices match filters) -->
@@ -1029,51 +1030,6 @@
                         : ""
                     }
 
-                    ${data.Completed && data.Completed.length > 0
-                        ?
-                        `
-                            <!-- Stage Card Component: Completed (5 Invoices - Load More needed) -->
-                            <div class="stage-card bg-dark-card p-4 rounded-xl shadow-2xl border-t-4 border-[#dfed68] flex flex-col h-full" data-stage="Completed" data-is-expanded="false">
-                                <!-- Stage Title and Count (Combined) -->
-                                <h2 class="stage-title text-xl font-bold mb-3 text-[#dfed68] flex justify-between items-center">
-                                    <span>Completed</span>
-                                    <span class="stage-count text-lg font-extrabold px-2 py-1 bg-[#dfed68]/30 text-[#dfed68] rounded-full ">${data.Completed.length}</span>
-                                </h2>
-                                <hr>
-                                <!-- List of Invoices for this Stage -->
-                                <div class="invoice-list-wrapper space-y-3 flex-grow ">
-
-                                    <!-- Invoice Items -->
-                                    ${data.Completed.map(item => `
-                                    <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
-                                        <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
-                                            <p class="text-xs text-gray-400">From: ${item.created_at}</p>
-                                            <p class="text-xs text-gray-400">To: ${item.stage_date_time}</p>
-                                        </div>
-
-                                        <span
-                                            class="text-xs border border-[#dfed68] px-2 py-0.5 rounded-full cursor-pointer
-                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
-                                            View
-                                        </span>
-
-                                    </div>
-                                    `).join('')}
-                                </div>
-
-                                <!-- Load More Button (Hidden by default, shown if count > 3) -->
-                                <button class="load-more-btn mt-3 w-full py-2 bg-gray-700 hover:bg-gray-600 text-sm font-medium rounded-lg text-green-400 border border-gray-600 transition duration-150 hidden" onclick="toggleInvoices('Completed')">
-                                    Show More Invoices
-                                </button>
-
-                            </div>
-                            
-                            `
-
-                        : ""
-                    }
-
                     ${data.Cancelled && data.Cancelled.length > 0
                         ?
                         `
@@ -1119,8 +1075,45 @@
                         : ""
                     }
 
+                    ${data.Unpaid && data.Unpaid.length > 0
+                        ?
+                        `
+                            <div class="stage-card bg-dark-card p-4 rounded-xl shadow-2xl border-t-4 border-[#dfed68] flex flex-col h-full" data-stage="Unpaid Order" data-is-expanded="false">
+                                <h2 class="stage-title text-xl font-bold mb-3 text-[#dfed68] flex justify-between items-center">
+                                    <span>Unpaid Order</span>
+                                    <span class="stage-count text-lg font-extrabold px-2 py-1 bg-[#dfed68]/30 text-[#dfed68] rounded-full ">${data.Unpaid.length}</span>
+                                </h2>
+                                <hr>
+                                <div class="invoice-list-wrapper space-y-3 flex-grow ">
 
-                 
+                                    ${data.Unpaid.map(item => `
+                                    <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
+                                        <div>
+                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="text-xs text-gray-400">From: ${item.created_at}</p>
+                                        </div>
+
+                                        <span
+                                            class="text-xs border border-[#dfed68] px-2 py-0.5 rounded-full cursor-pointer
+                                                text-[#dfed68] hover:bg-[#dfed68] hover:text-black transition " onclick="viewInvoiceDetails('${item.invoice_number}')">
+                                            View
+                                        </span>
+
+                                    </div>
+                                    `).join('')}
+                                </div>
+
+                                <button class="load-more-btn mt-3 w-full py-2 bg-gray-700 hover:bg-gray-600 text-sm font-medium rounded-lg text-green-400 border border-gray-600 transition duration-150 hidden" onclick="toggleInvoices('Unpaid Order')">
+                                    Show More Invoices
+                                </button>
+
+                            </div>
+                            
+                            `
+
+                        : ""
+                    } 
+
                  
                 `;
 

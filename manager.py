@@ -438,14 +438,39 @@ class ManagerModel:
         self.cursor.execute(query)
         data = self.cursor.fetchall()
         result = defaultdict(list)
-    
         for item in data:
             result[item["pending_stage"]].append({
                 "invoice_number": item["invoice_number"],
                 "created_at": item["created_at"].strftime("%d/%m/%Y %I:%M %p"),
-                "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p")
+                "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p") if item["stage_date_time"] else "" 
             })
 
+
+        self.cursor.execute("""
+            SELECT 
+                inv.invoice_number, 
+                inv.created_at 
+       
+                FROM invoices inv 
+
+                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
+
+                where lot.verify_by_manager = 1 
+                AND lot.cancel_order_status = 0 
+                AND lot.sales_proceed_for_packing = 1 
+                AND lot.packing_proceed_for_transport = 1 
+                AND lot.transport_proceed_for_builty = 1 
+                AND lot.builty_received = 1 
+                AND lot.payment_confirm_status = 1 
+                AND inv.completed = 1
+                AND lot.left_to_paid_mode = 'not_paid'
+                ORDER BY inv.created_at DESC;
+        """)
+        unpaid_orders = self.cursor.fetchall()
+        for i in unpaid_orders:
+            i['created_at'] = i['created_at'].strftime("%d/%m/%Y %I:%M %p")
+    
+        result['Unpaid'] = unpaid_orders
         return dict(result)
 
     def close(self):
@@ -683,7 +708,6 @@ def verify_order_list():
                 AND lot.builty_received = 1 
                 AND lot.payment_confirm_status = 1 
                 AND inv.completed = 0
-                AND lot.left_to_paid_mode != 'not_paid'
                 ORDER BY inv.created_at DESC;
         """
         conn = get_db_connection()
