@@ -1618,6 +1618,7 @@
                 const products = Array.isArray(inv.products) ? inv.products : [];
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
+                    main_id: inv.id,
                     number: inv.invoice_number,
                     date: inv.created_at,
                     customer: inv.customer + ', ' + inv.mobile,
@@ -1639,7 +1640,6 @@
                     transport_name: inv.transport_name,
                     transport_city: inv.transport_city,
                     transport_days: inv.transport_days,
-                    transport_charges: inv.transport_charges,
                     transport_pincode: inv.transport_pincode,
                     payu_name: inv.payu_name,
                     bu_name: inv.bu_name,
@@ -1650,7 +1650,7 @@
                 li.className = 'invoice-item';
                 li.innerHTML = `
                     <div class="invoice-header">
-                        <span>❑ ${invoiceObj.number}</span>
+                        <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
 
@@ -1755,11 +1755,6 @@
                             <div class="info-group">
                                 <span class="label">Pincode</span>
                                 <span class="value">${invoiceObj.transport_pincode}</span>
-                            </div>
-
-                            <div class="info-group">
-                                <span class="label">Charges</span>
-                                <span class="value charges-value">₹${invoiceObj.transport_charges}</span>
                             </div>
 
                             <div class="info-group">
@@ -1990,7 +1985,7 @@
 
             if (query !== '') {
                 filtered = filtered.filter(inv => {
-                    const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
+                    const invoiceId = (String(inv.id) + String(inv.invoice_number)).toLowerCase();
                     return invoiceId.includes(query);
                 });
             }

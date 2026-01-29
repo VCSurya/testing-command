@@ -311,9 +311,9 @@ def get_transport_input(input):
     try:
         
         if input.isdigit():
-            cursor.execute(f"SELECT * FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
         else:
-            cursor.execute(f"SELECT * FROM `transport` WHERE city LIKE '{input}%' LIMIT 15;")
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE city LIKE '{input}%' LIMIT 15;")
 
         customers = cursor.fetchall()
         return jsonify(customers)
@@ -652,14 +652,7 @@ def save_invoice_into_database():
                     response = sales.insert_live_order_track(
                         result['invoice_id'])
 
-                    if response['success']:
-                        # Successfully inserted into live order track
-                        print(
-                            f"Live order track inserted for invoice ID: {result['invoice_id']}")
-                    else:
-                        # If there was an error inserting into live order track
-                        print(
-                            f"Error inserting live order track: {response['error']}")
+                    if not response['success']:
                         sales.close_connection()
                         return jsonify({'error': response['error']}), 500
 
@@ -671,7 +664,8 @@ def save_invoice_into_database():
             # Return success with invoice ID
             return jsonify({
                 'success': True,
-                'invoice_number': result['invoice_number']
+                'invoice_number': result['invoice_number'],
+                'invoice_id' : result['invoice_id']
             }), 200
         else:
             return jsonify({'error': 'Database Error!'}), 500
@@ -751,8 +745,7 @@ def generate_bill_pdf(invoice_id):
             t.pincode AS transport_pincode,
             t.name AS transport_name,
             t.city AS transport_city,
-            t.days AS transport_days,
-            t.charges AS transport_charges
+            t.days AS transport_days
             FROM invoices i 
             JOIN buddy c ON i.customer_id = c.id
             JOIN live_order_track lot ON i.id = lot.invoice_id
@@ -789,7 +782,6 @@ def generate_bill_pdf(invoice_id):
         transport_name = invoice_data['transport_name']
         transport_city = invoice_data['transport_city']
         transport_days = invoice_data['transport_days']
-        transport_charges = invoice_data['transport_charges']
         transport_pincode = invoice_data['transport_pincode']
         payment_mode = invoice_data['payment_mode']
         paid_amount = float(invoice_data['paid_amount'])
@@ -1017,11 +1009,11 @@ def generate_bill_pdf(invoice_id):
 
         if delivery_mode == "transport":
             info_data = [
-                ["Transport Name", "City" , "Pincode" , "Charges" , "Delivery"]
+                ["Transport Name", "City" , "Pincode", "Delivery"]
             ]
-            info_data.append([transport_name,transport_city,transport_pincode,transport_charges,f"{transport_days} Days"])
+            info_data.append([transport_name,transport_city,transport_pincode,f"{transport_days} Days"])
 
-            info_table = Table(info_data, colWidths=[2.6*inch, 3*inch,0.8*inch,0.8*inch,0.8*inch])
+            info_table = Table(info_data, colWidths=[3*inch, 3.4*inch,0.8*inch,0.8*inch])
             info_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -1280,8 +1272,6 @@ class MyOrders:
                 # If it already exists, just append the product info
                 merged[order_id]["products"].append(product_info)
 
-            merged[order_id].pop("id", None)
-
         return list(merged.values())
 
     def fetch_my_orders(self, user_id):
@@ -1350,8 +1340,7 @@ class MyOrders:
                 transport.pincode AS transport_pincode,
                 transport.name AS transport_name,
                 transport.city AS transport_city,
-                transport.days AS transport_days,
-                transport.charges AS transport_charges
+                transport.days AS transport_days
             
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
@@ -1435,8 +1424,7 @@ class MyOrders:
                 transport.pincode AS transport_pincode,
                 transport.name AS transport_name,
                 transport.city AS transport_city,
-                transport.days AS transport_days,
-                transport.charges AS transport_charges
+                transport.days AS transport_days
                 
             
             FROM invoices inv
@@ -1959,9 +1947,8 @@ class Canceled_Orders:
                 t.pincode AS transport_pincode,
                 t.name AS transport_name,
                 t.city AS transport_city,
-                t.days AS transport_days,
-                t.charges AS transport_charges
-
+                t.days AS transport_days
+                
             FROM invoices inv
             LEFT JOIN buddy b ON inv.customer_id = b.id
             LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
@@ -2181,7 +2168,7 @@ class EditBill:
                 invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
                 invoices.sales_note, invoices.payment_note, invoices.gst_included, 
                 invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id,t.name as t_name,
-                t.pincode as t_pincode, t.city as t_city , t.days as t_days , t.charges as t_charges,
+                t.pincode as t_pincode, t.city as t_city , t.days as t_days,
 
                 ip.quantity, ip.total_amount, p.name as product_name 
                 FROM invoice_items ip 
@@ -2197,7 +2184,7 @@ class EditBill:
 
         # Extract common fields
         common_keys = ['c_mobile','c_address','c_name','c_pincode' ,'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
-                       't_name','t_pincode', 't_city' , 't_days' , 't_charges',
+                       't_name','t_pincode', 't_city' , 't_days' ,
                        'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
 
         # Build the unified dict with Decimal -> float conversion

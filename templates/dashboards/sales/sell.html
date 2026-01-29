@@ -1900,12 +1900,6 @@
                                                                     </h2>
                                                                 </div>
                                                             </div>
-                                                            <div class="md:hidden flex flex-col items-end">
-                                                                <span
-                                                                    class="text-xs font-semibold uppercase tracking-wider text-slate-400">Charges</span>
-                                                                <span id="charges1"
-                                                                    class="text-lg font-bold text-blue-600">₹0</span>
-                                                            </div>
                                                         </div>
 
                                                         <div class="grid grid-cols-2 gap-4 mt-6">
@@ -1936,21 +1930,12 @@
                                                     <!-- Right Section: Logistics & Pricing -->
                                                     <div
                                                         class="bg-slate-50 p-6 md:p-8 md:w-72 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-200">
-                                                        <div class="hidden md:block mb-6">
-                                                            <p
-                                                                class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">
-                                                                Charges</p>
-                                                            <div class="flex items-baseline space-x-1">
-                                                                <span class="text-3xl font-bold text-slate-800"
-                                                                    id="charges2">₹0</span>
-                                                            </div>
-                                                        </div>
 
                                                         <div class="space-y-4">
                                                             <div class="flex items-center justify-between text-sm">
                                                                 <span class="text-slate-500"><i
-                                                                        class="far fa-clock mr-2"></i>
-                                                                    <span class="font-bold text-slate-700"
+                                                                        class="far fa-clock mr-2 text-l"></i>
+                                                                    <span class="font-bold text-slate-700 text-l"
                                                                         id="days">N/A</span>
                                                                 </span>
                                                             </div>
@@ -2067,12 +2052,12 @@
                                         </div>
 
                                         <!-- GST Toggle Switch Wrapper -->
-                                        <div class="gst-wrapper">
+                                        <div class="gst-wrapper hidden">
                                             <div class="gst-container">
                                                 <span class="gst-text">Include GST (18%)</span>
                                                 <label for="gst-toggle-switch" class="toggle-switch-label">
                                                     <input type="checkbox" id="gst-toggle-switch"
-                                                        class="sr-only-checkbox" name="IncludeGST">
+                                                        class="sr-only-checkbox" name="IncludeGST" checked>
                                                     <div class="toggle-track"></div>
                                                     <div class="toggle-thumb"></div>
                                                 </label>
@@ -2562,11 +2547,9 @@
                 document.getElementById('noTransport').classList.add('hidden');
 
                 document.getElementById('companyName').textContent = name;
-                document.getElementById('charges1').textContent = "₹" + charges;
-                document.getElementById('charges2').textContent = "₹" + charges;
                 document.getElementById('city').textContent = city;
                 document.getElementById('pincode').textContent = pincode;
-                document.getElementById('days').textContent = days + " - Days";
+                document.getElementById('days').textContent = days + ' - Days';
                 document.getElementById('transportCompany').value = id;
             }
 
@@ -2579,11 +2562,9 @@
                         document.getElementById('transportCard').classList.remove('hidden');
                         document.getElementById('transportCompany').value = data[0].id;
                         document.getElementById('companyName').textContent = data[0].name;
-                        document.getElementById('charges1').textContent = "₹" + data[0].charges;
-                        document.getElementById('charges2').textContent = "₹" + data[0].charges;
                         document.getElementById('city').textContent = data[0].city;
                         document.getElementById('pincode').textContent = data[0].pincode;
-                        document.getElementById('days').textContent = data[0].days + " - Days";
+                        document.getElementById('days').textContent = data[0].days + ' - Days';
                     }
                     else {
 
@@ -3377,7 +3358,7 @@
                                     <div class="alert alert-success d-flex justify-content-between align-items-center">
                                         <div>
                                             <i class="fas fa-file-pdf text-danger"></i>
-                                            <strong>${data.invoice_number}</strong>
+                                            <strong>${data.invoice_id}</strong>
                                         </div>
                                         <button type="button" id="copyBtn" onclick="copyLink();">
                                             <i class="fas fa-copy"></i> <span id="copyText">Copy Link</span>

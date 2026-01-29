@@ -360,13 +360,6 @@ def payment_recived():
         if data.get('paymentMethod') not in ['cash', 'card', 'online','not_paid']:
             return jsonify({'error': 'Invalid Payment Method!'}), 400
 
-        result = get_invoice_id(data.get('inv_id'))
-
-        if result['status']:
-            data['inv_id'] = result['invoice_id']
-        else:
-            return jsonify({'error': 'Invoice not found'}), 404
-        
         pay_obj = AccountModel()
         response = pay_obj.payment_recived(data)
 

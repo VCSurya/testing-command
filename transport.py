@@ -235,8 +235,7 @@ class TransportModel:
                         transport.pincode AS transport_pincode,
                         transport.name AS transport_name,
                         transport.city AS transport_city,
-                        transport.days AS transport_days,
-                        transport.charges AS transport_charges
+                        transport.days AS transport_days
 
                     FROM invoices inv
 
