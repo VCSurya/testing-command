@@ -830,7 +830,7 @@
                                     ${data.Payment.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">Date: ${item.stage_date_time}</p>
                                         </div>
                                         
@@ -874,7 +874,7 @@
                                     ${data.Packing.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">Date: ${item.stage_date_time}</p>
                                         </div>
                                         
@@ -919,7 +919,7 @@
                                     ${data.Transport.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">Date: ${item.stage_date_time}</p>
                                         </div>
                                         
@@ -962,7 +962,7 @@
                                     ${data.Builty.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">Date: ${item.stage_date_time}</p>
                                         </div>
                                         
@@ -1006,7 +1006,7 @@
                                     ${data.Verification.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">Date: ${item.stage_date_time}</p>
                                         </div>
 
@@ -1051,7 +1051,7 @@
                                     ${data.Cancelled.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">From: ${item.created_at}</p>
                                             <p class="text-xs text-gray-400">At: ${item.stage_date_time}</p>
                                         </div>
@@ -1093,7 +1093,7 @@
                                     ${data.Unpaid.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">From: ${item.created_at}</p>
                                         </div>
 
@@ -1209,7 +1209,7 @@
                                     ${data.Completed.map(item => `
                                     <div class="invoice-item bg-gray-700 p-3 rounded-lg justify-between items-center transition duration-300 hover:bg-gray-600/70">
                                         <div>
-                                            <p class="font-semibold text-light-text">${item.invoice_number}</p>
+                                            <p class="font-semibold text-light-text">${item.id}</p>
                                             <p class="text-xs text-gray-400">From: ${item.created_at}</p>
                                             <p class="text-xs text-gray-400">To: ${item.stage_date_time}</p>
                                         </div>

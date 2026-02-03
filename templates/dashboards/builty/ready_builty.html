@@ -1582,8 +1582,8 @@
             }
         }
 
-        async function confirmAndStart(invoiceNumber) {
-            const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${invoiceNumber}>`);
+        async function confirmAndStart(invoiceNumber,main_id) {
+            const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${main_id}>`);
             if (!userConfirmed) return;
 
             const builtyNote = document.getElementById('builty_note').value.trim();
@@ -1715,7 +1715,7 @@
                 li.className = 'invoice-item';
                 li.innerHTML = `
                     <div class="invoice-header">
-                        <span>❑ ${invoiceObj.number}</span>
+                        <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
                         </div>
@@ -1773,7 +1773,7 @@
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}')">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
                                 Confirm Builty 
                             </button>
                         </div>

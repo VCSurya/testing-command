@@ -301,6 +301,7 @@ class AdminModel:
                     SELECT 
                             invoices.invoice_number,
                             invoices.created_at,
+                            invoices.id,
 
                             CASE
                                 -- Cancelled stage (only when both cancel flags = 1)
@@ -401,6 +402,7 @@ class AdminModel:
         result = defaultdict(list)
         for item in data:
             result[item["pending_stage"]].append({
+                "id":item["id"],
                 "invoice_number": item["invoice_number"],
                 "created_at": item["created_at"].strftime("%d/%m/%Y %I:%M %p"),
                 "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p") if item["stage_date_time"] else "" 
@@ -410,7 +412,8 @@ class AdminModel:
         self.cursor.execute("""
             SELECT 
                 inv.invoice_number, 
-                inv.created_at 
+                inv.created_at, 
+                inv.id
        
                 FROM invoices inv 
 

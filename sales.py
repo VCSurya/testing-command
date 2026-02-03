@@ -777,7 +777,7 @@ def generate_bill_pdf(invoice_id):
         conn.close()
 
         # or however you store bill number
-        bill_no = invoice_data['invoice_number']
+        bill_no = invoice_id
         delivery_mode = invoice_data['delivery_mode']
         transport_name = invoice_data['transport_name']
         transport_city = invoice_data['transport_city']
@@ -1145,16 +1145,7 @@ def generate_bill_pdf(invoice_id):
 
         # Build PDF
         doc.title = f"{customer['name']}"
-        
-        if payment_confirm_status == 1:
-            doc.build(elements)
-        else:
-            doc.build(
-                elements,
-                onFirstPage=lambda c, d: watermark(c, d),
-                onLaterPages=lambda c, d: watermark(c, d),  
-            )
-
+        doc.build(elements)
         buffer.seek(0)
 
         # Return PDF file

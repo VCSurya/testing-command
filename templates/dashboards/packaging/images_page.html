@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Invoice Gallery - {{ invoice_id }}</title>
+    <title>{{ id }} - Invoice Gallery</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <script src="{{url_for('static',filename='tailwind.js')}}"></script>
     <style>
@@ -92,7 +92,7 @@
         <div class="overflow-hidden">
             <p class="text-[10px] md:text-xs uppercase tracking-widest text-gray-500 font-bold truncate">Packaging
                 Images</p>
-            <h1 class="text-lg md:text-xl font-bold text-white tracking-tight truncate">{{ invoice_id }}</h1>
+            <h1 class="text-lg md:text-xl font-bold text-white tracking-tight truncate">❑ {{ id }}</h1>
         </div>
         <div class="flex items-center gap-2 md:gap-4 shrink-0">
             <span id="counter" class="text-xs font-mono bg-white/10 px-3 py-1 rounded-full text-gray-300">

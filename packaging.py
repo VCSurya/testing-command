@@ -706,5 +706,4 @@ def show_images_page(invoice_number):
         return jsonify({'error': 'Invoice not found'}), 404
 
     images = packaging_model.get_images(invoice_id)
-    print(images)
-    return render_template('dashboards/packaging/images_page.html', images=images, invoice_id=invoice_number)
+    return render_template('dashboards/packaging/images_page.html', images=images, invoice_id=invoice_number,id=invoice_id)

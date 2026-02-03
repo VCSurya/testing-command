@@ -1550,11 +1550,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, btn) {
+        function openCancelOrderModal(invoiceNumber, main_id,btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoiceNumber + '>';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + main_id + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1629,8 +1629,8 @@
             }
         }
 
-        async function confirmAndStart(invoice_id) {
-            const userConfirmed = confirm(`Quick check — please confirm whether all packages have been delivered to the transporter.? <${invoice_id}>`);
+        async function confirmAndStart(invoice_id,main_id) {
+            const userConfirmed = confirm(`Quick check — please confirm whether all packages have been delivered to the transporter.? <${main_id}>`);
             if (!userConfirmed) return;
 
             const transportNote = document.getElementById('transport_note').value.trim();
@@ -1770,15 +1770,11 @@
                 li.className = 'invoice-item';
                 li.innerHTML = `
                     <div class="invoice-header">
-                        <span>❑ ${invoiceObj.number}</span>
+                        <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.pack_date}</span>
 
                             <div class="invoice-actions">
-
-                                <button class="glass-btn" title="Images" onclick="event.stopPropagation();checkAndOpenImages('${invoiceObj.number}')">
-                                    <i class="fa-solid fa-image"></i>
-                                </button>
 
                                 <button class="glass-btn" title="Download PDF" onclick="
                                     event.stopPropagation();
@@ -1791,7 +1787,7 @@
                                 </button>
 
                                 
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}', this)">
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -1881,7 +1877,7 @@
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}')">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
                                 Transport Handover Done 
                             </button>
                         </div>
@@ -1896,22 +1892,6 @@
                 });
                 list.appendChild(li);
             });
-        }
-
-        function checkAndOpenImages(invoiceId) {
-            fetch(`/transport/images/${invoiceId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.images.length > 0) {
-                        window.open(`/transport/images_page/${invoiceId}`, '_blank');
-                    } else {
-                        alert(data.message || 'No images found!');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    alert('An error occurred while fetching images.');
-                });
         }
 
         function filterAndRenderInvoices() {

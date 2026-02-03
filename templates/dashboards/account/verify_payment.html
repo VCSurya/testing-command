@@ -1442,7 +1442,7 @@
                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm">
                         <option value="cash">Cash</option>
                         <option value="online" selected>Online</option>
-                        <option value="card">Credit/Debit Card</option>
+                        <!-- <option value="card">Credit/Debit Card</option> -->
                         <option value="not_paid">Not Paid</option>
                     </select>
                 </div>
@@ -1809,11 +1809,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, btn) {
+        function openCancelOrderModal(invoiceNumber, main_id,btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoiceNumber + '>';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + main_id + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -2001,7 +2001,7 @@
                                     </svg>
                                 </button>
 
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}', this)">
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>

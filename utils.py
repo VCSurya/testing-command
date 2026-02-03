@@ -112,7 +112,7 @@ def invoice_detailes(invoice_number=None):
         querry_1 = """
         
                     SELECT 
-
+                    invoices.id AS INVOICE_ID,
                     invoices.invoice_number AS INVOICE,
                     invoices.created_at AS INVOICE_DATE,
                     invoices.delivery_mode AS DELIVERY_MODE,

@@ -456,27 +456,6 @@ def uploaded_image(filename):
     print(filename)
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-@transport_bp.route('/transport/images/<string:invoice_id>', methods=['GET'])
-@login_required('Transport')
-def get_images(invoice_id):
-    try:
-        transport_model = TransportModel()
-
-        result = get_invoice_id(invoice_id)
-        invoice_id = None
-        if result['status']:
-            invoice_id = result['invoice_id']
-        else:
-            return jsonify({"success": True,'message': 'Invoice not found'}), 404
-
-        images = transport_model.get_images(invoice_id)
-
-        return jsonify({"success": True, "images": images['images']}), 200
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
 @transport_bp.route('/transport/images_page/<string:invoice_number>', methods=['GET'])
 @login_required('Transport')
 def show_images_page(invoice_number):

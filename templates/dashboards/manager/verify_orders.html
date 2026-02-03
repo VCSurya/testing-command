@@ -1657,8 +1657,8 @@
             }
         }
 
-        async function confirmAndStart(InvoiceNumber) {
-            if (confirm("<" + InvoiceNumber + "> Are you sure  ?")) {
+        async function confirmAndStart(InvoiceNumber,main_id) {
+            if (confirm("<" + main_id + "> Are you sure  ?")) {
 
                 // 1. Show processing first
                 updateModalContent(processingStyles);
@@ -1726,6 +1726,7 @@
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
                     number: inv.invoice_number,
+                    main_id: inv.id,
                     date: inv.created_at,
                     customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
@@ -1757,7 +1758,7 @@
                 li.className = 'invoice-item';
                 li.innerHTML = `
                     <div class="invoice-header">
-                        <span>❑ ${invoiceObj.number}</span>
+                        <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#c3bfbf;" id="invoice_date_1">${invoiceObj.date}</span>
 
@@ -2055,7 +2056,7 @@
                         </div>
 
                         <div class="next-to-pack-container">
-                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
+                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
                                 Verify Order 
                             </button>
                         </div>
