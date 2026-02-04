@@ -107,7 +107,7 @@ app.register_blueprint(manager_bp)
 app.register_blueprint(sales_bp)
 app.register_blueprint(packaging_bp)
 app.register_blueprint(transport_bp)
-app.register_blueprint(builty_bp)
+# app.register_blueprint(builty_bp)
 app.register_blueprint(account_bp)
 app.register_blueprint(admin_bp)
 # Routes

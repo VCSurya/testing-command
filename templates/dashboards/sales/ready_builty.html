@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canceled Orders</title>
+    <title>Builty</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
@@ -194,6 +194,7 @@
             min-height: 100vh;
         }
 
+
         /* Invoice Panel Styles */
         .invoice-container {
             max-width: 100%;
@@ -201,7 +202,8 @@
         }
 
         .glass-panel {
-            padding: 24px 20px;
+            background: transparent;
+            padding: 20px 10px;
             overflow: hidden;
             margin-bottom: 2rem;
         }
@@ -329,7 +331,7 @@
 
         .invoice-item.active .invoice-details {
             display: block;
-            max-height: none;
+            max-height: 620px;
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
@@ -374,11 +376,6 @@
                 width: 260px !important;
             }
 
-            .profile-menu {
-                display: none;
-            }
-
-
             .sidebar.show {
                 left: 0;
             }
@@ -411,6 +408,7 @@
                 left: 0;
                 width: 100%;
             }
+
         }
 
         @media (min-width: 769px) {
@@ -455,6 +453,8 @@
             #invoice_date_1 {
                 display: none;
             }
+
+
         }
 
         @media (max-width: 480px) {
@@ -486,6 +486,7 @@
                 padding: 5px 6px;
                 font-size: 0.85em;
             }
+
 
         }
 
@@ -586,7 +587,6 @@
             flex-wrap: wrap;
             gap: 20px;
             margin-top: 15px;
-            margin-bottom: 15px;
             font-size: 1.1em;
             justify-content: space-between;
         }
@@ -842,12 +842,32 @@
 
 
         /* Delete Button Styles */
-        #deleteConfirmOk,
+        #deleteConfirmOk {
+            background-color: #e53935;
+            color: white;
+        }
+
+        #deleteConfirmOk:hover {
+            background-color: #c62828;
+        }
+
+        #deleteConfirmOk:active {
+            background-color: #b71c1c;
+        }
+
+        /* Cancel Button (inherits glass-btn style or defaults) */
         #deleteConfirmCancel {
             background-color: #f1f1f1;
             color: #333;
         }
 
+        #deleteConfirmCancel:hover {
+            background-color: #e0e0e0;
+        }
+
+        #deleteConfirmCancel:active {
+            background-color: #ccc;
+        }
 
         /* Responsive Adjustments */
         @media (max-width: 500px) {
@@ -880,427 +900,76 @@
         }
     </style>
 
-    <!-- Canceled Order Reason Component -->
     <style>
-        .reason-section {
-            margin-bottom: 20px;
-            animation: slideInFromLeft 0.6s ease-out;
-            width: 100%;
-        }
-
-        .reason-text {
-            background: linear-gradient(135deg, #fff5f5, #ffeaea);
-            border: 1px solid #ffcdd2;
-            border-radius: 12px;
-            padding: 24px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #333;
-            border-left: 5px solid #ff6b6b;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .reason-text:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.15);
-        }
-
-        .reason-text::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg,
-                    transparent 0%,
-                    #ff6b6b 20%,
-                    #ff8a80 40%,
-                    #ff6b6b 60%,
-                    transparent 100%);
-            animation: scanLine 3s infinite;
-        }
-
-
-        /* Main reason content */
-        .reason-content {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            border-left: 3px solid #e3fc00;
-            position: relative;
-            z-index: 2;
-            font-size: 1.1em;
-            color: #494949;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        /* Cancellation details grid */
-        .cancellation-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .detail-item {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 107, 107, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .detail-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.15);
-        }
-
-        .detail-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, #ff6b6b, #ff8a80);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
-        }
-
-        .detail-item:hover::before {
-            transform: scaleX(1);
-        }
-
-        .detail-label {
-            font-size: 0.75rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            font-weight: 500;
+        /* Container Styling */
+        .next-to-transport-container {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 4px;
+            padding: 1rem;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .detail-value {
-            font-size: 0.9rem;
-            color: #333;
-            font-weight: 500;
-            line-height: 1.3;
-        }
-
-        /* Icons for different detail types */
-        .detail-label.date::before {
-            content: '📅';
-            font-size: 0.8rem;
-        }
-
-        .detail-label.user::before {
-            content: '👤';
-            font-size: 0.8rem;
-        }
-
-        .detail-label.role::before {
-            content: '🏷️';
-            font-size: 0.8rem;
-        }
-
-        /* Role-specific styling */
-        .role-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-top: 4px;
-        }
-
-        .role-packing {
-            background: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #bbdefb;
-        }
-
-        .role-transport {
-            background: #f3e5f5;
-            color: #7b1fa2;
-            border: 1px solid #ce93d8;
-        }
-
-        .role-customer {
-            background: #e8f5e8;
-            color: #388e3c;
-            border: 1px solid #a5d6a7;
-        }
-
-        .role-admin {
-            background: #fff3e0;
-            color: #f57c00;
-            border: 1px solid #ffcc02;
-        }
-
-        .role-warehouse {
-            background: #e1f5fe;
-            color: #0277bd;
-            border: 1px solid #81d4fa;
-        }
-
-        .role-support {
-            background: #fce4ec;
-            color: #c2185b;
-            border: 1px solid #f8bbd9;
-        }
-
-        /* Background pattern animation */
-        .reason-text {
-            background-image:
-                linear-gradient(135deg, #fff5f5, #ffeaea),
-                radial-gradient(circle at 20% 20%, rgba(255, 107, 107, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 107, 107, 0.05) 0%, transparent 50%);
-            background-size: 100% 100%, 200px 200px, 200px 200px;
-            background-position: 0 0, 0 0, 100px 100px;
-            animation: backgroundShift 8s ease-in-out infinite;
-        }
-
-        /* Keyframe animations */
-        @keyframes slideInFromLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.1);
-                opacity: 0.8;
-            }
-        }
-
-        @keyframes scanLine {
-            0% {
-                transform: translateX(-100%);
-                opacity: 0;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px) rotate(0deg);
-            }
-
-            25% {
-                transform: translateY(-5px) rotate(2deg);
-            }
-
-            50% {
-                transform: translateY(-8px) rotate(0deg);
-            }
-
-            75% {
-                transform: translateY(-5px) rotate(-2deg);
-            }
-        }
-
-        @keyframes backgroundShift {
-
-            0%,
-            100% {
-                background-position: 0 0, 0 0, 100px 100px;
-            }
-
-            33% {
-                background-position: 0 0, 50px 50px, 150px 150px;
-            }
-
-            66% {
-                background-position: 0 0, -50px -50px, 50px 50px;
-            }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .reason-text {
-                padding: 20px;
-                font-size: 0.9rem;
-            }
-
-            .reason-text::after {
-                font-size: 2rem;
-                top: 12px;
-                right: 15px;
-            }
-
-            .cancellation-details {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
-            .detail-item {
-                padding: 10px;
-            }
-        }
-
-
-        /* Action buttons styling */
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 107, 107, 0.2);
-        }
-
-        .btnb {
-            flex: 1;
-            padding: 12px 20px;
+        /* Button Styling */
+        .next-to-transport-btn {
+            background: linear-gradient(to right, #6ea045, #4caf6d);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
             border: none;
             border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-icon {
-            font-size: 1rem;
-            font-weight: bold;
-        }
-
-        .btn-confirm {
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            color: white;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        }
-
-        .btn-confirm:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-            color: white;
-            background: linear-gradient(135deg, #45a049, #3e8e41);
-        }
-
-        .btn-confirm:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-        }
-
-        .btn-reject {
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
-        }
-
-        .btn-reject:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
-            color: white;
-            background: linear-gradient(135deg, #d32f2f, #c62828);
-        }
-
-        .btn-reject:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 10px rgba(244, 67, 54, 0.3);
-        }
-
-        .btn:active::before {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
             width: 100%;
-            height: 100%;
+            margin-top: 20px;
         }
 
-        /* Button loading state (optional) */
-        .btn.loading {
-            pointer-events: none;
-            opacity: 0.7;
+        /* Hover & Active States */
+        .next-to-transport-btn:hover {
+            background: linear-gradient(to right, #45a072, #4caf6d);
+            transform: translateY(-2px);
         }
 
-        .btn.loading .btn-icon {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
+        .next-to-transport-btn:active {
+            transform: scale(0.98);
         }
 
         /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .reason-text {
-                padding: 20px;
-                font-size: 0.9rem;
+        @media (max-width: 600px) {
+            .next-to-transport-btn {
+                width: 100%;
+                font-size: 1rem;
+                padding: 0.5rem;
             }
+        }
+    </style>
+    <style>
+        #builty_note {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background: #fdfdfd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
+            resize: vertical;
+            outline: none;
+        }
 
-            .reason-text::after {
-                font-size: 2rem;
-                top: 12px;
-                right: 15px;
-            }
+        #builty_note:focus {
+            border-color: #4a90e2;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        }
 
-            .cancellation-details {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
-            .detail-item {
-                padding: 10px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .btn {
-                padding: 14px 16px;
-                font-size: 0.85rem;
-            }
+        #builty_note::placeholder {
+            color: #999;
+            font-style: italic;
         }
     </style>
     <style>
@@ -1438,6 +1107,27 @@
                 width: 100%;
             }
         }
+
+        /* Custom spinner animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            /* Blue 500 */
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 
     <style>
@@ -1536,8 +1226,6 @@
             z-index: 1100;
         }
     </style>
-
-
 </head>
 
 <body>
@@ -1559,7 +1247,6 @@
                 </div>
 
                 <ul class="nav flex-column">
-
                     <li class="nav-item">
                         <a class="nav-link " href="/sales/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
@@ -1572,16 +1259,15 @@
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My
-                            Orders</a>
+                        <a class="nav-link" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/cancel-orders">
+                        <a class="nav-link " href="/sales/cancel-orders">
                             <i class="bi bi-x-circle me-2"></i>Canceled
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/builty/ready-to-gos">
+                        <a class="nav-link active" href="/builty/ready-to-gos">
                             <i class="bi bi-journal-text me-2"></i>Builty
                         </a>
                     </li>
@@ -1604,16 +1290,19 @@
 
             </div>
 
+
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
                 <div class="header-container d-flex align-items-center">
+
                     <div class="d-flex align-items-center justify-content-between p-0">
-                        <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
+                        <button class="btn btn-outline-primary me-3 p-0" id="sidebarToggle" title="Menu">
                             <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Canceled Orders</h4>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Builty Orders</h4>
                     </div>
                 </div>
+
 
                 <div class="main-content-wrapper">
                     <!-- Search Bar for Invoice ID and Tracking Status -->
@@ -1621,12 +1310,6 @@
                         <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                             <input type="text" id="invoiceSearchInput" class="form-control"
                                 placeholder="Search by Invoice ID...">
-                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
-                                <option value="all" selected>All</option>
-                                <option value="1">Payment</option>
-                                <option value="2">Packing</option>
-                                <option value="3">Transport</option>
-                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -1646,9 +1329,9 @@
     <!-- Custom Delete Confirmation Modal -->
     <div id="deleteConfirmModal" class="modal-overlay-custom">
         <div class="modal-content-custom">
-            <p id="deleteConfirmMessage">Are you sure you want to do this?</p>
+            <p id="deleteConfirmMessage">Are you sure you want to delete this invoice?</p>
             <div class="modal-buttons-custom">
-                <button id="deleteConfirmOk" class="glass-btn danger">Yes</button>
+                <button id="deleteConfirmOk" class="glass-btn danger">Delete</button>
                 <button id="deleteConfirmCancel" class="glass-btn">Cancel</button>
             </div>
         </div>
@@ -1661,7 +1344,8 @@
             <form id="cancelOrderForm"
                 style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0.5em;">
                 <div style="width:100%;">
-                    <p style="font-size:1.12em;color:#e53935;font-weight:600;">Are You Sure You Want To Cancel This
+                    <p style="font-size:1.12em;color:#e53935;font-weight:600;" id="cancelOrderNote">Are You Sure You
+                        Want To Cancel This
                         Order?</p>
                 </div>
                 <div style="width:100%;margin-bottom:1em;">
@@ -1674,7 +1358,7 @@
                 <div class="modal-buttons-custom"
                     style="width:100%;justify-content:space-between;gap:1em;margin-top:0.2em;">
                     <button id="cancelOrderCancelBtn" type="button"
-                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Back</button>
+                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Cancel</button>
                     <button id="cancelOrderConfirmBtn" type="submit"
                         style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
                 </div>
@@ -1716,7 +1400,10 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
 
         const modalOverlay = document.getElementById('modalOverlay');
@@ -1729,9 +1416,9 @@
         const btnText = document.getElementById('btnText');
         const blobBg = document.getElementById('blobBg');
 
-        const processingStyles_0 = {
+        const processingStyles = {
             title: "Processing...",
-            message: "Rejecting your cancellation request. Please wait a moment.",
+            message: "Submitting your request. Please wait a moment.",
             icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
             bg: "bg-blue-50",
             blob: "bg-blue-400",
@@ -1739,9 +1426,9 @@
             btnText: "Please wait..."
         };
 
-        const successStyles_0 = {
+        const successStyles = {
             title: "Success!",
-            message: "Your cancellation request has been rejected successfully.",
+            message: "Your request has been submitted. We will process it shortly.",
             icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
             bg: "bg-green-50",
             blob: "bg-green-400",
@@ -1749,25 +1436,6 @@
             btnText: "Great, thanks!"
         };
 
-        const processingStyles_1 = {
-            title: "Processing...",
-            message: "Processing your cancellation request. Please wait a moment.",
-            icon: `<div class="w-12 h-12 text-blue-500 relative"><div class="spinner"></div><div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div></div></div>`,
-            bg: "bg-blue-50",
-            blob: "bg-blue-400",
-            btn: "bg-slate-200 text-slate-400 cursor-not-allowed",
-            btnText: "Please wait..."
-        };
-
-        const successStyles_1 = {
-            title: "Success!",
-            message: "Your cancellation request has been processed successfully.",
-            icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
-            bg: "bg-green-50",
-            blob: "bg-green-400",
-            btn: "bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-200 text-white",
-            btnText: "Great, thanks!"
-        };
 
         const errorStyles = {
             title: "Something went wrong",
@@ -1809,127 +1477,77 @@
             if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
         });
 
+
+
         // Modal logic
         let deleteInvoiceNumber = null;
         let deleteTargetButton = null;
-        let deleteStatus = null;
         let deleteTargetLi = null;
         // Cancel Order Modal State
         let cancelOrderInvoiceNumber = null;
         let cancelOrderTargetLi = null;
-
-        function openDeleteModal(Canceled_invoiceNumber, invoiceNumber, btn, status) {
-            deleteInvoiceNumber = Canceled_invoiceNumber;
+        function openDeleteModal(invoiceNumber, btn) {
+            deleteInvoiceNumber = invoiceNumber;
             deleteTargetButton = btn;
             deleteTargetLi = btn.closest('.invoice-item');
-            deleteStatus = status;
-
-            const messageEl = document.getElementById('deleteConfirmMessage');
-
-
-            if (status === 1) {
-                messageEl.textContent = `"${invoiceNumber}" You are about to confirm this cancellation. Are you sure you want to proceed?`;
-            } else if (status === 0) {
-                messageEl.textContent = `"${invoiceNumber}" Great! Are you sure you want to reject this cancellation request?`;
-            }
+            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to cancel this invoice? <${invoiceNumber}>`;
             document.getElementById('deleteConfirmModal').classList.add('show');
         }
-
-
         function closeDeleteModal() {
             document.getElementById('deleteConfirmModal').classList.remove('show');
+            deleteInvoiceNumber = null;
+            deleteTargetButton = null;
+            deleteTargetLi = null;
         }
-
-
         document.getElementById('deleteConfirmCancel').onclick = closeDeleteModal;
         document.getElementById('deleteConfirmModal').onclick = function (e) {
             if (e.target === this) closeDeleteModal();
         };
-
         document.getElementById('deleteConfirmOk').onclick = async function () {
             if (!deleteInvoiceNumber || !deleteTargetLi) return closeDeleteModal();
-
-            closeDeleteModal();
-
-            // 1. Show processing first
-            updateModalContent(deleteStatus === 1 ? processingStyles_1 : processingStyles_0);
-
-            // Show Modal
-            modalOverlay.classList.remove('hidden');
-            setTimeout(() => {
-                modalOverlay.classList.remove('opacity-0');
-                modalContent.classList.remove('translate-y-8', 'opacity-0');
-                modalContent.classList.add('translate-y-0', 'opacity-100');
-            }, 10);
-
             // Call backend endpoint to delete invoice
             try {
-                const resp = await deleteInvoice(deleteInvoiceNumber, deleteStatus);
+                const resp = await deleteInvoice(deleteInvoiceNumber);
                 if (resp && resp.success) {
-
-                    await fetchInvoices();
-                    filterAndRenderInvoices();
-
-
-                    modalInner.classList.add('opacity-0');
-                    updateModalContent(deleteStatus === 1 ? successStyles_1 : successStyles_0);
-                    modalInner.classList.remove('opacity-0');
-
+                    deleteTargetLi.remove();
                 } else {
-
-                    console.log(resp && resp.message ? resp.message : 'Failed!.');
-                    modalInner.classList.add('opacity-0');
-                    updateModalContent(errorStyles);
-                    modalInner.classList.remove('opacity-0');
-
+                    alert(resp && resp.message ? resp.message : 'Failed to delete invoice.');
                 }
             } catch (err) {
-
-                console.log('Error!.');
-                modalInner.classList.add('opacity-0');
-                updateModalContent(errorStyles);
-                modalInner.classList.remove('opacity-0');
-
+                alert('Error deleting invoice.');
             }
+            closeDeleteModal();
         };
 
-        async function deleteInvoice(invoiceNumber, deleteStatus) {
+        async function deleteInvoice(invoiceNumber) {
             try {
-                const response = await fetch('/sales/canceled-orders-status', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        invoiceNumber: invoiceNumber,
-                        deleteStatus: deleteStatus
-                    }),
-                });
-
-                if (!response.ok) throw new Error('Failed to update invoice status');
+                const response = await fetch(`/sales/delete_invoice/${invoiceNumber}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
 
                 const result = await response.json();
 
                 if (result.success) {
-                    console.log(result.message);  // Show success message from server
+                    alert(result.message);  // Show success message from server
                 } else {
-                    console.log(result.message);
+                    alert('Deletion failed: ' + result.message);
                 }
 
                 return result;
 
             } catch (e) {
-                console.log(`Error: ${e.message}`);
+                alert(`Error: ${e.message}`);
                 return { success: false, message: e.message };
             }
         }
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, btn) {
+        function openCancelOrderModal(invoiceNumber, main_id, invoice_Id, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
+            cancelOrderInvoiceid = main_id;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoice_Id + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1953,7 +1571,7 @@
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
             try {
-                const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
+                const resp = await cancelOrder(cancelOrderInvoiceNumber, cancelOrderInvoiceid, reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
                 } else {
@@ -1965,12 +1583,12 @@
             closeCancelOrderModal();
         };
 
-        async function cancelOrder(invoiceNumber, reason) {
+        async function cancelOrder(invoiceNumber, Invoiceid, reason) {
             try {
-                const response = await fetch('/sales/cancel_order', {
+                const response = await fetch('/builty/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_order_id: invoiceNumber, reason: reason })
+                    body: JSON.stringify({ track_order_id: invoiceNumber, invoice_id: Invoiceid, reason: reason })
                 });
                 if (!response.ok) throw new Error('Failed to cancel');
                 return await response.json();
@@ -1979,27 +1597,58 @@
             }
         }
 
-        async function confirmAndStart(live_order_track_id) {
-            if (confirm("Are you sure you want to start this shipment?")) {
-                fetch('/start-shipment', {
+        async function confirmAndStart(invoiceNumber,main_id) {
+            const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${main_id}>`);
+            if (!userConfirmed) return;
+
+            const builtyNote = document.getElementById('builty_note').value.trim();
+
+            // 1. Show processing first
+            updateModalContent(processingStyles);
+
+            // Show Modal
+            modalOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('translate-y-8', 'opacity-0');
+                modalContent.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
+            try {
+                const response = await fetch('/builty/builty-recived', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ live_order_track_id })
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error("Request failed");
-                        return response.json();
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        invoiceNumber: invoiceNumber,
+                        builtyNote: builtyNote
                     })
-                    .then(data => {
-                        alert("Shipment started successfully!");
-                        location.reload(); // Refresh to update UI
-                    })
-                    .catch(err => {
-                        console.error("Error:", err);
-                        alert("Something went wrong.");
-                    });
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+
+                    await fetchInvoices();
+                    filterAndRenderInvoices();
+
+
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(successStyles);
+                    modalInner.classList.remove('opacity-0');
+
+                } else {
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(errorStyles);
+                    modalInner.classList.remove('opacity-0');
+                    const errorText = await response.text();
+                    console.log(errorText);
+                }
+
+            } catch (err) {
+                modalInner.classList.add('opacity-0');
+                updateModalContent(errorStyles);
+                modalInner.classList.remove('opacity-0');
+                console.error("Error starting shipment:", err);
             }
         }
 
@@ -2020,24 +1669,17 @@
                 </div>
             `;
             try {
-                const response = await fetch('/sales/canceld-orders-list');
+                const response = await fetch('/builty/builty-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
-                console.log('Fetched invoices:', data);
-
-                if (Array.isArray(data) && data.length > 0) {
-                    allInvoices = data; // Set only here!
-                    renderInvoices(data);
-                } else {
-                    allInvoices = [];
-                    renderInvoices([]);
-                }
+                allInvoices = Array.isArray(data) ? data : [];
+                // Note: don't call renderInvoices here; let filtering handle rendering
             } catch (err) {
                 console.error('Error fetching invoices:', err);
                 allInvoices = [];
-                renderInvoices([]);
             }
         }
+
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
@@ -2045,16 +1687,7 @@
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = `
-                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" style="margin:0 auto 12px;">
-                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
-                </li>`;
-
+                list.innerHTML = '<li style="text-align:center;color:#888;padding:2em 0;">No invoices found.</li>';
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -2062,8 +1695,8 @@
                 const products = Array.isArray(inv.products) ? inv.products : [];
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
-                    main_id : inv.id,
                     number: inv.invoice_number,
+                    main_id: inv.id,
                     date: inv.created_at,
                     customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
@@ -2081,11 +1714,13 @@
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
                     live_order_track_id: inv.live_order_track_id,
-                    cancellation_reason: inv.cancelled_reason,
-                    cancelled_at: inv.cancelled_at,
-                    username: inv.username,
-                    role: inv.role,
-                    c_id: inv.cancelled_orders_id,
+                    sales_by: inv.username,
+                    trans_note: inv.transport_note,
+                    pack_by: inv.pack_by,
+                    trans_by: inv.trans_by,
+                    sale_date: inv.sales_date_time,
+                    pack_date: inv.packing_date_time,
+                    trans_date: inv.transport_date_time,
                     transport_name: inv.transport_name,
                     transport_city: inv.transport_city,
                     transport_days: inv.transport_days,
@@ -2094,318 +1729,69 @@
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
                 li.innerHTML = `
-                
                     <div class="invoice-header">
                         <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
-
-
-                            <div class="invoice-actions">
-                                <button class="glass-btn" title="Download PDF" onclick="
-                                    event.stopPropagation();
-                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
-                                ">
-                                    <!-- PDF File Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
-                                    </svg>
-                                </button>
-
-                            </div>
                         </div>
                     </div>
                     <div class="invoice-details">
                         <div id="invoice_date_2" ><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.trans_date}</span>
                         </div>
-                        
                         <div title=${invoiceObj.customer_address}>
                             <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
                         </div>
+
+                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sale_date} (${invoiceObj.sales_by})</div>
+                        <div title=${invoiceObj.pack_by}><strong>Packaging:</strong> ${invoiceObj.pack_date} (${invoiceObj.pack_by})</div>
+                        <div title=${invoiceObj.trans_by}><strong>Transport:</strong> ${invoiceObj.trans_date} (${invoiceObj.trans_by})</div>
                         
-                        ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
-                                    <div>
-                                    <strong>Payment Status:</strong>
-                                    <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                    </div>
-                                `
-                        : invoiceObj.amount_paid > 0
-                            ? `
-                                    <div>
-                                    <strong>Payment Status:</strong>
-                                    <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
-                                    </div>
-                                `
-                            : `
-                                    <div>
-                                    <strong>Payment Status:</strong>
-                                    <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
-                                    </div>
-                                `
-                    }
+                        ${invoiceObj.delivery_mode === 'transport' ? `
                     
-                         ${invoiceObj.delivery_mode === 'transport' ? `
-                        <div title="${invoiceObj.delivery_mode}">
-                                <strong>Delivery Mode:</strong>
-                                ${invoiceObj.delivery_mode
-                            ? invoiceObj.delivery_mode
-                                .replace(/_/g, ' ')                // replace underscores with spaces
-                                .toLowerCase()                     // make everything lowercase first
-                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                            : ''}
-                        </div>
-                        <!-- Static HTML Content -->
-                        <div class="transport-row">
-                            <div class="info-group brand-group">
-                                <span class="label">Transport Name</span>
-                                <span class="value brand-name">${invoiceObj.transport_name}</span>
-                            </div>
-                            
-                            <div class="info-group">
-                                <span class="label">City</span>
-                                <span class="value">${invoiceObj.transport_city}</span>
+                           <!-- Static HTML Content -->
+                            <div class="transport-row">
+                                <div class="info-group brand-group">
+                                    <span class="label">Transport Name</span>
+                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
+                                </div>
+                                
+                                <div class="info-group">
+                                    <span class="label">City</span>
+                                    <span class="value">${invoiceObj.transport_city}</span>
+                                </div>
+
+                                <div class="info-group">
+                                    <span class="label">Pincode</span>
+                                    <span class="value">${invoiceObj.transport_pincode}</span>
+                                </div>
                             </div>
 
-                            <div class="info-group">
-                                <span class="label">Pincode</span>
-                                <span class="value">${invoiceObj.transport_pincode}</span>
-                            </div>
-
-                            <div class="info-group">
-                                <span class="label">Delivery</span>
-                                <span class="value">${invoiceObj.transport_days} - Days</span>
-                            </div>
-                        </div>
-
-                    ` : `
-                        <div title="${invoiceObj.delivery_mode}">
-                                <strong>Delivery Mode:</strong>
-                                ${invoiceObj.delivery_mode
-                        ? invoiceObj.delivery_mode
-                            .replace(/_/g, ' ')                // replace underscores with spaces
-                            .toLowerCase()                     // make everything lowercase first
-                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                        : ''}
-                        </div>
-                    `}
-
+                        ` : ``}                        
                         
-                     ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
-                        
-                            <div class="tracking-wrapper">
-                            <div class="tracking-stepper">
-                                <div class="tracking-steps">
 
-                                ${['Sell', 'Payment', 'Packing', 'Transport', 'Builty', 'Verified'].map((step, i) => `
-                                <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                    <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                    <div class="label-group">
-                                        <div class="label">
-                                            ${i === 0 && invoiceObj.trackingStatus === 0
-                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                                : step}
-                                        </div>
-                                        <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
-                                    </div>
-                                    ${i < 5 ? '<div class="bar"></div>' : ''}
-                                </div>
-                                `).join('')}
-
-                                </div>
-                            </div>
-                            </div>
-
-                        ` : `
-                            <div class="tracking-wrapper">
-                                <div class="tracking-stepper">
-                                    <div class="tracking-steps">
-
-                                    ${['Sell', 'Payment', 'Order Complete', 'Transport', 'Builty', 'Verified']
-                        .map((step, i) => ({ step, i })) // map with index
-                        .filter(s => !['Transport', 'Builty'].includes(s.step)) // ❌ remove Transport & Builty
-                        .map(({ step, i }) => `
-                                        <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
-                                            <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
-                                            <div class="label-group">
-                                                <div class="label">
-                                                    ${i === 0 && invoiceObj.trackingStatus === 0
-                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                                : step}
-                                                </div>
-                                                <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
-                                            </div>
-                                            <div class="bar"></div>
-                                        </div>
-                                        `).join('')}
-
-                                    </div>
-                                </div>
-                            </div>
-                        `}
-
-
-                        
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${invoiceObj.products.map(p => {
-                                    const name = p && typeof p.name === 'string' ? p.name : '';
-                                    const qty = p && typeof p.qty === 'number' ? p.qty : '';
-
-                                    const base_price = p && typeof p.price === 'number' ? p.price : '';
-                                    const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                                    const total_price = base_price + tax_price;
-
-                                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                                }).join('')}
-                            </tbody>
-                        </table>
-
-     <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
-                                <div class="amounts-container3">
-                                    <div style="color: var(--success-green);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                        : invoiceObj.amount_paid > 0
-                            ? `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--warning);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()} (${invoiceObj.payment_mode
-                                ? invoiceObj.payment_mode
-                                    .replace(/_/g, ' ')                 // replace underscores
-                                    .toLowerCase()                      // make all lowercase
-                                    .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                : ''
-                            })
-                                    </div>
-                                </div>
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--warning);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--warning);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                            : `
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--danger);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--danger);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                    }
-
-                        </div>
-
+                       
 
                         <div class="note-container">
                             
-                            ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
-                                <div class="note sales-note">
-                                
-                                <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-
-                        </div
-
-                        <div class="reason-section">
-                            <div class="reason-text" id="reasonText">
-                                
-                                <div class="cancellation-details">
-
-                                    <div class="detail-item">
-                                        <div class="detail-label date">Cancelled Date</div>
-                                        <div class="detail-value">
-                                            ${invoiceObj.cancelled_at.toLocaleString()}    
-                                        </div>
-                                    </div>
-                                    
-
-                                    <div class="detail-item">
-                                        <div class="detail-label user">Cancelled By</div>
-                                        <div class="detail-value">
-                                            ${invoiceObj.username.toLocaleString()}
-
-                                        <span class="role-badge role-packing">
-                                            
-                                            ${invoiceObj.role.toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                ${invoiceObj.cancellation_reason && invoiceObj.cancellation_reason.trim() !== '' ? `
-                                <div class="reason-content">
-                                    ${invoiceObj.cancellation_reason.toLocaleString()}
-                                </div>
-                                ` : ''}
-
-                                <div class="action-buttons">
-
-                                    <button class="btnb btn-confirm" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.c_id}','${invoiceObj.main_id}', this,1)">
-                                        <span class="btn-icon">✓</span>
-                                        Confirm Cancellation
-                                    </button>
-                                    
-
-                                    <button class="btnb btn-reject" onclick="event.stopPropagation();openDeleteModal('${invoiceObj.c_id}','${invoiceObj.main_id}', this,0)">
-                                        <span class="btn-icon">✕</span>
-                                        Reject Cancellation
-                                    </button>
-                                
-                                </div>
-
-                            </div>
-                            
-                        </div>
                         
+                            ${invoiceObj.trans_note && invoiceObj.trans_note.trim() !== '' ? `
+                                <div class="note pack-note">
+                                <p> <span>Transport Note: </span> ${invoiceObj.trans_note.toLocaleString()}</p>
+                                </div>
+                            ` : ''}
+
+
+                            <textarea id="builty_note" placeholder="Enter Builty  Regarding Note Here..."></textarea>
+                            
+                        </div
+                                
+
+                        <div class="next-to-transport-container">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
+                                Confirm Builty 
+                            </button>
+                        </div>
                     </div>
 
                 `;
@@ -2421,47 +1807,30 @@
 
         function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
-            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-            const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
-            let filtered = allInvoices;
-            if (query !== "") {
+            let filtered = [...allInvoices];
+
+            if (query !== '') {
                 filtered = filtered.filter(inv => {
-                    const invoiceId = (inv.invoice_number + inv.id).toLowerCase();
+                    const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
                     return invoiceId.includes(query);
                 });
             }
-            if (trackingStatusFilter && selectedTracking !== 'all') {
-                filtered = filtered.filter(inv => {
-                    // Use inv.trackingStatus, fallback to 1 if undefined
-                    const status = typeof inv.trackingStatus !== 'undefined' ? parseInt(inv.trackingStatus) : 1;
-                    return status === parseInt(selectedTracking);
-                });
-            }
+
             renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Fetch and render invoices from backend
-            fetchInvoices();
-
-            // Filtering logic for both invoice ID and trackingStatus
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
 
-            if (searchInput) {
-                searchInput.addEventListener('input', filterAndRenderInvoices);
-            }
-            if (trackingStatusFilter) {
-                trackingStatusFilter.addEventListener('change', filterAndRenderInvoices);
-            }
 
             const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             const hideButton = document.getElementById('hideButton');
 
-            // Toggle sidebar open/close
+            // Toggle sidebar open/close    
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
                     sidebar.classList.toggle('active');
@@ -2487,19 +1856,15 @@
                 hideButton.addEventListener('click', hideSidebar);
             }
 
-            // Add smooth scrolling
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth'
-                        });
-                    }
-                });
+            if (searchInput) {
+                searchInput.addEventListener('input', filterAndRenderInvoices);
+            }
+
+            fetchInvoices().then(() => {
+                filterAndRenderInvoices();
             });
         });
+
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
@@ -2510,6 +1875,7 @@
             window.location.href = "/logout";
         });
     </script>
+
 </body>
 
 </html>
