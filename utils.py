@@ -1,7 +1,7 @@
 import mysql.connector
 import os
 from functools import wraps
-from flask import redirect, url_for, session
+from flask import json, jsonify, redirect, url_for, session
 from dotenv import load_dotenv
 from base64 import b64encode
 from Crypto.Cipher import AES
@@ -263,3 +263,13 @@ def invoice_detailes(invoice_number=None):
 
     return {'status': False, 'data': None}
 
+
+def delete_user_log(data):
+    try:
+        with open('static/delete_logs.json', 'r') as f:
+            logs = json.load(f)
+        logs.append(data)
+        with open('static/delete_logs.json', 'w') as f:
+            json.dump(logs, f, indent=4)
+    except Exception as e:
+        print(f"Error in delete_user_log: {e}")

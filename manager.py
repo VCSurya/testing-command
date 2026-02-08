@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session,current_app
-from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes
+from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -927,7 +927,7 @@ def get_user(user_id):
         cursor.execute("""
             SELECT id, name, username, role ,password
             FROM users
-            WHERE id = %s AND boss = 0 AND active = 1 AND role != 'Admin' AND role != 'Admin'
+            WHERE id = %s AND boss = 0 AND active = 1 AND role != 'Admin' AND role != 'Manager'
         """, (user_id,))
         user = cursor.fetchone()
         
@@ -984,25 +984,87 @@ def update_user(user_id):
         conn.close()
 
 
-@manager_bp.route('/manager/users/<int:user_id>/delete', methods=['DELETE'])
+@manager_bp.route('/manager/users/delete', methods=['POST'])
 @login_required('Manager')
-def delete_user(user_id):
+def delete_user():
+
+    data = request.json
+    # {'deleteUserName': 'trans', 'selectedUserId': ''}
     conn = get_db_connection()
     if not conn:
         return jsonify({'success': False, 'message': 'Database connection error'})
-
-    cursor = conn.cursor()
+    
+    if data.get('deleteUserName') is None or data.get('deleteUserName') == "":
+        return jsonify({'success': False, 'message': 'Invalid Inofrmation!'})
+        
+    cursor = conn.cursor(dictionary=True)
     try:
+        
         cursor.execute("""
-            UPDATE users
-            SET active = 0
-            WHERE id = %s AND boss = 0 AND role != 'Admin' AND role != 'Manager'
-        """, (user_id,))
-        conn.commit()
-        current_app.deactivate_user(user_id)
-        return jsonify({'success': True, 'message': 'User deleted successfully'})
+
+                SELECT id FROM users
+                WHERE username = %s AND active = 1
+            
+        """, (data.get('deleteUserName'),))
+
+        user_exists = cursor.fetchone() 
+
+        if user_exists is None: 
+            return jsonify({'success': False, 'message': 'User not found.'})
+
+
+        if data.get('selectedUserId') == "":
+            cursor.execute("""
+                UPDATE users
+                SET active = 0
+                WHERE id = %s AND role != 'Admin' AND role != 'Manager'
+            """, (user_exists.get('id'),))
+            conn.commit()
+            current_app.deactivate_user(user_exists.get('id'))
+            return jsonify({'success': True, 'message': 'User deleted successfully'})
+        else:
+
+            cursor.execute("""
+
+                    SELECT id FROM users
+                    WHERE id = %s AND active = 1 AND role = 'Sales'
+                
+            """, (data.get('selectedUserId'),))
+
+            select_user_exists = cursor.fetchone()
+
+            if not select_user_exists: 
+                return jsonify({'success': False, 'message': 'Selected User not found.'})
+
+            cursor.execute("""
+                UPDATE invoices
+                SET invoices.invoice_created_by_user_id = %s
+                LEFT JOIN cancelled_orders 
+                    ON cancelled_orders.invoice_id = invoices.id
+                WHERE completed = 0
+                AND invoice_created_by_user_id = %s
+                AND NOT (
+                        cancel_order_status = 1
+                    AND confirm_by_saler = 1
+                );
+            """, (select_user_exists.get('id'),user_exists.get('id')))
+
+            cursor.execute("""
+                UPDATE users
+                SET active = 0
+                WHERE id = %s
+            """, (user_exists.get('id'),))
+
+            data['updated_by'] = session.get('username')
+            data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            delete_user_log(data)
+    
+            conn.commit()
+            current_app.deactivate_user(user_exists.get('id'))
+            return jsonify({'success': True, 'message': 'User deleted successfully'})
     
     except mysql.connector.Error as err:
+        conn.rollback()
         return jsonify({'success': False, 'message': str(err)})
     
     finally:

@@ -1,0 +1,38 @@
+[
+    {
+        "deleteUserName": "krishna",
+        "selectedUserId": "63",
+        "updated_at": "2026-02-07 18:13:49",
+        "updated_by": "ram"
+    },
+    {
+        "deleteUserName": "DHVANIT",
+        "selectedUserId": "88",
+        "updated_at": "2026-02-07 18:29:24",
+        "updated_by": "ram"
+    },
+    {
+        "deleteUserName": "DHVANIT",
+        "selectedUserId": "88",
+        "updated_at": "2026-02-07 21:28:29",
+        "updated_by": "ram"
+    },
+    {
+        "deleteUserName": "DHVANIT",
+        "selectedUserId": "88",
+        "updated_at": "2026-02-07 21:30:08",
+        "updated_by": "ram"
+    },
+    {
+        "deleteUserName": "krishna",
+        "selectedUserId": "63",
+        "updated_at": "2026-02-08 20:33:49",
+        "updated_by": "ram"
+    },
+    {
+        "deleteUserName": "DHVANIT",
+        "selectedUserId": "88",
+        "updated_at": "2026-02-08 20:34:33",
+        "updated_by": "ram"
+    }
+]
