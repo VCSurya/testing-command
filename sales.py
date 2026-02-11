@@ -311,9 +311,9 @@ class Sales:
         if self.conn:
             self.conn.close()
 
-@sales_bp.route('/sales/input-transport/<string:input>', methods=['GET'])
+@sales_bp.route('/sales/input-transport/<string:input>/<string:id_mode>', methods=['GET'])
 @login_required('Sales')
-def get_transport_input(input):
+def get_transport_input(input,id_mode):
     
     conn = get_db_connection()
     if not conn:
@@ -321,6 +321,13 @@ def get_transport_input(input):
 
     cursor = conn.cursor(dictionary=True)
     try:
+        print(f"Input: {input}, ID Mode: {id_mode}")
+    
+        if id_mode == '1':
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE id = '{input}';")
+            customers = cursor.fetchall()
+            if customers:
+                return jsonify(customers)
         
         if input.isdigit():
             cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
@@ -329,7 +336,8 @@ def get_transport_input(input):
 
         customers = cursor.fetchall()
         return jsonify(customers)
-    
+            
+
     except Exception as e:
         print(f"Error fetching customers: {e}")
         return jsonify({'error': 'Failed to fetch customers'}), 500
@@ -405,9 +413,9 @@ def get_customers_input(input):
     try:
         
         if input.isdigit():
-            cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+            cursor.execute(f"SELECT name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
         else:
-            cursor.execute(f"SELECT name,address,state,pincode,mobile FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
+            cursor.execute(f"SELECT name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
 
         customers = cursor.fetchall()
         return jsonify(customers)
@@ -423,16 +431,18 @@ def get_customers_input(input):
 def add_new_customer():
     try:
         data = request.get_json()
-
         required_fields = ['name', 'address', 'pincode', 'mobile']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
 
-        name = data['name']
-        state = data['state']
-        address = data['address']
-        pincode = data['pincode']
-        mobile = data['mobile']
+        name = data.get('name', '')
+        state = data.get('state', '')
+        address = data.get('address', '')
+        pincode = data.get('pincode', '')
+        mobile = data.get('mobile', '')
+        city = data.get('city', '')
+        company = data.get('company', '')
+        transport_id = data.get('transportCompany', None)
 
         conn = get_db_connection()
 
@@ -450,16 +460,28 @@ def add_new_customer():
     
         cursor = conn.cursor(dictionary=True)
 
-        # Check if username already exists
+        # Check if mobile exists
         cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
         existing_user = cursor.fetchone()
         
         if existing_user:
             return jsonify({'success': False, 'error': f'{mobile}: Customer already exists'})
+                
 
-        # Insert new product into database
-        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile,created_by) VALUES (%s, %s, %s, %s, %s,%s)",
-                       (name, address, state, pincode, mobile, session.get('user_id')))
+        if transport_id and transport_id!='':        
+            # Check if valid transport exists
+            cursor.execute("SELECT * FROM transport WHERE id = %s and active = 1", (transport_id,))
+            existing_transport = cursor.fetchone()
+            
+            if not existing_transport:
+                return jsonify({'success': False, 'error': f'Selected Transport company does not exist'})
+
+        else:
+            transport_id = None
+
+        # Insert into database
+        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile, city, company, transport_id, created_by) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s)",
+                                          (name, address, state, pincode, mobile, city, company, transport_id, session.get('user_id')))
         conn.commit()
         
         mobile = int(mobile)
@@ -469,10 +491,14 @@ def add_new_customer():
         cursor.close()
         conn.close()
 
-        return jsonify({'success': True,"data":exist if exist else {}})
+        if exist:
+            return jsonify({'success': True, "data":exist})
+        else:
+            return jsonify({'success': False, "error":"Somthing went wrong, Try Again!"})
+
 
     except Exception as e:
-        print(e)
+        conn.rollback()
         import traceback
         print(traceback.print_exc())
         return jsonify({'success': False,'error': 'Internal server error'}), 500

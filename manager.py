@@ -1229,7 +1229,7 @@ def add_customer():
     mobile = data.get('mobile')
 
     if not all([name, address, state, pincode, mobile]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
+        return jsonify({'success': False, 'message': 'Required fields are missing at customer add'})
 
     conn = get_db_connection()
     if not conn:
