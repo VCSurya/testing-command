@@ -1,3 +1,5 @@
+from unicodedata import name
+
 from flask import Blueprint, render_template, jsonify, request, session, send_file
 from utils import get_db_connection, login_required, get_invoice_id
 import mysql.connector
@@ -305,7 +307,7 @@ class Sales:
         except mysql.connector.Error as e:
             self.conn.rollback()
             return f"Error: {str(e)}"
-
+            
     def close_connection(self):
         # Close the database connection if it exists
         if self.conn:
@@ -602,6 +604,8 @@ def save_invoice_into_database():
         IncludeGST = request.form.get('IncludeGST', 'off')
         event_id = request.form.get('event_id', None)
 
+        sales = Sales()
+
         if payment_mode == "not_paid":
             paid_amount = 0
 
@@ -615,11 +619,6 @@ def save_invoice_into_database():
         if grand_total < 0:
             return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
-        # Need transport_id 
-        if delivery_mode == 'transport':
-            if not transport_id:
-                return jsonify({'error': 'Some data is Missing in the bill'}), 400
-
         # Get customer details to validate
         conn = get_db_connection()
         if not conn:
@@ -631,10 +630,25 @@ def save_invoice_into_database():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
-        conn.close()
 
         if not customer:
             return jsonify({'error': 'Customer not found'}), 404
+
+        # Need transport_id 
+        if delivery_mode == 'transport':
+            if not transport_id:
+                return jsonify({'error': 'Some data is Missing in the bill'}), 400
+
+            try:
+                cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (int(transport_id), customer['id']))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+
+            conn.close()
+
+        else:
+            transport_id = None
 
         # Process products for database
         tax_rate = 0
@@ -679,10 +693,8 @@ def save_invoice_into_database():
         }
 
         # Save to database
-        sales = Sales()
         if sales.data_base_connection_check():
             result = sales.add_invoice_detail(bill_data)
-            print(result)
             if result['invoice_id']:
 
                 if bill_data['completed'] == 0:
