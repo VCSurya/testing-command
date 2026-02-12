@@ -640,16 +640,14 @@ def save_invoice_into_database():
                 return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
             try:
-                cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (int(transport_id), customer['id']))
+                cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (transport_id, customer['id']))
                 conn.commit()
             except Exception as e:
                 conn.rollback()
-
-            conn.close()
-
         else:
             transport_id = None
 
+        conn.close()
         # Process products for database
         tax_rate = 0
         if IncludeGST == 'on':
@@ -2375,7 +2373,8 @@ def edit_invoice(invoice_number):
             return jsonify({'success': False, 'message': response['message']}), 400
 
         invoice_data = my_obj.get_invoice(invoice_id)
-        invoice_data['id'] = invoice_number
+        invoice_data['id'] = invoice_id
+        invoice_data['number'] = invoice_number
 
         if invoice_data['grand_total'] == invoice_data['paid_amount']:
             invoice_data['payment_type'] = 'full_payment'
@@ -2428,11 +2427,6 @@ def update_invoice_into_database():
         else:
             return jsonify({'error': 'Some data is Missing in the bill'}), 400
 
-        # Need transport_id
-        if delivery_mode == 'transport':
-            if not transport_id:
-                return jsonify({'error': 'Some data is Missing in the bill'}), 400
-
         # Get customer details to validate
         conn = get_db_connection()
         if not conn:
@@ -2444,10 +2438,27 @@ def update_invoice_into_database():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
-        conn.close()
+        
 
         if not customer:
             return jsonify({'error': 'Customer not found'}), 404
+
+        
+        # Need transport_id
+        if delivery_mode == 'transport':
+            if not transport_id:
+                return jsonify({'error': 'Some data is Missing in the bill'}), 400
+
+            try:
+                cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (transport_id, customer['id']))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+
+        else:
+            transport_id = None
+
+        conn.close()
 
         # Process products for database
         tax_rate = 0
