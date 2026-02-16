@@ -2203,7 +2203,7 @@ class EditBill:
     def get_invoice(self, invoice_id):
 
         query = """
-                SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, invoices.grand_total,
+                SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, buddy.transport_id as c_transport_id, invoices.grand_total,
                 invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
                 invoices.sales_note, invoices.payment_note, invoices.gst_included, 
                 invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id,t.name as t_name,
@@ -2223,7 +2223,7 @@ class EditBill:
 
         # Extract common fields
         common_keys = ['c_mobile','c_address','c_name','c_pincode' ,'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
-                       't_name','t_pincode', 't_city' , 't_days' ,
+                       't_name','t_pincode', 't_city' , 't_days' ,'c_transport_id',
                        'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
 
         # Build the unified dict with Decimal -> float conversion
@@ -2505,52 +2505,24 @@ def update_invoice_into_database():
 
         # Save to database
         update = EditBill()
-
-        if update:
-            result = update.update_invoice_detail(bill_data)
-            print(result)
-            if result['status']:
-                # Return success with invoice ID
-                return jsonify({
-                    'success': True,
-                    'invoice_number': invoice_number
-                }), 200
-            
-            else:
-                # Return success with invoice ID
-                return jsonify({
-                    'success': False,
-                    'invoice_number': invoice_number
-                }), 200
-
-
-        # if result['invoice_id']:
-
-            # if bill_data['completed'] == 0:
-            #     # Insert into live order track
-            #     response = sales.insert_live_order_track(result['invoice_id'])
-
-            #     if response['success']:
-            #         # Successfully inserted into live order track
-            #         print(
-            #             f"Live order track inserted for invoice ID: {result['invoice_id']}")
-            #     else:
-            #         # If there was an error inserting into live order track
-            #         print(
-            #             f"Error inserting live order track: {response['error']}")
-            #         sales.close_connection()
-            #         return jsonify({'error': response['error']}), 500
-
-        # else:
-            # return jsonify({'error': result}), 500
-
+        result = update.update_invoice_detail(bill_data)
         update.close()
 
-        # Return success with invoice ID
-        return jsonify({
-            'success': True,
-            'invoice_number': invoice_number
-        }), 200
+        if result['status']:
+            # Return success with invoice ID
+            return jsonify({
+                'success': True,
+                'invoice_number': invoice_number,
+                'invoice_id': invoice_id,
+            }), 200
+        
+        else:
+            # Return success with invoice ID
+            return jsonify({
+                'success': False,
+                'invoice_number': invoice_number,
+                'invoice_id': invoice_id,
+            }), 200
 
     except Exception as e:
         print(f"Error saving invoice: {e}")

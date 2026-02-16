@@ -2455,13 +2455,17 @@
                 }
 
             }
-
+            
             window.clearSelection = function () {
                 selectedDisplay.classList.add('hidden');
                 document.getElementById('selectedName').textContent = "";
                 document.getElementById('selectedMobile').textContent = "";
                 document.getElementById('selectedPincode').textContent = "";
                 document.getElementById('selectedAddress').textContent = "";
+                document.getElementById('transportCompany').value = null;
+                document.getElementById('noTransport').classList.remove('hidden');
+                document.getElementById('transportCard').classList.add('hidden');
+                document.getElementById('transportCompany').value = null;
             }
 
             document.addEventListener('click', (e) => {
@@ -2803,12 +2807,6 @@
                 } else {
                     transportCompanyGroup.style.display = 'none';
                     transportCards.classList.add('hidden');
-                    document.getElementById('transportSearch').value = '';
-                    document.getElementById('transportCompany').value = '';
-                    document.getElementById('companyName').textContent = '';
-                    document.getElementById('city').textContent = '';
-                    document.getElementById('pincode').textContent = '';
-                    document.getElementById('days').textContent = '';
                 }
             });
 
