@@ -1463,7 +1463,40 @@
             }
         }
     </style>
+    <style>
+        /* Custom animation for the dots */
+        @keyframes dot-bounce {
 
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+                opacity: 0.3;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-dot {
+            animation: dot-bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot-delay-1 {
+            animation-delay: -0.32s;
+        }
+
+        .dot-delay-2 {
+            animation-delay: -0.16s;
+        }
+
+        /* Sample container styling */
+        .demo-container {
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 
 <body>
@@ -2243,6 +2276,19 @@
         {{ data | tojson }}
     </script>
     <script>
+        function toggleLoadingShow() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            overlay.classList.add('opacity-100');
+        }
+        function toggleLoadingHide() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('opacity-100');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
 
 
@@ -2266,6 +2312,22 @@
                     renderDropdown([]);
                     return;
                 };
+
+                dropdown.classList.remove('hidden');
+                dropdown.innerHTML = `
+                    <div class="p-4 text-slate-400 text-sm">
+                        <div id="loadingOverlay" class="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+                            <div class="flex space-x-2">
+                                <!-- Dot 1 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot"></div>
+                                <!-- Dot 2 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-1"></div>
+                                <!-- Dot 3 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-2"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                toggleLoadingShow();
 
                 try {
 
@@ -2307,6 +2369,7 @@
                     </div>
                 `).join('');
                 }
+                toggleLoadingHide();
                 dropdown.classList.remove('hidden');
                 if (list.length === 0) {
                     setTimeout(() => {
@@ -2377,6 +2440,22 @@
                     return;
                 };
 
+                productDropdown.classList.remove('hidden');
+                productDropdown.innerHTML = `
+                    <div class="p-4 text-slate-400 text-sm">
+                        <div id="loadingOverlay" class="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+                            <div class="flex space-x-2">
+                                <!-- Dot 1 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot"></div>
+                                <!-- Dot 2 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-1"></div>
+                                <!-- Dot 3 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-2"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                toggleLoadingShow();
+
                 try {
 
                     const response = await fetch(`/sales/input-products/${encodeURIComponent(query)}`);
@@ -2418,6 +2497,7 @@
                     </div>
                 `).join('');
                 }
+                toggleLoadingHide();
                 productDropdown.classList.remove('hidden');
                 if (list.length === 0) {
                     setTimeout(() => {
@@ -2457,13 +2537,57 @@
             });
 
             ///// Search Transportation
-
             async function fetchTransport(query, mode) {
 
-                if (query === "") {
-                    renderTransportDropdown([]);
-                    return;
-                };
+
+                if (mode === 1) {
+
+                    if (query === "") {
+                        renderTransportDropdown([]);
+                        return;
+                    };
+
+                    transportDropdown.classList.remove('hidden');
+                    transportDropdown.innerHTML = `
+                    <div class="p-4 text-slate-400 text-sm">
+                        <div id="loadingOverlay" class="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+                            <div class="flex space-x-2">
+                                <!-- Dot 1 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot"></div>
+                                <!-- Dot 2 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-1"></div>
+                                <!-- Dot 3 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-2"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                    toggleLoadingShow();
+                }
+
+                if (mode === 0) {
+
+                    if (query === "") {
+                        renderTransportDropdownCustomer([]);
+                        return;
+                    };
+
+                    transportDropdownCustomer.classList.remove('hidden');
+                    transportDropdownCustomer.innerHTML = `
+                    <div class="p-4 text-slate-400 text-sm">
+                        <div id="loadingOverlay" class=" inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none">
+                            <div class="flex space-x-2">
+                                <!-- Dot 1 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot"></div>
+                                <!-- Dot 2 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-1"></div>
+                                <!-- Dot 3 -->
+                                <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-2"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                    toggleLoadingShow();
+                }
+
 
                 try {
 
@@ -2483,6 +2607,7 @@
                     console.error("API Error:", error);
                 }
             }
+
 
             const debouncedSearchForTransport = debounce(function (e) {
                 fetchTransport(e.target.value, 1);
@@ -2529,6 +2654,7 @@
                     </div>
                 `).join('');
                 }
+                toggleLoadingHide();
                 transportDropdown.classList.remove('hidden');
                 if (list.length === 0) {
                     setTimeout(() => {
@@ -2562,6 +2688,7 @@
                     </div>
                 `).join('');
                 }
+                toggleLoadingHide();
                 transportDropdownCustomer.classList.remove('hidden');
                 if (list.length === 0) {
                     setTimeout(() => {

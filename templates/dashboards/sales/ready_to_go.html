@@ -1758,9 +1758,8 @@
                 if (result.success) {
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
-
-
+                    await filterAndRenderInvoices();
+                    
                     modalInner.classList.add('opacity-0');
                     updateModalContent(successStyles);
                     modalInner.classList.remove('opacity-0');
@@ -1938,7 +1937,6 @@
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
-                // Note: don't call renderInvoices here; let filtering handle rendering
             } catch (err) {
                 console.error('Error fetching invoices:', err);
                 allInvoices = [];
@@ -1981,7 +1979,7 @@
 
                 // ✅ NOW this truly waits
                 await fetchInvoices();
-                filterAndRenderInvoices();
+                await filterAndRenderInvoices();
 
                 setTimeout(() => {
                     progressBar.style.width = '100%';
@@ -2003,7 +2001,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -2317,7 +2315,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
             let filtered = [...allInvoices];
@@ -2328,8 +2326,7 @@
                     return invoiceId.includes(query);
                 });
             }
-            console.log(filtered);
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -2378,8 +2375,6 @@
                     filterAndRenderInvoices();
                 });
             }
-
-
 
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);
