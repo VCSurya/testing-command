@@ -2549,10 +2549,6 @@
             const GST_RATE = 18; // 18% GST
             let currentProduct = null;
 
-            function sleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-
             async function fetchProducts(query) {
 
                 if (query === "") {

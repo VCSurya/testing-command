@@ -1804,11 +1804,6 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
-
         // Modal logic
         let deleteInvoiceNumber = null;
         let deleteTargetButton = null;
@@ -1868,7 +1863,7 @@
                 if (resp && resp.success) {
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
+                    await filterAndRenderInvoices();
 
 
                     modalInner.classList.add('opacity-0');
@@ -2041,7 +2036,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -2099,20 +2094,6 @@
                         <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
                         <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
-
-
-                            <div class="invoice-actions">
-                                <button class="glass-btn" title="Download PDF" onclick="
-                                    event.stopPropagation();
-                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
-                                ">
-                                    <!-- PDF File Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
-                                    </svg>
-                                </button>
-
-                            </div>
                         </div>
                     </div>
                     <div class="invoice-details">
@@ -2419,7 +2400,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -2438,7 +2419,7 @@
                     return status === parseInt(selectedTracking);
                 });
             }
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {

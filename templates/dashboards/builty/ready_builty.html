@@ -1457,12 +1457,6 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
-
-
 
         // Modal logic
         let deleteInvoiceNumber = null;

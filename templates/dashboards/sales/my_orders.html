@@ -1391,10 +1391,7 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
+
 
         // Modal logic
         let deleteInvoiceNumber = null;
@@ -1433,8 +1430,8 @@
             } catch (err) {
                 alert('Error deleting invoice.');
             }
+            await filterAndRenderInvoices();
             closeDeleteModal();
-            filterAndRenderInvoices();
 
         };
 
@@ -1461,11 +1458,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, btn) {
+        function openCancelOrderModal(invoiceNumber, mainId, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderMessage').textContent = 'Are You Sure You Want To Cancel This Order ? <' + invoiceNumber + '>';
+            document.getElementById('cancelOrderMessage').textContent = 'Are You Sure You Want To Cancel This Order ? <' + mainId + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1508,7 +1505,7 @@
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
+                    await filterAndRenderInvoices();
 
 
                     modalInner.classList.add('opacity-0');
@@ -1602,7 +1599,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -1674,7 +1671,7 @@
                                 
                                 ${invoiceObj.trackingStatus < 2 ? ` 
 
-                                    <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}', this)">
+                                    <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
@@ -1981,7 +1978,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -2002,7 +1999,7 @@
                 });
             }
 
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
 

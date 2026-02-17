@@ -466,6 +466,7 @@ class ManagerModel:
                 AND lot.payment_confirm_status = 1 
                 AND inv.completed = 1
                 AND lot.left_to_paid_mode = 'not_paid'
+                AND inv.left_to_paid > 0
                 ORDER BY inv.created_at DESC;
         """)
         unpaid_orders = self.cursor.fetchall()
@@ -509,7 +510,6 @@ def all_orders():
     manager = ManagerModel()
     work_data = manager.get_all_orders_data()
     manager.close()
-    print(work_data)
     return render_template('dashboards/manager/all_orders.html', data=work_data)
 
 @manager_bp.route('/manager/today-performers')
@@ -1038,9 +1038,9 @@ def delete_user():
 
             cursor.execute("""
                 UPDATE invoices
-                SET invoices.invoice_created_by_user_id = %s
                 LEFT JOIN cancelled_orders 
                     ON cancelled_orders.invoice_id = invoices.id
+                SET invoices.invoice_created_by_user_id = %s
                 WHERE completed = 0
                 AND invoice_created_by_user_id = %s
                 AND NOT (

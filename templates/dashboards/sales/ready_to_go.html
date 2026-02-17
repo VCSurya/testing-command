@@ -1700,12 +1700,6 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
-
-
         // Modal logic
         let deleteInvoiceNumber = null;
         let deleteTargetButton = null;
@@ -1910,10 +1904,6 @@
         function closePopups() {
             document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
             document.getElementById('confettiContainer').innerHTML = '';
-        }
-
-        window.onclick = function (event) {
-            if (event.target.classList.contains('overlay')) closePopups();
         }
 
         // Fetch invoices from backend and render

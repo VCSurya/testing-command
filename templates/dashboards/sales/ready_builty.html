@@ -1472,10 +1472,7 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
+
 
 
 
@@ -1597,7 +1594,7 @@
             }
         }
 
-        async function confirmAndStart(invoiceNumber,main_id) {
+        async function confirmAndStart(invoiceNumber, main_id) {
             const userConfirmed = confirm(`Quick check — was the product delivered and the builty received? <${main_id}>`);
             if (!userConfirmed) return;
 
@@ -1629,7 +1626,7 @@
                 if (response.ok && data.success) {
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
+                    await filterAndRenderInvoices();
 
 
                     modalInner.classList.add('opacity-0');
@@ -1683,7 +1680,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -1805,7 +1802,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
             let filtered = [...allInvoices];
@@ -1816,8 +1813,7 @@
                     return invoiceId.includes(query);
                 });
             }
-
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {

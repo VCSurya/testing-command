@@ -1713,7 +1713,7 @@
                 if (data.success) {
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
+                    await filterAndRenderInvoices();
 
                     isProcessingState = false; // Transaction finished
                     processing.classList.add('hidden');
@@ -1850,7 +1850,7 @@
                         cancelOrderTargetLi.remove();
                     }
                     await fetchInvoices();
-                    filterAndRenderInvoices();
+                    await filterAndRenderInvoices();
 
 
                     document.getElementById('successText').textContent = 'Success!';
@@ -1937,7 +1937,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -2164,7 +2164,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
             let filtered = [...allInvoices];
@@ -2176,7 +2176,7 @@
                 });
             }
 
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
         document.addEventListener('DOMContentLoaded', function () {

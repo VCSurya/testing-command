@@ -1481,10 +1481,7 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
+
 
 
         // Modal logic
@@ -1594,8 +1591,8 @@
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
-                    populateTransportOptions();
+                    await filterAndRenderInvoices();
+                    await populateTransportOptions();
 
                     modalInner.classList.add('opacity-0');
                     updateModalContent(RemoveSuccessStyles);
@@ -1662,8 +1659,8 @@
 
 
                     await fetchInvoices();
-                    filterAndRenderInvoices();
-                    populateTransportOptions();
+                    await populateTransportOptions();
+                    await filterAndRenderInvoices();
 
 
                     modalInner.classList.add('opacity-0');
@@ -1717,7 +1714,7 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        function renderInvoices(invoices) {
+        async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
@@ -1894,7 +1891,7 @@
             });
         }
 
-        function filterAndRenderInvoices() {
+        async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
@@ -1914,10 +1911,10 @@
             if (selectedTracking !== 'all') {
                 filtered = filtered.filter(inv => inv.transport_name === selectedTracking);
             }
-            renderInvoices(filtered);
+            await renderInvoices(filtered);
         }
 
-        function populateTransportOptions() {
+        async function populateTransportOptions() {
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
             if (!trackingStatusFilter) return;
 
@@ -1994,7 +1991,7 @@
 
             fetchInvoices().then(() => {
                 filterAndRenderInvoices();
-                populateTransportOptions();
+                populateTransportOptions(); 
             });
 
 

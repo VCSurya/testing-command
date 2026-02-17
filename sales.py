@@ -99,13 +99,17 @@ class Dasebored:
             WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0 AND DATE(invoices.created_at) = CURRENT_DATE()) AS today_draft_order_count,
 
         (SELECT COUNT(*) FROM live_order_track
+            JOIN invoices ON invoices.id = live_order_track.invoice_id 
         WHERE
             sales_proceed_for_packing = 1 
-            AND cancel_order_status = 0 
+            AND live_order_track.cancel_order_status = 0 
+            AND invoices.cancel_order_status = 0 
             AND packing_proceed_for_transport = 1 
             AND payment_confirm_status = 1
             AND transport_proceed_for_builty = 1
-            AND builty_received = 0) AS total_draft_builty_order
+            AND builty_received = 0
+            AND invoices.invoice_created_by_user_id = {user_id}
+            ) AS total_draft_builty_order
         """ 
 
         try:    
@@ -2713,9 +2717,8 @@ class BuiltyModel:
                     WHERE lot.builty_received = 0
                         AND inv.completed = 0
                         AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post') 
-
+                        AND inv.invoice_created_by_user_id = {session.get('user_id')}
                     ORDER BY inv.created_at DESC;
-       
                 """
 
         self.cursor.execute(query)

@@ -1069,6 +1069,18 @@
                     <button type="button" class="btn btn-primary" id="saveUser">Save</button>
                 </div>
             </div>
+            <div id="add-user-loader"
+                class="absolute hidden inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+                <div class="flex space-x-2 mb-4">
+                    <!-- Updated bg-indigo to bg-indigo-600 for valid Tailwind styling -->
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
+                </div>
+                <p id="add-user-loader-msg" class="text-sm font-semibold tracking-tight text-white-800 uppercase">
+                    Please Wait...
+                </p>
+            </div>
         </div>
     </div>
 
@@ -1114,6 +1126,19 @@
                     <button type="button" class="btn btn-primary" id="updateUser">Update</button>
                 </div>
             </div>
+
+            <div id="edit-user-loader"
+                class="absolute hidden inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+                <div class="flex space-x-2 mb-4">
+                    <!-- Updated bg-indigo to bg-indigo-600 for valid Tailwind styling -->
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
+                </div>
+                <p id="edit-user-loader-msg" class="text-sm font-semibold tracking-tight text-white-800 uppercase">
+                    Please Wait...
+                </p>
+            </div>
         </div>
     </div>
 
@@ -1132,6 +1157,16 @@
         </div>
     </div>
 
+    <div id="loader"
+        class="hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="flex space-x-2 mb-4">
+            <!-- Updated bg-indigo to bg-indigo-600 for valid Tailwind styling -->
+            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
+        </div>
+        <p id="loader-msg" class="text-sm font-semibold tracking-tight text-white-800 uppercase">Please Wait...</p>
+    </div>
 
     <!-- Modal Overlay -->
     <div id="userDeleteComponent" class="modal-hidden font-plus-jakarta">
@@ -1139,8 +1174,7 @@
         <div class="fixed inset-0 z-[3000] flex items-center justify-center p-4">
 
             <!-- Backdrop: darkens everything behind -->
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"
-                onclick="toggleDeleteUserModal(false)"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"></div>
 
             <!-- Modal Content Card: constrained height for better screen fit -->
             <div
@@ -1255,6 +1289,19 @@
                             Confirm Transfer
                         </button>
                     </div>
+                </div>
+                <div id="delete-user-loader"
+                    class="hidden absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+                    <div class="flex space-x-2 mb-4">
+                        <!-- Updated bg-indigo to bg-indigo-600 for valid Tailwind styling -->
+                        <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
+                    </div>
+                    <p id="delete-user-loader-msg"
+                        class="text-sm font-semibold tracking-tight text-white-800 uppercase">
+                        Please Wait...
+                    </p>
                 </div>
             </div>
         </div>
@@ -1383,18 +1430,23 @@
             const deleteUserName = document.getElementById("deleteUsername").textContent;
 
             try {
+
+                document.getElementById("delete-user-loader-msg").textContent = "Deleting...";
+                document.getElementById("delete-user-loader").classList.remove("hidden");
+
                 const response = await fetch('/manager/users/delete', {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         deleteUserName: deleteUserName,
-                        selectedUserId: selectedUserId })
+                        selectedUserId: selectedUserId
+                    })
                 });
 
                 const result = await response.json();
-
+                document.getElementById("delete-user-loader").classList.add("hidden");
                 if (result.success) {
                     usersTable.ajax.reload();
                     toggleDeleteUserModal(false);
@@ -1404,6 +1456,8 @@
                 }
 
             } catch (error) {
+                document.getElementById("delete-user-loader").classList.add("hidden");
+                alert("Somthing Went Wrong. Please Try Again.");
                 console.error("🚨 API Error:", error);
             }
 
@@ -1558,6 +1612,10 @@
 
             // Save new user
             $('#saveUser').click(function () {
+
+                document.getElementById("add-user-loader-msg").textContent = "Saving...";
+                document.getElementById("add-user-loader").classList.remove("hidden");
+
                 const formData = {
                     name: $('input[name="name"]').val(),
                     username: $('input[name="username"]').val(),
@@ -1576,6 +1634,7 @@
                             $('#addUserForm')[0].reset();
                             usersTable.ajax.reload();
                         }
+                        document.getElementById("add-user-loader").classList.add("hidden");
                         alert(response.message);
                     }
                 });
@@ -1583,6 +1642,9 @@
 
             // Edit user
             $(document).on('click', '.edit-user', function () {
+                $('#editUserModal').modal('show');
+                document.getElementById("edit-user-loader-msg").textContent = "Please Wait...";
+                document.getElementById("edit-user-loader").classList.remove("hidden");
                 const userId = $(this).data('id');
                 $.get(`/manager/users/${userId}`, function (user) {
                     $('#editUserForm input[name="id"]').val(user.id);
@@ -1590,12 +1652,14 @@
                     $('#editUserForm input[name="username"]').val(user.username);
                     $('#editUserForm select[name="role"]').val(user.role);
                     $('#editUserForm input[name="password"]').val(user.password);
-                    $('#editUserModal').modal('show');
+                    document.getElementById("edit-user-loader").classList.add("hidden");
                 });
             });
 
             // Update user
             $('#updateUser').click(function () {
+                document.getElementById("edit-user-loader-msg").textContent = "Updating...";
+                document.getElementById("edit-user-loader").classList.remove("hidden");
                 const userId = $('#editUserForm input[name="id"]').val();
                 const formData = {
                     name: $('#editUserForm input[name="name"]').val(),
@@ -1615,6 +1679,7 @@
                             $('#editUserModal').modal('hide');
                             usersTable.ajax.reload();
                         }
+                        document.getElementById("edit-user-loader").classList.add("hidden");
                         alert(response.message);
                     }
                 });
@@ -1656,6 +1721,10 @@
             // restore user
             $(document).on('click', '.restore-user', function () {
                 if (confirm('Are you sure you want to restore this user?')) {
+
+                    document.getElementById("loader-msg").textContent = "Restoring...";
+                    document.getElementById("loader").classList.remove("hidden");
+
                     const userId = $(this).data('id');
                     $.ajax({
                         url: `/manager/users/${userId}/restore`,
@@ -1664,6 +1733,7 @@
                             if (response.success) {
                                 usersTable.ajax.reload();
                             }
+                            document.getElementById("loader").classList.add("hidden");
                             alert(response.message);
                         }
                     });
