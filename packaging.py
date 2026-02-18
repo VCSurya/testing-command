@@ -42,8 +42,18 @@ class PackagingModel:
                 COUNT(CASE WHEN sales_proceed_for_packing = 1 
                         AND cancel_order_status = 0 
                         AND packing_proceed_for_transport = 0 
+                        AND payment_confirm_status = 1
+                        AND pack_lock = 0 
+                    THEN 1 END) AS total_locked_draft_packing_order,
+
+                -- Total Draft Packing Order
+                COUNT(CASE WHEN sales_proceed_for_packing = 1 
+                        AND cancel_order_status = 0 
+                        AND packing_proceed_for_transport = 0 
                         AND payment_confirm_status = 1 
-                    THEN 1 END) AS total_draft_packing_order,
+                        AND pack_lock = 1 
+                        AND packing_proceed_by = {user_id}
+                    THEN 1 END) AS total_my_draft_packing_order,
 
                 -- Replaced Canceled orders from cancelled_orders table
                 COALESCE(co.total_canceled_orders, 0) AS total_canceled_orders,
@@ -239,7 +249,8 @@ class PackagingModel:
                     AND inv.completed = 0
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
                     AND lot.payment_confirm_status = 1
-
+                    AND lot.pack_lock = 1 
+                    AND lot.packing_proceed_by = {session.get('user_id')}
                     ORDER BY inv.created_at DESC;                
                     
                 """
@@ -259,9 +270,9 @@ class PackagingModel:
 
     def fetch_my_packing_orders(self):
         query = f"""
-                    SELECT
-                    
-                        inv.id,
+                                        SELECT
+    
+                        inv.id,                    
                         inv.invoice_number,
                         inv.customer_id,
                         inv.grand_total,
@@ -272,7 +283,7 @@ class PackagingModel:
                         inv.invoice_created_by_user_id,
                         inv.payment_note,
                         inv.gst_included,
-                        inv.created_at,                    
+                        inv.created_at,
                         inv.delivery_mode,
 
                         b.id AS buddy_id,
@@ -313,8 +324,6 @@ class PackagingModel:
                         lot.verify_by_manager,
                         lot.verify_by_manager_id,
                         lot.verify_manager_date_time,
-                        lot.packing_note,
-
                         transport.pincode AS transport_pincode,
                         transport.name AS transport_name,
                         transport.city AS transport_city
@@ -328,23 +337,21 @@ class PackagingModel:
                     LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
                     LEFT JOIN transport ON inv.transport_id = transport.id
 
-                        AND lot.cancel_order_status = 0
-                        AND lot.sales_proceed_for_packing = 1
-                        AND lot.packing_proceed_for_transport = 1
-                        AND lot.transport_proceed_for_builty = 0 
+                    WHERE 
 
-                    WHERE lot.packing_proceed_by = %s
-                    
+                    lot.packing_proceed_for_transport = 0
+                    AND lot.cancel_order_status = 0
+                    AND lot.sales_proceed_for_packing = 1
                     AND inv.completed = 0
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
                     AND lot.payment_confirm_status = 1
-
-                    ORDER BY inv.created_at DESC;                
+                    AND lot.pack_lock = 0 
+                    ORDER BY inv.created_at DESC;                 
                     
                 """
 
         
-        self.cursor.execute(query,(session.get('user_id'),))
+        self.cursor.execute(query,)
         all_order_data = self.cursor.fetchall()
         
         if not all_order_data:
@@ -404,6 +411,21 @@ class PackagingModel:
             WHERE id = %s;
             """
             self.cursor.execute(update_query, (data.get('packingNote'),session.get('user_id'),data.get('lot_id'),))
+            self.conn.commit() 
+            return {"success": True}
+            
+        except Exception as e:
+            self.conn.rollback()  # rollback on connection, not cursor
+            return {"success": False,"msg":e}
+        
+    def lock_packing(self,data):
+        try:
+            update_query = """
+            UPDATE live_order_track
+            SET pack_lock = 1, packing_proceed_by = %s,packing_date_time = NOW()
+            WHERE id = %s;
+            """
+            self.cursor.execute(update_query, (session.get('user_id'),data.get('lot_id'),))
             self.conn.commit() 
             return {"success": True}
             
@@ -576,6 +598,27 @@ def start_shipment():
         return jsonify({"success": False, "message": f"Somthing went wrong!"}),500
     
     except Exception as e:
+        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+
+@packaging_bp.route('/packaging/lock-packing', methods=['POST'])
+@login_required('Packaging')
+def lock_packing_order():
+    try:
+        data = request.get_json()
+        if not data.get('lot_id'):
+            return jsonify({'error': 'Missing Some IMP Information!'}), 400
+
+        locking_obj = PackagingModel()
+        response = locking_obj.lock_packing(data)
+
+        if response.get('success'):
+            return jsonify({"success": True, "message": "Order Claimed Successfully"}),200
+
+        locking_obj.close()
+        return jsonify({"success": False, "message": f"Something went wrong!"}),500
+    
+    except Exception as e:
+        locking_obj.close()
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
 

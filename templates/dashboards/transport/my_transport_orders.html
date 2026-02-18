@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Packaging</title>
+    <title>Transport</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
@@ -330,14 +330,14 @@
 
         .invoice-item.active .invoice-details {
             display: block;
-            max-height: 530px;
+            max-height: 620px;
             opacity: 1;
             padding: 16px 18px 12px 18px;
             animation: glassFadeIn 0.6s cubic-bezier(.4, 2, .6, 1);
             overflow: auto;
             scrollbar-width: thin;
             /* for Firefox */
-            scrollbar-color: rgba(206, 206, 206, 0.2) transparent;
+            scrollbar-color: rgba(83, 83, 83, 0.2) transparent;
         }
 
         .invoice-item.active .invoice-header {
@@ -905,7 +905,7 @@
 
     <style>
         /* Container Styling */
-        .next-to-pack-container {
+        .next-to-transport-container {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -915,8 +915,8 @@
         }
 
         /* Button Styling */
-        .next-to-pack-btn {
-            background: linear-gradient(to right, #874caf, #6845a0);
+        .next-to-transport-btn {
+            background: linear-gradient(to right, #6ea045, #4caf6d);
             color: white;
             padding: 0.5rem 1rem;
             font-size: 1rem;
@@ -931,22 +931,48 @@
         }
 
         /* Hover & Active States */
-        .next-to-pack-btn:hover {
-            background: linear-gradient(to right, #6845a0, #874caf);
+        .next-to-transport-btn:hover {
+            background: linear-gradient(to right, #45a072, #4caf6d);
             transform: translateY(-2px);
         }
 
-        .next-to-pack-btn:active {
+        .next-to-transport-btn:active {
             transform: scale(0.98);
         }
 
         /* Responsive adjustments */
         @media (max-width: 600px) {
-            .next-to-pack-btn {
+            .next-to-transport-btn {
                 width: 100%;
                 font-size: 1rem;
                 padding: 0.5rem;
             }
+        }
+    </style>
+    <style>
+        #transport_note {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background: #fdfdfd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
+            resize: vertical;
+            outline: none;
+        }
+
+        #transport_note:focus {
+            border-color: #4a90e2;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        }
+
+        #transport_note::placeholder {
+            color: #999;
+            font-style: italic;
         }
     </style>
     <style>
@@ -1105,6 +1131,98 @@
                 transform: rotate(360deg);
             }
         }
+    </style>
+    <style>
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes reveal {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-subtle {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .path-animate {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 0.6s ease-out 0.4s forwards;
+        }
+
+        .stagger-1 {
+            animation: reveal 0.5s ease-out 0.1s both;
+        }
+
+        .stagger-2 {
+            animation: reveal 0.5s ease-out 0.2s both;
+        }
+
+        .stagger-3 {
+            animation: reveal 0.5s ease-out 0.3s both;
+        }
+
+        .stagger-4 {
+            animation: reveal 0.5s ease-out 0.4s both;
+        }
+
+        .pulse-container {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+
+        .shimmer-bg {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite linear;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-left-color: currentColor;
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            animation: spin-slow 1s linear infinite;
+        }
 
         #modalOverlay {
             z-index: 1100;
@@ -1118,6 +1236,7 @@
 
     <div class="container-fluid p-0">
         <div class="row g-0">
+
             <!-- Sidebar -->
             <div class="col-lg-2 sidebar p-3" id="sidebar">
                 <div class="sidebar-logo mb-4 d-flex">
@@ -1125,7 +1244,7 @@
                     <div
                         style="display: flex; justify-content: center; align-items: center; width: 100%;font-size: 1.3em;">
                         <h3 class="logo-text text-white">
-                            Pack<span class="text-warning">Pro</span>
+                            Transport<span class="text-warning">Pro</span>
                         </h3>
                     </div>
                 </div>
@@ -1135,11 +1254,12 @@
                         <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/ready-to-go-for-transport"><i
+                        <a class="nav-link" href="/transport/ready-to-go-for-transport"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/my-packaging-orders"><i class="bi bi-box-seam me-2"></i>My
+                        <a class="nav-link active" href="/transport/my-transport-orders"><i
+                                class="bi bi-box-seam me-2"></i>My
                             Orders</a>
                     </li>
                     <li class="nav-item">
@@ -1155,22 +1275,23 @@
                     </div>
                     <div class="user-info">
                         <div class="user-name">{{ session.get('username', 'Sales Manager') }}</div>
-                        <div class="user-status">Packaging</div>
+                        <div class="user-status">Transport</div>
                     </div>
                 </div>
 
             </div>
 
+
+
             <!-- Main Content -->
             <div class="col-lg-10 p-0 main-content">
-
                 <div class="header-container d-flex align-items-center">
 
                     <div class="d-flex align-items-center justify-content-between p-0">
                         <button class="btn btn-outline-primary me-4 p-0" id="sidebarToggle" title="Menu">
                             <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Draft Orders</h4>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">My Orders</h4>
                     </div>
                 </div>
 
@@ -1180,6 +1301,10 @@
                         <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                             <input type="text" id="invoiceSearchInput" class="form-control"
                                 placeholder="Search by Invoice ID...">
+                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
+                                <option value="all" selected>All</option>
+                                <!-- <option value="5">Delivered</option> -->
+                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -1228,23 +1353,12 @@
                 <div class="modal-buttons-custom"
                     style="width:100%;justify-content:space-between;gap:1em;margin-top:0.2em;">
                     <button id="cancelOrderCancelBtn" type="button"
-                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Back</button>
+                        style="background:#c0c0c0;color:#333;border:1px solid #000000;min-width:100px;border-radius:10px;">Cancel</button>
                     <button id="cancelOrderConfirmBtn" type="submit"
                         style="background:rgb(255, 255, 255);color:#000000;border:1.5px solid #302f2f;min-width:120px;border-radius:10px;font-weight:600;">Submit</button>
                 </div>
             </form>
         </div>
-    </div>
-
-    <div id="loader"
-        class="hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-        <div class="flex space-x-2 mb-4">
-            <!-- Updated bg-indigo to bg-indigo-600 for valid Tailwind styling -->
-            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-            <div class="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
-        </div>
-        <p id="loader-msg" class="text-sm font-semibold tracking-tight text-gray-800 uppercase">Fetching images...</p>
     </div>
 
     <!-- Modal Overlay -->
@@ -1309,7 +1423,7 @@
 
         const successStyles = {
             title: "Success!",
-            message: "Your dispatch request has been submitted. We will process it shortly.",
+            message: "Your dispatched request has been submitted. We will process it shortly.",
             icon: `<svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path class="path-animate" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`,
             bg: "bg-green-50",
             blob: "bg-green-400",
@@ -1372,10 +1486,6 @@
             }, 500);
         }
 
-        // Close on clicking overlay
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay && !actionBtn.disabled) closeModal();
-        });
 
 
 
@@ -1390,7 +1500,7 @@
             deleteInvoiceNumber = invoiceNumber;
             deleteTargetButton = btn;
             deleteTargetLi = btn.closest('.invoice-item');
-            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to delete invoice ${invoiceNumber}?`;
+            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to cancel this invoice? <${invoiceNumber}>`;
             document.getElementById('deleteConfirmModal').classList.add('show');
         }
         function closeDeleteModal() {
@@ -1442,12 +1552,11 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, main_id, invoice_Id, btn) {
+        function openCancelOrderModal(invoiceNumber, main_id, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
-            cancelOrderInvoiceid = main_id;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
-            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + invoice_Id + '>';
+            document.getElementById('cancelOrderNote').textContent = 'Are You Sure You Want To Cancel This Order? <' + main_id + '>';
             document.getElementById('cancelOrderModal').classList.add('show');
             setTimeout(() => {
                 document.getElementById('cancelReasonInput').focus();
@@ -1455,8 +1564,6 @@
         }
         function closeCancelOrderModal() {
             document.getElementById('cancelOrderModal').classList.remove('show');
-            cancelOrderInvoiceNumber = null;
-            cancelOrderTargetLi = null;
         }
         document.getElementById('cancelOrderCancelBtn').onclick = closeCancelOrderModal;
         document.getElementById('cancelOrderModal').onclick = function (e) {
@@ -1470,25 +1577,52 @@
                 return;
             }
             if (!cancelOrderInvoiceNumber) return closeCancelOrderModal();
+
+            closeCancelOrderModal();
+            // 1. Show processing first
+            updateModalContent(RemoveProcessingStyles);
+
+            // Show Modal
+            modalOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.remove('opacity-0');
+                modalContent.classList.remove('translate-y-8', 'opacity-0');
+                modalContent.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
             try {
-                const resp = await cancelOrder(cancelOrderInvoiceNumber, cancelOrderInvoiceid, reason);
+                const resp = await cancelOrder(cancelOrderInvoiceNumber, reason);
                 if (resp && resp.success) {
                     if (cancelOrderTargetLi) cancelOrderTargetLi.remove();
+
+                    await fetchInvoices();
+                    await filterAndRenderInvoices();
+                    await populateTransportOptions();
+
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(RemoveSuccessStyles);
+                    modalInner.classList.remove('opacity-0');
+
                 } else {
-                    alert(resp && resp.message ? resp.message : 'Failed to cancel order.');
+                    modalInner.classList.add('opacity-0');
+                    updateModalContent(errorStyles);
+                    modalInner.classList.remove('opacity-0');
+                    console.log(resp && resp.message ? resp.message : 'Failed to cancel order.');
                 }
             } catch (err) {
-                alert('Error cancelling order.');
+                modalInner.classList.add('opacity-0');
+                updateModalContent(errorStyles);
+                modalInner.classList.remove('opacity-0');
+                console.log('Error cancelling order.');
             }
-            closeCancelOrderModal();
         };
 
-        async function cancelOrder(invoiceNumber, Invoiceid, reason) {
+        async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/packing/cancel_order', {
+                const response = await fetch('/transport/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_order_id: invoiceNumber, invoice_id: Invoiceid, reason: reason })
+                    body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
                 });
                 if (!response.ok) throw new Error('Failed to cancel');
                 return await response.json();
@@ -1497,9 +1631,11 @@
             }
         }
 
-        async function confirmAndStart(live_order_track_id, invoice_id, main_id) {
-            const userConfirmed = confirm(`Are you sure? <${main_id}>`);
+        async function confirmAndStart(invoice_id, main_id) {
+            const userConfirmed = confirm(`Quick check — please confirm whether all packages have been delivered to the transporter.? <${main_id}>`);
             if (!userConfirmed) return;
+
+            const transportNote = document.getElementById('transport_note').value.trim();
 
             // 1. Show processing first
             updateModalContent(processingStyles);
@@ -1512,21 +1648,23 @@
                 modalContent.classList.add('translate-y-0', 'opacity-100');
             }, 10);
 
-
             try {
-                const response = await fetch('/packaging/lock-packing', {
+                const response = await fetch('/transport/done-transportation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        lot_id: live_order_track_id
+                        invoice_number: invoice_id,
+                        transportNote: transportNote
                     })
                 });
 
                 const data = await response.json();
+
                 if (response.ok && data.success) {
 
 
                     await fetchInvoices();
+                    await populateTransportOptions();
                     await filterAndRenderInvoices();
 
 
@@ -1567,7 +1705,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/packaging/my-packing-orders');
+                const response = await fetch('/transport/transport-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1579,42 +1717,21 @@
         }
 
 
-        function checkAndOpenImages(invoiceId) {
-            document.getElementById('loader').classList.remove('hidden');
-
-            fetch(`/packaging/images/${invoiceId}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('loader').classList.add('hidden');
-                    if (data.success && data.images.length > 0) {
-                        window.open(`/packaging/images_page/${invoiceId}`, '_blank');
-                    } else {
-                        alert(data.message || '' + 'No images found!');
-                    }
-                })
-                .catch(err => {
-                    document.getElementById('loader').classList.add('hidden');
-                    console.error('Error:', err);
-                    alert('An error occurred while fetching images.');
-                });
-        }
-
         // Render invoices from dynamic backend data
         let allInvoices = [];
         async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
             if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = `
-                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                list.innerHTML =
+                    `<li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
                         stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
                         stroke-linejoin="round" style="margin:0 auto 12px;">
                         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                     <div style="font-size:16px; font-weight:500;">No invoices yet</div>
-                </li>
-                `;
+                </li>`;
                 return;
             }
             invoices.forEach((inv, idx) => {
@@ -1625,7 +1742,6 @@
                     number: inv.invoice_number,
                     main_id: inv.id,
                     date: inv.created_at,
-                    sales_by: inv.username,
                     customer: inv.customer + ', ' + inv.mobile,
                     customer_address: inv.address,
                     delivery_mode: inv.delivery_mode,
@@ -1642,12 +1758,15 @@
                     sales_note: inv.sales_note,
                     trackingDates: inv.trackingDates,
                     live_order_track_id: inv.live_order_track_id,
+                    sales_by: inv.username,
                     pack_note: inv.packing_note,
+                    pack_by: inv.pack_by,
+                    sale_date: inv.sales_date_time,
+                    pack_date: inv.packing_date_time,
                     transport_name: inv.transport_name,
                     transport_city: inv.transport_city,
-                    transport_pincode: inv.transport_pincode,
-                    created_at: inv.created_at
-
+                    transport_days: inv.transport_days,
+                    transport_pincode: inv.transport_pincode
                 };
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
@@ -1655,9 +1774,10 @@
                     <div class="invoice-header">
                         <span>❑ ${invoiceObj.main_id}</span>
                         <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.pack_date}</span>
 
                             <div class="invoice-actions">
+
                                 <button class="glass-btn" title="Download PDF" onclick="
                                     event.stopPropagation();
                                     window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
@@ -1668,6 +1788,13 @@
                                     </svg>
                                 </button>
 
+                                
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>   
+
                             </div>
                         </div>
                     </div>
@@ -1676,19 +1803,13 @@
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.pack_date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
-                            
                             <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
                         </div>
-                        
-                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sales_by} - ${invoiceObj.created_at}</div>
+                                
+                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sale_date} (${invoiceObj.sales_by})</div>
 
-                         ${invoiceObj.delivery_mode === 'transport' ? `
+                        <div title=${invoiceObj.pack_by}><strong>Packaging:</strong> ${invoiceObj.pack_date} (${invoiceObj.pack_by})</div>
+                        ${invoiceObj.delivery_mode === 'transport' ? `
                     
                            <!-- Static HTML Content -->
                             <div class="transport-row">
@@ -1709,8 +1830,9 @@
                             </div>
 
                         ` : ``}
-                        
 
+                        
+                        
                         <table style="margin-top:10px;">
                             <thead>
                                 <tr>
@@ -1734,6 +1856,7 @@
                             </tbody>
                         </table>
 
+
                         <div class="note-container">
                             
                             ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
@@ -1742,21 +1865,24 @@
                                 <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
-                            
+                             
                             ${invoiceObj.pack_note && invoiceObj.pack_note.trim() !== '' ? `
                                 <div class="note pack-note">
                                 <p> <span>Packing Note: </span> ${invoiceObj.pack_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
 
-                        </div>
+
+                            <textarea id="transport_note" placeholder="Enter Transport Regarding Note Here..."></textarea>
+                            
+                        </div
+                                
 
                         <div class="next-to-transport-container">
-                            <button type="button" class="w-full btn btn-primary px-4 py-2" onclick="confirmAndStart('${invoiceObj.live_order_track_id}','${invoiceObj.number}','${invoiceObj.main_id}')">
-                                Claim & Start Packing <i class="fas fa-box-open ms-2"></i>
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
+                                Transport Handover Done 
                             </button>
                         </div>
-
                     </div>
 
                 `;
@@ -1773,8 +1899,12 @@
         async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+            const selectedTracking = trackingStatusFilter ? trackingStatusFilter.value : 'all';
+
             let filtered = [...allInvoices];
 
+            // Search filter
             if (query !== '') {
                 filtered = filtered.filter(inv => {
                     const invoiceId = (String(inv.invoice_number) + String(inv.id)).toLowerCase();
@@ -1782,12 +1912,43 @@
                 });
             }
 
+            // Transport name filter
+            if (selectedTracking !== 'all') {
+                filtered = filtered.filter(inv => inv.transport_name === selectedTracking);
+            }
             await renderInvoices(filtered);
         }
+
+        async function populateTransportOptions() {
+            const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+            if (!trackingStatusFilter) return;
+
+            // Keep only the first option ("All")
+            trackingStatusFilter.innerHTML = '<option value="all" selected>All</option>';
+
+            // Get unique, non-empty transport names
+            const uniqueTransports = [
+                ...new Set(
+                    allInvoices
+                        .map(inv => inv.transport_name)
+                        .filter(name => name && name.trim() !== '')
+                )
+            ];
+
+            // Append options
+            uniqueTransports.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                trackingStatusFilter.appendChild(option);
+            });
+        }
+
 
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');
+
 
             const toggleBtn = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
@@ -1820,19 +1981,14 @@
                 hideButton.addEventListener('click', hideSidebar);
             }
 
-
-
             if (trackingStatusFilter) {
-                // Ignore saved value on reload — always set to default '0'
-                trackingStatusFilter.value = '0';
+                trackingStatusFilter.value = 'all';
 
                 trackingStatusFilter.addEventListener('change', () => {
-                    // Save current selection for session use if you want
                     localStorage.setItem('trackingStatus', trackingStatusFilter.value);
                     filterAndRenderInvoices();
                 });
             }
-
 
             if (searchInput) {
                 searchInput.addEventListener('input', filterAndRenderInvoices);
@@ -1840,7 +1996,10 @@
 
             fetchInvoices().then(() => {
                 filterAndRenderInvoices();
+                populateTransportOptions();
             });
+
+
         });
 
     </script>

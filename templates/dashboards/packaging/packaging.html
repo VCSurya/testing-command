@@ -472,20 +472,20 @@
             //     shadow: "shadow-indigo-600/60",
             //     description: "All confirmed packing orders by you."
             // },
-            total_draft_packing_order: {
+            total_locked_draft_packing_order: {
                 title: "Draft Orders",
                 icon: "repeat", // Suggests refreshing/ready to move to next stage (The 'moving' animation)
                 color: "bg-gray-500",
                 shadow: "shadow-gray-500/60",
                 description: "Orders saved as drafts, ready to become active for packing."
             },
-            // total_packed_but_not_transport: {
-            //     title: "Packed, Awaiting Transport",
-            //     icon: "truck",
-            //     color: "bg-emerald-600", // Richer green
-            //     shadow: "shadow-emerald-600/60",
-            //     description: "Ready packages waiting for transport."
-            // },
+            total_my_draft_packing_order: {
+                title: "My Draft Orders",
+                icon: "truck",
+                color: "bg-emerald-600", // Richer green
+                shadow: "shadow-emerald-600/60",
+                description: "Ready packages waiting for transport."
+            },
             total_today_order_packed_by_user: {
                 title: "Today's Your Packed Orders",
                 icon: "check-circle",
@@ -493,13 +493,13 @@
                 shadow: "shadow-green-700/60",
                 description: "The total orders you have packed today."
             },
-            pending_canceled_orders: {
-                title: "Your Pending Canceled Orders",
-                icon: "alert-triangle",
-                color: "bg-yellow-600",
-                shadow: "shadow-yellow-600/60",
-                description: "Cancellations awaiting confirmation."
-            },
+            // pending_canceled_orders: {
+            //     title: "Your Pending Canceled Orders",
+            //     icon: "alert-triangle",
+            //     color: "bg-yellow-600",
+            //     shadow: "shadow-yellow-600/60",
+            //     description: "Cancellations awaiting confirmation."
+            // },
             // confirmed_canceled_orders: {
             //     title: "Confirmed Canceled Orders",
             //     icon: "slash",
@@ -557,14 +557,14 @@
             const valueColor = key.includes('canceled') ? 'text-red-700' : 'text-gray-900';
 
             // Apply the cool animation class (icon-float-glow) to specific cards for impact
-            const animationClass = (key === "total_proceed_packing_order_from_user" || key === "total_packed_but_not_transport" || key === "total_draft_packing_order") ? 'icon-float-glow' : '';
+            const animationClass = (key === "total_proceed_packing_order_from_user" || key === "total_packed_but_not_transport" || key === "total_locked_draft_packing_order" || key === "total_my_draft_packing_order") ? 'icon-float-glow' : '';
 
             // Card structure updated to put Title on top, and Value/Icon side-by-side
             return `
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between" 
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Draft Orders' ? "+ '/ready-to-go-for-transport'" : config.title === "Today's Your Packed Orders" ? "+ '/my-packaging-orders'" : ''}"
+                ${config.title === 'Draft Orders' ? "+ '/ready-to-go-for-transport'" : config.title === "Today's Your Packed Orders" ? "+ '/my-packaging-orders'" : config.title === "My Draft Orders" ? "+ '/my-packaging-orders'" :  ''}"
                 >
                     
                     <!-- Title now takes the full top row -->
@@ -605,8 +605,8 @@
 
                 // Define the desired order of display
                 const displayOrder = [
-                    "total_draft_packing_order",
-                    "total_proceed_packing_order_from_user",
+                    "total_locked_draft_packing_order",
+                    "total_my_draft_packing_order",
                     "total_today_order_packed_by_user",
                     "pending_canceled_orders",
                     "confirmed_canceled_orders",

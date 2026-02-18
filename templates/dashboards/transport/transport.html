@@ -359,6 +359,11 @@
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/transport/my-transport-orders"><i
+                                class="bi bi-box-seam me-2"></i>My
+                            Orders</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link " href="/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
@@ -467,20 +472,20 @@
             //     shadow: "shadow-indigo-600/60",
             //     description: "All orders dispatched for transport by you."
             // },
-            total_draft_transport_order: {
-                title: "Transport Drafts",
+            total_locked_draft_transport_order: {
+                title: "Drafts Orders",
                 icon: "repeat", // Represents pending/looping process
                 color: "bg-gray-500",
                 shadow: "shadow-gray-500/60",
                 description: "Orders saved as drafts, awaiting dispatch."
             },
-            // total_transport_but_builty_not_recived: {
-            //     title: "In Transit (No Builty)",
-            //     icon: "truck", // Transport in progress
-            //     color: "bg-emerald-600",
-            //     shadow: "shadow-emerald-600/60",
-            //     description: "Orders dispatched but builty not yet received."
-            // },
+            total_my_draft_transport_order: {
+                title: "My Drafts Orders",
+                icon: "truck", // Transport in progress
+                color: "bg-emerald-600",
+                shadow: "shadow-emerald-600/60",
+                description: "Orders dispatched but builty not yet received."
+            },
             total_today_order_transport_by_user: {
                 title: "Today's Dispatches",
                 icon: "check-circle",
@@ -488,13 +493,13 @@
                 shadow: "shadow-green-700/60",
                 description: "Total orders you've dispatched today."
             },
-            pending_canceled_orders: {
-                title: "Pending Transport Cancellations",
-                icon: "alert-triangle",
-                color: "bg-yellow-600",
-                shadow: "shadow-yellow-600/60",
-                description: "Canceled transport orders awaiting confirmation."
-            },
+            // pending_canceled_orders: {
+            //     title: "Pending Transport Cancellations",
+            //     icon: "alert-triangle",
+            //     color: "bg-yellow-600",
+            //     shadow: "shadow-yellow-600/60",
+            //     description: "Canceled transport orders awaiting confirmation."
+            // },
             // confirmed_canceled_orders: {
             //     title: "Confirmed Transport Cancellations",
             //     icon: "slash",
@@ -559,7 +564,7 @@
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Transport Drafts' ? "+ '/transport/ready-to-go-for-transport'" : ''}"
+                ${config.title === 'Drafts Orders' ? "+ '/transport/ready-to-go-for-transport'" : config.title === 'My Drafts Orders' ? "+ '/transport/my-transport-orders'"  : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->
@@ -600,12 +605,12 @@
 
                 // Define the desired order of display
                 const displayOrder = [
-                    "total_draft_transport_order",
+                    "total_locked_draft_transport_order",
+                    "total_my_draft_transport_order",
                     "total_proceed_transport_order_from_user",
                     "total_today_order_transport_by_user",
                     "pending_canceled_orders",
-                    "confirmed_canceled_orders",
-                    "total_transport_but_builty_not_recived"
+                    "confirmed_canceled_orders"
                 ];
 
                 displayOrder.forEach(key => {

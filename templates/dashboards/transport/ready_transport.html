@@ -1258,6 +1258,10 @@
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link " href="/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My
+                            Orders</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link " href="/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
@@ -1547,7 +1551,7 @@
 
 
         // Cancel Order Modal Logic
-        function openCancelOrderModal(invoiceNumber, main_id,btn) {
+        function openCancelOrderModal(invoiceNumber, main_id, btn) {
             cancelOrderInvoiceNumber = invoiceNumber;
             cancelOrderTargetLi = btn.closest('.invoice-item');
             document.getElementById('cancelReasonInput').value = '';
@@ -1626,11 +1630,9 @@
             }
         }
 
-        async function confirmAndStart(invoice_id,main_id) {
-            const userConfirmed = confirm(`Quick check — please confirm whether all packages have been delivered to the transporter.? <${main_id}>`);
+        async function confirmAndStart(invoice_id, main_id) {
+            const userConfirmed = confirm(`Are you sure you want to claim transportation for order <${main_id}>?`);
             if (!userConfirmed) return;
-
-            const transportNote = document.getElementById('transport_note').value.trim();
 
             // 1. Show processing first
             updateModalContent(processingStyles);
@@ -1644,12 +1646,11 @@
             }, 10);
 
             try {
-                const response = await fetch('/transport/done-transportation', {
+                const response = await fetch('/transport/lock-transportation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         invoice_number: invoice_id,
-                        transportNote: transportNote
                     })
                 });
 
@@ -1700,7 +1701,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/transport/transport-orders-list');
+                const response = await fetch('/transport/draft-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1782,14 +1783,6 @@
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
                                     </svg>
                                 </button>
-
-                                
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>   
-
                             </div>
                         </div>
                     </div>
@@ -1866,16 +1859,13 @@
                                 <p> <span>Packing Note: </span> ${invoiceObj.pack_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
-
-
-                            <textarea id="transport_note" placeholder="Enter Transport Regarding Note Here..."></textarea>
                             
                         </div
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
-                                Transport Handover Done 
+                            <button class="w-full btn btn-primary px-4 py-2" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
+                                Claim Transportion
                             </button>
                         </div>
                     </div>
@@ -1991,7 +1981,7 @@
 
             fetchInvoices().then(() => {
                 filterAndRenderInvoices();
-                populateTransportOptions(); 
+                populateTransportOptions();
             });
 
 
