@@ -1917,6 +1917,23 @@
                                         </div>
                                     </div>
 
+                                    <div id="transport-loader"
+                                        class="hidden inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity duration-300">
+                                        <div class="flex space-x-2">
+                                            <!-- Dot 1 -->
+                                            <div class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot">
+                                            </div>
+                                            <!-- Dot 2 -->
+                                            <div
+                                                class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-1">
+                                            </div>
+                                            <!-- Dot 3 -->
+                                            <div
+                                                class="w-3 h-3 md:w-4 md:h-4 bg-blue-600 rounded-full animate-dot dot-delay-2">
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                             <br>
@@ -2749,9 +2766,15 @@
             }
 
             async function pincodeFetchTransport(query, id_mode) {
+
+                document.getElementById('noTransport').classList.add('hidden');
+                document.getElementById('transportCard').classList.add('hidden');
+                document.getElementById('transport-loader').classList.remove('hidden');
+
                 try {
                     const response = await fetch(`/sales/input-transport/${encodeURIComponent(query)}/${id_mode}`);
                     const data = await response.json();
+                    document.getElementById('transport-loader').classList.add('hidden');
                     if (data.length > 0) {
                         document.getElementById('noTransport').classList.add('hidden');
                         document.getElementById('transportCard').classList.remove('hidden');
@@ -2771,6 +2794,7 @@
                     return;
 
                 } catch (error) {
+                    document.getElementById('transport-loader').classList.add('hidden');
                     console.error("API Error:", error);
                 }
             }
