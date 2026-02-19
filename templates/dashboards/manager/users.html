@@ -1064,9 +1064,9 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveUser">Save</button>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="width: 40%;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveUser" style="width: 54%;">Save</button>
                 </div>
             </div>
             <div id="add-user-loader"
@@ -1121,9 +1121,10 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="updateUser">Update</button>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="width: 40%;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="updateUser" style="width: 54%;">Update</button>
                 </div>
             </div>
 
@@ -1465,6 +1466,7 @@
 
                 }
 
+
             } catch (error) {
                 document.getElementById("delete-user-loader").classList.add("hidden");
                 alert("Somthing Went Wrong. Please Try Again.");
@@ -1764,6 +1766,7 @@
                 toggleDeleteUserModal(true);
             });
 
+            // restore user
             $(document).on('click', '.restore-user', function () {
                 if (confirm('Are you sure you want to restore this user?')) {
 

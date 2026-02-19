@@ -1524,7 +1524,7 @@
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
+                        <a class="nav-link active" href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Selling</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/sales/ready-to-go-orders"><i
@@ -3632,6 +3632,7 @@
                 const responseContent = document.getElementById('printResponseContent');
                 const modalFooter = document.getElementById('printPopupFooter');
                 const popupCloseBtn = document.getElementById('popupCloseBtn');
+                const printPopupModalLabel = document.getElementById('printPopupModalLabel');
 
 
                 // Reset modal states before showing
@@ -3646,6 +3647,7 @@
                     keyboard: false
                 });
                 popupCloseBtn.disabled = true;
+                printPopupModalLabel.textContent = 'Processing Order...';
                 printModal.show();
 
                 // Step 1: Save invoice to database
@@ -3663,6 +3665,7 @@
                         if (data.success && data.invoice_number) {
 
                             document.getElementById('popupCloseBtnRelode').value = "true"; // Explicitly as a string
+                            printPopupModalLabel.textContent = 'Invoice Updated Successfully';
                             // Show success message and share button
                             setTimeout(() => {
 
@@ -3688,6 +3691,7 @@
                             }, 1000); // Optional delay for smooth transition
 
                         } else {
+                            printPopupModalLabel.textContent = 'Failed To Update Invoice';
                             popupCloseBtn.disabled = false;
                             // throw new Error(data.error || 'Failed to save invoice');
                             loadingDots.style.display = 'none';
@@ -3701,6 +3705,7 @@
                     })
                     .catch(error => {
                         popupCloseBtn.disabled = false;
+                        printPopupModalLabel.textContent = 'Failed To Update Invoice';
                         console.error('Error:', error);
                         loadingDots.style.display = 'none';
                         responseContent.style.display = 'block';

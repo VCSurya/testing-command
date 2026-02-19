@@ -1383,7 +1383,7 @@
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Sell</a>
+                        <a class="nav-link " href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Selling</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="/sales/ready-to-go-orders"><i
@@ -1707,11 +1707,11 @@
         // Cancel Order Modal State
         let cancelOrderInvoiceNumber = null;
         let cancelOrderTargetLi = null;
-        function openDeleteModal(invoiceNumber, btn) {
+        function openDeleteModal(invoiceNumber,invoiceMainId, btn) {
             deleteInvoiceNumber = invoiceNumber;
             deleteTargetButton = btn;
             deleteTargetLi = btn.closest('.invoice-item');
-            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to remove this invoice ${invoiceNumber}?`;
+            document.getElementById('deleteConfirmMessage').textContent = `Are you sure you want to remove this invoice <${invoiceMainId}>?`;
             document.getElementById('deleteConfirmModal').classList.add('show');
         }
         function closeDeleteModal() {
@@ -2077,7 +2077,7 @@
                                 </button>
 
 
-                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${invoiceObj.number}', this)">
+                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                                

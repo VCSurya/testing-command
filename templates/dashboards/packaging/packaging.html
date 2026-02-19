@@ -480,7 +480,7 @@
                 description: "Orders saved as drafts, ready to become active for packing."
             },
             total_my_draft_packing_order: {
-                title: "My Draft Orders",
+                title: "My Pending Orders",
                 icon: "truck",
                 color: "bg-emerald-600", // Richer green
                 shadow: "shadow-emerald-600/60",
@@ -564,7 +564,7 @@
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between" 
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Draft Orders' ? "+ '/ready-to-go-for-transport'" : config.title === "Today's Your Packed Orders" ? "+ '/my-packaging-orders'" : config.title === "My Draft Orders" ? "+ '/my-packaging-orders'" :  ''}"
+                ${config.title === 'Draft Orders' ? "+ '/ready-to-go-for-transport'" : config.title === "Today's Your Packed Orders" ? "+ '/my-packaging-orders'" : config.title === "My Pending Orders" ? "+ '/my-packaging-orders'" :  ''}"
                 >
                     
                     <!-- Title now takes the full top row -->

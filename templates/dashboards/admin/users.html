@@ -1064,10 +1064,13 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveUser">Save</button>
+
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="width: 40%;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveUser" style="width: 54%;">Save</button>
                 </div>
+
             </div>
             <div id="add-user-loader"
                 class="absolute hidden inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -1123,10 +1126,13 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="updateUser">Update</button>
+
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="width: 40%;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="updateUser" style="width: 54%;">Update</button>
                 </div>
+
             </div>
             <div id="edit-user-loader"
                 class="absolute hidden inset-0 z-[9999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -1448,13 +1454,23 @@
                 });
 
                 const result = await response.json();
-                document.getElementById("delete-user-loader").classList.add("hidden");
                 if (result.success) {
-                    usersTable.ajax.reload();
-                    toggleDeleteUserModal(false);
-                    alert(result.message);
+
+                    usersTable.ajax.reload(function () {
+
+                        // Hide loader AFTER table refresh
+                        document.getElementById("delete-user-loader").classList.add("hidden");
+
+                        toggleDeleteUserModal(false);
+                        alert(result.message);
+
+                    }, false); // keep pagination
+
                 } else {
+
+                    document.getElementById("delete-user-loader").classList.add("hidden");
                     alert("Failed: " + result.message);
+
                 }
 
             } catch (error) {
@@ -1629,21 +1645,37 @@
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
+
                     success: function (response) {
+
                         if (response.success) {
+
                             $('#addUserModal').modal('hide');
                             $('#addUserForm')[0].reset();
-                            usersTable.ajax.reload();
+
+                            // Wait for DataTable reload to complete
+                            usersTable.ajax.reload(function () {
+
+                                document.getElementById("add-user-loader").classList.add("hidden");
+                                alert(response.message);
+
+                            }, false); // keep pagination
+                        } else {
+                            document.getElementById("add-user-loader").classList.add("hidden");
+                            alert(response.message);
                         }
+                    },
+
+                    error: function () {
                         document.getElementById("add-user-loader").classList.add("hidden");
-                        alert(response.message);
+                        alert("Something went wrong.");
                     }
                 });
             });
 
             // Edit user
             $(document).on('click', '.edit-user', function () {
-                
+
                 $('#editUserModal').modal('show');
                 document.getElementById("edit-user-loader-msg").textContent = "Please Wait...";
                 document.getElementById("edit-user-loader").classList.remove("hidden");
@@ -1666,12 +1698,12 @@
                 document.getElementById("edit-user-loader").classList.remove("hidden");
 
                 const userId = $('#editUserForm input[name="id"]').val();
+
                 const formData = {
                     name: $('#editUserForm input[name="name"]').val(),
                     username: $('#editUserForm input[name="username"]').val(),
                     role: $('#editUserForm select[name="role"]').val(),
                     password: $('#editUserForm input[name="password"]').val(),
-                    // role: $('#editUserForm select[name="role"]').val(),
                 };
 
                 $.ajax({
@@ -1679,13 +1711,29 @@
                     method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
+
                     success: function (response) {
+
                         if (response.success) {
+
                             $('#editUserModal').modal('hide');
-                            usersTable.ajax.reload();
+
+                            // Wait for table reload to complete
+                            usersTable.ajax.reload(function () {
+
+                                document.getElementById("edit-user-loader").classList.add("hidden");
+                                alert(response.message);
+
+                            }, false); // false keeps pagination
+                        } else {
+                            document.getElementById("edit-user-loader").classList.add("hidden");
+                            alert(response.message);
                         }
+                    },
+
+                    error: function () {
                         document.getElementById("edit-user-loader").classList.add("hidden");
-                        alert(response.message);
+                        alert("Something went wrong.");
                     }
                 });
             });
@@ -1725,24 +1773,37 @@
 
             // restore user
             $(document).on('click', '.restore-user', function () {
-                document.getElementById("loader-msg").textContent = "Restoring...";
-                document.getElementById("loader").classList.remove("hidden");
-
                 if (confirm('Are you sure you want to restore this user?')) {
+
+                    document.getElementById("loader-msg").textContent = "Restoring...";
+                    document.getElementById("loader").classList.remove("hidden");
+
                     const userId = $(this).data('id');
+
                     $.ajax({
                         url: `/admin/users/${userId}/restore`,
                         method: 'PUT',
                         success: function (response) {
                             if (response.success) {
-                                usersTable.ajax.reload();
+
+                                usersTable.ajax.reload(function () {
+                                    // This runs AFTER the table is fully reloaded
+                                    document.getElementById("loader").classList.add("hidden");
+                                    alert(response.message);
+                                }, false); // false = keep current pagination
+                            } else {
+                                document.getElementById("loader").classList.add("hidden");
+                                alert(response.message);
                             }
+                        },
+                        error: function () {
                             document.getElementById("loader").classList.add("hidden");
-                            alert(response.message);
+                            alert("Something went wrong.");
                         }
                     });
                 }
             });
+
 
         });
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)

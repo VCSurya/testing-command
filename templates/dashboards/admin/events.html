@@ -838,6 +838,10 @@
         // Delete event
         function deleteEvent(eventId, eventName) {
             if (!confirm('Are you sure you want to delete this event "' + eventName + '" ?')) return;
+
+            document.getElementById("loader-msg").textContent = "Deleting event...";
+            document.getElementById("loader").classList.remove("hidden");
+
             fetch('/admin/delete-event', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
@@ -846,6 +850,7 @@
                 .then(res => res.json())
                 .then(data => {
                     fetchEvents();
+                    document.getElementById("loader").classList.add("hidden");
                 });
         }
 
