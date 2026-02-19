@@ -1446,13 +1446,23 @@
                 });
 
                 const result = await response.json();
-                document.getElementById("delete-user-loader").classList.add("hidden");
                 if (result.success) {
-                    usersTable.ajax.reload();
-                    toggleDeleteUserModal(false);
-                    alert(result.message);
+
+                    usersTable.ajax.reload(function () {
+
+                        // Hide loader AFTER table refresh
+                        document.getElementById("delete-user-loader").classList.add("hidden");
+
+                        toggleDeleteUserModal(false);
+                        alert(result.message);
+
+                    }, false); // keep pagination
+
                 } else {
+
+                    document.getElementById("delete-user-loader").classList.add("hidden");
                     alert("Failed: " + result.message);
+
                 }
 
             } catch (error) {
@@ -1628,17 +1638,34 @@
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
+
                     success: function (response) {
+
                         if (response.success) {
+
                             $('#addUserModal').modal('hide');
                             $('#addUserForm')[0].reset();
-                            usersTable.ajax.reload();
+
+                            // Wait for DataTable reload to complete
+                            usersTable.ajax.reload(function () {
+
+                                document.getElementById("add-user-loader").classList.add("hidden");
+                                alert(response.message);
+
+                            }, false); // keep pagination
+                        } else {
+                            document.getElementById("add-user-loader").classList.add("hidden");
+                            alert(response.message);
                         }
+                    },
+
+                    error: function () {
                         document.getElementById("add-user-loader").classList.add("hidden");
-                        alert(response.message);
+                        alert("Something went wrong.");
                     }
                 });
             });
+
 
             // Edit user
             $(document).on('click', '.edit-user', function () {
@@ -1658,15 +1685,17 @@
 
             // Update user
             $('#updateUser').click(function () {
+
                 document.getElementById("edit-user-loader-msg").textContent = "Updating...";
                 document.getElementById("edit-user-loader").classList.remove("hidden");
+
                 const userId = $('#editUserForm input[name="id"]').val();
+
                 const formData = {
                     name: $('#editUserForm input[name="name"]').val(),
                     username: $('#editUserForm input[name="username"]').val(),
                     role: $('#editUserForm select[name="role"]').val(),
                     password: $('#editUserForm input[name="password"]').val(),
-                    // role: $('#editUserForm select[name="role"]').val(),
                 };
 
                 $.ajax({
@@ -1674,16 +1703,33 @@
                     method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
+
                     success: function (response) {
+
                         if (response.success) {
+
                             $('#editUserModal').modal('hide');
-                            usersTable.ajax.reload();
+
+                            // Wait for table reload to complete
+                            usersTable.ajax.reload(function () {
+
+                                document.getElementById("edit-user-loader").classList.add("hidden");
+                                alert(response.message);
+
+                            }, false); // false keeps pagination
+                        } else {
+                            document.getElementById("edit-user-loader").classList.add("hidden");
+                            alert(response.message);
                         }
+                    },
+
+                    error: function () {
                         document.getElementById("edit-user-loader").classList.add("hidden");
-                        alert(response.message);
+                        alert("Something went wrong.");
                     }
                 });
             });
+
 
             // Delete user
             $(document).on('click', '.delete-user', function () {
@@ -1718,7 +1764,6 @@
                 toggleDeleteUserModal(true);
             });
 
-            // restore user
             $(document).on('click', '.restore-user', function () {
                 if (confirm('Are you sure you want to restore this user?')) {
 
@@ -1726,19 +1771,32 @@
                     document.getElementById("loader").classList.remove("hidden");
 
                     const userId = $(this).data('id');
+
                     $.ajax({
                         url: `/manager/users/${userId}/restore`,
                         method: 'PUT',
                         success: function (response) {
                             if (response.success) {
-                                usersTable.ajax.reload();
+
+                                usersTable.ajax.reload(function () {
+                                    // This runs AFTER the table is fully reloaded
+                                    document.getElementById("loader").classList.add("hidden");
+                                    alert(response.message);
+                                }, false); // false = keep current pagination
+                            } else {
+                                document.getElementById("loader").classList.add("hidden");
+                                alert(response.message);
                             }
+                        },
+                        error: function () {
                             document.getElementById("loader").classList.add("hidden");
-                            alert(response.message);
+                            alert("Something went wrong.");
                         }
                     });
                 }
             });
+
+
 
         });
         // Sidebar/Topbar toggle logic (no changes to existing JS logic)
