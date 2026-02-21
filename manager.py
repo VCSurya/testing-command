@@ -473,7 +473,9 @@ class ManagerModel:
         for i in unpaid_orders:
             i['created_at'] = i['created_at'].strftime("%d/%m/%Y %I:%M %p")
     
-        result['Unpaid'] = unpaid_orders
+        if len(unpaid_orders) > 0:
+            result['Unpaid'] = unpaid_orders
+
         return dict(result)
 
     def close(self):
