@@ -1,6 +1,6 @@
 from unicodedata import name
 
-from flask import Blueprint, render_template, jsonify, request, session, send_file
+from flask import Blueprint, app, render_template, jsonify, request, session, send_file
 from utils import get_db_connection, login_required, get_invoice_id
 import mysql.connector
 from datetime import datetime
@@ -2870,3 +2870,51 @@ def builty_recived():
     
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+
+
+
+########################################################################
+# Payments Manage
+########################################################################
+
+@sales_bp.route('/sales/payments')
+@login_required('Sales')
+def send_for_payments():
+    return render_template('dashboards/sales/payments.html')
+
+@sales_bp.route('/sales/payments/customers', methods=['GET'])
+def get_customers_for_payments():
+    search = request.args.get('search', '').strip()
+
+    if not search:
+        return jsonify([])
+
+    try:
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT id, name as customer_name, mobile as number
+            FROM buddy
+            WHERE active = 1
+            AND (
+                name LIKE %s
+                OR mobile LIKE %s
+            )
+            LIMIT 10
+        """
+
+        like_pattern = f"%{search}%"
+        cursor.execute(query, (like_pattern, like_pattern))
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
