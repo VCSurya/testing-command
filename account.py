@@ -119,6 +119,7 @@ class AccountModel:
     def fetch_orders_payments(self):
         query = f"""
                SELECT 
+                0 AS transaction,
                 inv.id, 
                 inv.invoice_number, 
                 inv.customer_id, 
@@ -201,23 +202,88 @@ class AccountModel:
         
         self.cursor.execute(query)
         all_order_data = self.cursor.fetchall()
-        
-        if not all_order_data:
-            return []
 
-    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
-        return merged_orders
+        transacton_query = f"""
+
+            SELECT 
+            pt.id, 
+            pt.payment_method,
+            pt.payment_received_at,
+            ur.username as received_by,
+            pt.amount,
+            pt.note,
+            b.name as customer_name,
+            b.mobile as customer_mobile
+            
+            FROM `payment_transations` pt
+            LEFT JOIN users ur ON ur.id = payment_received_by
+            LEFT JOIN buddy b ON b.id = pt.customer_id 
+            WHERE 
+            pt.active = 1
+            AND pt.payment_verified_by IS NULL
+            AND pt.payment_received_by IS NOT NULL
+            ORDER BY pt.payment_received_at DESC;  
+
+        """
+
+        self.cursor.execute(transacton_query,)
+        results = self.cursor.fetchall()
+        
+        formatted_results = []
+
+        for item in results:
+            received_at = item.get("payment_received_at")
+
+            formatted_item = {
+                'transaction': 1,
+                "id": f"{item['id']}",
+                "amount": float(item["amount"]),
+                "mode": item["payment_method"],
+                "received_by": item["received_by"],
+                "customer_mobile": item["customer_mobile"],
+                "customer_name": item["customer_name"],
+                "note":item["note"],
+                "received_date": received_at.strftime("%d/%m/%Y") if received_at else None,
+                "received_time": received_at.strftime("%I:%M %p") if received_at else None,
+            }
+
+            formatted_results.append(formatted_item)
+
+        
+        if not all_order_data:
+            all_order_data = []
+
+        if not formatted_results:
+            formatted_results = []
+
+        return merged_orders + formatted_results
 
     def payment_recived(self,data):
         try:
-            print(data)
             update_query = """
             UPDATE live_order_track SET payment_confirm_status = 1, payment_note = %s, payment_verify_by  = %s,left_to_paid_mode = %s,payment_date_time = NOW() WHERE invoice_id = %s;
             """
             self.cursor.execute(update_query, (data['accountNote'],session.get('user_id'),data['paymentMethod'],data['inv_id'],))
+            self.conn.commit() 
+            return {"success": True}
+            
+        except Exception as e:
+            self.conn.rollback()  # rollback on connection, not cursor
+            return {"success": False,"msg":e}
+
+    def payment_verify(self,data):
+        try:
+            update_query = """
+            
+            UPDATE `payment_transations`
+            SET payment_verified_by = %s , payment_verified_at = CURRENT_TIMESTAMP,verify_note = %s 
+            WHERE active = 1 and payment_verified_by is null and id = %s;
+            
+            """
+            self.cursor.execute(update_query, (session.get('user_id'),data.get('accountNote',None),data['id'],))
             self.conn.commit() 
             return {"success": True}
             
@@ -362,6 +428,27 @@ def payment_recived():
 
         pay_obj = AccountModel()
         response = pay_obj.payment_recived(data)
+
+        if response.get('success'):
+            return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
+
+        pay_obj.close()
+        return jsonify({"success": False, "error": f"Somthing went wrong!"}),500
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": f"From Server Side: {e}"}), 500
+
+@account_bp.route('/account/payment-verifyed', methods=['POST'])
+@login_required('Account')
+def payment_verify():
+    try:
+        data = request.get_json()
+
+        if not data.get('id'):
+            return jsonify({'error': 'Missing Some Information!'}), 400
+
+        pay_obj = AccountModel()
+        response = pay_obj.payment_verify(data)
 
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200

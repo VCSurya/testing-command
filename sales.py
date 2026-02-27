@@ -2918,3 +2918,276 @@ def get_customers_for_payments():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@sales_bp.route('/sales/payments/customer', methods=['GET'])
+def get_customers_balance():
+    search = request.args.get('balance', '').strip()
+
+    if not search:
+        return jsonify({'balance': 0})
+
+    try:
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        cursor = conn.cursor(dictionary=True)
+        query = f"""
+            SELECT 
+            (SELECT 
+                        sum(left_to_paid)
+                        FROM invoices inv 
+                        LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
+                        where
+                        lot.cancel_order_status = 0 
+                        AND lot.sales_proceed_for_packing = 1
+                        AND inv.left_to_paid > 0
+                        AND inv.customer_id = %s) -
+            (SELECT sum(amount) FROM `payment_transations` WHERE customer_id = %s and active = 1 and payment_verified_by is not null ) as balance;
+        """
+        cursor.execute(query, (search, search))
+        results = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        import time
+        time.sleep(5)  # Simulate processing delay
+
+        return jsonify({'balance': int(results['balance']) if results['balance'] else 0})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@sales_bp.route('/sales/add-transaction', methods=['POST'])
+@login_required('Sales')
+def add_transaction():
+    try:
+        data = request.get_json()
+        amount = data.get('amount', 0)
+        customer_id = data.get('customer_id', None)
+        payment_mode = data.get('mode', None)
+        payment_note = data.get('note', None)
+
+        conn = get_db_connection()
+
+        if not conn:
+            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+
+        if amount < 0 or customer_id is None or payment_mode is None:
+            return jsonify({'success': False,'error': 'Please fill in all fields with valid information.'}),500
+
+        if payment_mode not in ['Cash', 'Online',]:
+            return jsonify({'success': False,'error': 'Invalid payment mode.'}), 400
+
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if customer exists
+        cursor.execute("SELECT id FROM buddy WHERE id = %s and active = 1", (customer_id,))
+        existing_customer = cursor.fetchone()
+        
+        if not existing_customer:
+            return jsonify({'success': False, 'error': f'Customer not exists'})
+                
+        # Insert into database
+        cursor.execute("INSERT INTO payment_transations (payment_received_by, payment_received_at, payment_method, amount, customer_id,note) VALUES (%s, %s, %s, %s, %s,%s)",
+                                          (session.get('user_id'), datetime.now(), payment_mode, amount, customer_id,payment_note))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, "msg":"Payment added successfully"}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        print(traceback.print_exc())
+        return jsonify({'success': False,'error': 'Internal server error'}), 500
+
+@sales_bp.route('/sales/my-transactions', methods=['GET'])
+@login_required('Sales')
+def fetch_my_transactions():
+    try:
+        
+        conn = get_db_connection()
+
+        if not conn:
+            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+
+        
+        cursor = conn.cursor(dictionary=True)
+        
+        query = f"""
+            SELECT 
+            pt.id, 
+            pt.payment_method,
+            pt.payment_received_at,
+            ur.username as received_by,
+            pt.amount
+            FROM `payment_transations` pt
+            LEFT JOIN users ur ON ur.id = payment_received_by
+            WHERE pt.payment_received_by = {session.get('user_id')}
+            AND pt.active = 1
+            AND pt.payment_verified_by is null
+            ORDER BY pt.payment_received_at DESC;
+        """
+        cursor.execute(query,)
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        formatted_results = []
+
+        for item in results:
+            received_at = item.get("payment_received_at")
+            verified_at = item.get("payment_verified_at")
+
+            formatted_item = {
+                "id": f"{item['id']}",
+                "amount": float(item["amount"]),
+                "mode": item["payment_method"],
+                "received_by": item["received_by"],
+                "received_date": received_at.strftime("%Y-%m-%d") if received_at else None,
+                "received_time": received_at.strftime("%I:%M %p") if received_at else None,
+                "verified": False            
+            }
+
+            formatted_results.append(formatted_item)
+
+        import time
+        time.sleep(5)  # Simulate processing delay
+
+
+        return jsonify({'success': True, "data": formatted_results}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        print(traceback.print_exc())
+        return jsonify({'success': False,'error': 'Internal server error'}), 500
+
+
+
+@sales_bp.route('/sales/payments/fetch-customer-transactions', methods=['POST'])
+@login_required('Sales')
+def fetch_customer_transactions():
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id', None)
+
+        conn = get_db_connection()
+
+        if not conn:
+            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+
+        if customer_id is None:
+            return jsonify({'success': False,'error': 'Please select a customer.'}),500
+
+
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if customer exists
+        cursor.execute("SELECT id FROM buddy WHERE id = %s and active = 1", (customer_id,))
+        existing_customer = cursor.fetchone()
+        
+        if not existing_customer:
+            return jsonify({'success': False, 'error': f'Customer not exists'})
+                
+        query = f"""
+            SELECT 
+            pt.id, 
+            pt.payment_method,
+            pt.payment_received_at,
+            ur.username as received_by,
+            pt.payment_verified_at,
+            uv.username as verified_by,
+            pt.amount
+            FROM `payment_transations` pt
+            LEFT JOIN users ur ON ur.id = payment_received_by
+            LEFT JOIN users uv ON uv.id = payment_verified_by
+            WHERE pt.customer_id = {customer_id}
+            AND pt.active = 1
+            ORDER BY pt.payment_received_at DESC;
+        """
+        cursor.execute(query,)
+        results = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        formatted_results = []
+
+        for item in results:
+            received_at = item.get("payment_received_at")
+            verified_at = item.get("payment_verified_at")
+
+            formatted_item = {
+                "id": f"{item['id']}",
+                "amount": float(item["amount"]),
+                "mode": item["payment_method"],
+                "received_by": item["received_by"],
+                "received_date": received_at.strftime("%Y-%m-%d") if received_at else None,
+                "received_time": received_at.strftime("%I:%M %p") if received_at else None,
+                "verified": bool(item["verified_by"] and item["received_by"]),
+                "verified_by": item["verified_by"],
+                "verified_date": verified_at.strftime("%Y-%m-%d") if verified_at else None,
+                "verified_time": verified_at.strftime("%I:%M %p") if verified_at else None,
+            }
+
+            formatted_results.append(formatted_item)
+
+        import time
+        time.sleep(5)  # Simulate processing delay
+
+
+        return jsonify({'success': True, "data": formatted_results}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        print(traceback.print_exc())
+        return jsonify({'success': False,'error': 'Internal server error'}), 500
+
+
+@sales_bp.route('/sales/delete-transaction', methods=['POST'])
+@login_required('Sales')
+def delete_transaction():
+    try:
+        data = request.get_json()
+
+        transaction_id = data.get('transaction_id', None)
+
+        conn = get_db_connection()
+
+        if not conn:
+            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+
+        if transaction_id is None:
+            return jsonify({'success': False,'error': 'Please select a transaction to delete.'}),500
+
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM payment_transations WHERE id = %s and active = 1 and payment_received_by is not null and payment_verified_by is null", (transaction_id,))
+        
+        existing_transaction = cursor.fetchone()
+
+        if not existing_transaction:
+            return jsonify({'success': False, 'error': f'Transaction does not exist'}), 400
+
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if customer exists
+        cursor.execute("UPDATE payment_transations SET active = 0 WHERE id = %s", (transaction_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True, "msg":"Transaction deleted successfully"}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        print(traceback.print_exc())
+        return jsonify({'success': False,'error': 'Internal server error'}), 500
