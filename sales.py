@@ -3027,10 +3027,13 @@ def fetch_my_transactions():
             pt.payment_method,
             pt.payment_received_at,
             ur.username as received_by,
-            pt.amount
+            pt.amount,
+            pt.note,
+            b.name as customer_name
             FROM `payment_transations` pt
             LEFT JOIN users ur ON ur.id = payment_received_by
-            WHERE pt.payment_received_by = {session.get('user_id')}
+            LEFT JOIN buddy b ON b.id = pt.customer_id
+            WHERE pt.payment_received_by = 88
             AND pt.active = 1
             AND pt.payment_verified_by is null
             ORDER BY pt.payment_received_at DESC;
@@ -3044,13 +3047,14 @@ def fetch_my_transactions():
 
         for item in results:
             received_at = item.get("payment_received_at")
-            verified_at = item.get("payment_verified_at")
 
             formatted_item = {
                 "id": f"{item['id']}",
                 "amount": float(item["amount"]),
                 "mode": item["payment_method"],
                 "received_by": item["received_by"],
+                "customer_name": item["customer_name"],
+                "note": item["note"],
                 "received_date": received_at.strftime("%Y-%m-%d") if received_at else None,
                 "received_time": received_at.strftime("%I:%M %p") if received_at else None,
                 "verified": False            
