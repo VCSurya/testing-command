@@ -1203,7 +1203,7 @@ def generate_bill_pdf(invoice_id):
         # Return PDF file
         return send_file(
             buffer,
-            as_attachment=False,
+            as_attachment=True,
             download_name=f"{customer['name']}_{bill_no}.pdf",
             mimetype='application/pdf'
         )
@@ -2937,7 +2937,7 @@ def get_customers_balance():
         query = f"""
             SELECT 
             (SELECT 
-                        sum(left_to_paid)
+                        COALESCE(SUM(inv.left_to_paid), 0)
                         FROM invoices inv 
                         LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
                         where
@@ -3033,7 +3033,7 @@ def fetch_my_transactions():
             FROM `payment_transations` pt
             LEFT JOIN users ur ON ur.id = payment_received_by
             LEFT JOIN buddy b ON b.id = pt.customer_id
-            WHERE pt.payment_received_by = 88
+            WHERE pt.payment_received_by = {session.get('user_id')}
             AND pt.active = 1
             AND pt.payment_verified_by is null
             ORDER BY pt.payment_received_at DESC;
@@ -3109,7 +3109,9 @@ def fetch_customer_transactions():
             ur.username as received_by,
             pt.payment_verified_at,
             uv.username as verified_by,
-            pt.amount
+            pt.amount,
+            pt.note,
+            pt.verify_note
             FROM `payment_transations` pt
             LEFT JOIN users ur ON ur.id = payment_received_by
             LEFT JOIN users uv ON uv.id = payment_verified_by
@@ -3133,6 +3135,8 @@ def fetch_customer_transactions():
                 "amount": float(item["amount"]),
                 "mode": item["payment_method"],
                 "received_by": item["received_by"],
+                "note": item["note"],
+                "verify_note": item["verify_note"],
                 "received_date": received_at.strftime("%Y-%m-%d") if received_at else None,
                 "received_time": received_at.strftime("%I:%M %p") if received_at else None,
                 "verified": bool(item["verified_by"] and item["received_by"]),
