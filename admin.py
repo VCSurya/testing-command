@@ -64,8 +64,8 @@ class AdminModel:
                 AND inv.cancel_order_status = 0
 
                 ) AS Today_revenue,
-
-                 -- Today Sales
+                
+                -- Today Sales
             
             	(SELECT COUNT(inv.id)
 
@@ -141,6 +141,10 @@ class AdminModel:
 
                 AND live_order_track.left_to_paid_mode != 'not_paid'
 
+                AND live_order_track.payment_confirm_status = 1
+
+                AND invoices.left_to_paid > 0
+
                 AND DATE(live_order_track.payment_date_time) = CURRENT_DATE()
             
                 UNION ALL
@@ -171,13 +175,39 @@ class AdminModel:
 
                 AND live_order_track.sales_proceed_for_packing = 1
 
+                AND live_order_track.payment_confirm_status = 1
+
                 AND live_order_track.cancel_order_status = 0
 
                 AND invoices.cancel_order_status = 0
 
-            ) AS combined;
-            
 
+                UNION ALL
+
+                -- Case 3 : Verified Payment Transactions (Today)
+
+                SELECT
+                    SUM(pt.amount) AS total_amount,
+
+                    -- transaction count
+                    SUM(pt.payment_method = 'cash') AS Cash_,
+                    SUM(pt.payment_method = 'online') AS Online_,
+                    SUM(pt.payment_method = 'card') AS Card_,
+
+                    -- amount per mode
+                    SUM(CASE WHEN pt.payment_method = 'cash' THEN pt.amount ELSE 0 END) AS cash_amount,
+                    SUM(CASE WHEN pt.payment_method = 'online' THEN pt.amount ELSE 0 END) AS online_amount,
+                    SUM(CASE WHEN pt.payment_method = 'card' THEN pt.amount ELSE 0 END) AS card_amount
+
+                FROM payment_transations pt
+
+                WHERE pt.payment_received_by IS NOT NULL
+                AND pt.payment_verified_by IS NOT NULL
+                AND pt.payment_received_at >= CURDATE()
+                AND pt.payment_received_at < CURDATE() + INTERVAL 1 DAY
+
+            ) AS combined;
+        
         """
 
         self.cursor.execute(query)
@@ -186,6 +216,7 @@ class AdminModel:
         return result
 
     def get_today_performers_data(self):
+        
         query = """
             WITH role_stats AS (
 
@@ -200,7 +231,8 @@ class AdminModel:
                 WHERE lot.sales_proceed_for_packing = 1
                 AND lot.cancel_order_status = 0
                 AND i.cancel_order_status = 0
-                AND DATE(lot.sales_date_time) = CURRENT_DATE()
+                AND lot.sales_date_time >= CURRENT_DATE()
+                AND lot.sales_date_time < CURRENT_DATE() + INTERVAL 1 DAY
                 AND u.role = 'Sales'
                 GROUP BY u.username
 
@@ -216,7 +248,8 @@ class AdminModel:
                 WHERE lot.sales_proceed_for_packing = 1
                 AND lot.packing_proceed_for_transport = 1
                 AND lot.cancel_order_status = 0
-                AND DATE(lot.packing_date_time) = CURRENT_DATE()
+                AND lot.packing_date_time >= CURRENT_DATE()
+                AND lot.packing_date_time < CURRENT_DATE() + INTERVAL 1 DAY
                 AND u.role = 'Packaging'
                 GROUP BY u.username
 
@@ -233,7 +266,8 @@ class AdminModel:
                 AND lot.packing_proceed_for_transport = 1
                 AND lot.transport_proceed_for_builty = 1
                 AND lot.cancel_order_status = 0
-                AND DATE(lot.transport_date_time) = CURRENT_DATE()
+                AND lot.transport_date_time >= CURRENT_DATE()
+                AND lot.transport_date_time < CURRENT_DATE() + INTERVAL 1 DAY
                 AND u.role = 'Transport'
                 GROUP BY u.username
 
@@ -250,7 +284,8 @@ class AdminModel:
                 AND lot.packing_proceed_for_transport = 1
                 AND lot.builty_received = 1
                 AND lot.cancel_order_status = 0
-                AND DATE(lot.builty_date_time) = CURRENT_DATE()
+                AND lot.builty_date_time >= CURRENT_DATE()
+                AND lot.builty_date_time < CURRENT_DATE() + INTERVAL 1 DAY
                 AND u.role = 'Builty'
                 GROUP BY u.username
 
@@ -258,17 +293,41 @@ class AdminModel:
 
                 -- 5. Account
                 SELECT 
-                    'Account' AS role_name,
-                    u.username,
-                    COUNT(*) AS total
-                FROM live_order_track lot
-                JOIN users u ON u.id = lot.payment_verify_by
-                WHERE lot.sales_proceed_for_packing = 1
-                AND lot.payment_confirm_status = 1
-                AND lot.cancel_order_status = 0
-                AND DATE(lot.payment_date_time) = CURRENT_DATE()
-                AND u.role = 'Account'
-                GROUP BY u.username
+                    role_name,
+                    username,
+                    SUM(total) AS total
+                FROM (
+                    -- Payment transactions verification
+                    SELECT 
+                        u.role AS role_name,
+                        u.username,
+                        COUNT(*) AS total
+                    FROM payment_transations pt
+                    JOIN users u ON u.id = pt.payment_verified_by
+                    WHERE pt.payment_verified_by IS NOT NULL
+                    AND u.role = 'Account'
+                    AND pt.payment_verified_at >= CURRENT_DATE()
+                    AND pt.payment_verified_at < CURRENT_DATE() + INTERVAL 1 DAY
+                    GROUP BY u.username, u.role
+
+                    UNION ALL
+
+                    -- Order payment confirmation
+                    SELECT 
+                        u.role AS role_name,
+                        u.username,
+                        COUNT(*) AS total
+                    FROM live_order_track lot
+                    JOIN users u ON u.id = lot.payment_verify_by
+                    WHERE lot.sales_proceed_for_packing = 1
+                    AND lot.payment_confirm_status = 1
+                    AND lot.cancel_order_status = 0
+                    AND u.role = 'Account'
+                    AND lot.payment_date_time >= CURRENT_DATE()
+                    AND lot.payment_date_time < CURRENT_DATE() + INTERVAL 1 DAY
+                    GROUP BY u.username, u.role
+                ) combined
+                GROUP BY role_name, username
             )
 
             SELECT role_name, username, total
@@ -283,7 +342,7 @@ class AdminModel:
             WHERE rnk = 1;
 
         """
-        
+              
         self.cursor.execute(query,)
         data = self.cursor.fetchall()
 
