@@ -294,26 +294,51 @@ class AccountModel:
     def get_dasebored_data(self,user_id):
         query = f"""
             
-            SELECT 
-                -- Total Draft Builty Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-               		AND cancel_order_status = 0 
-               		AND payment_confirm_status = 0
-          		THEN 1 END) AS total_draft_payment_order,
+           SELECT 
+                -- Total Draft Payment Order (Both Tables)
+                (
+                    COUNT(CASE 
+                        WHEN sales_proceed_for_packing = 1 
+                            AND cancel_order_status = 0 
+                            AND payment_confirm_status = 0
+                    THEN 1 END)
+                    +
+                    (SELECT COUNT(*) 
+                    FROM payment_transations pt
+                    WHERE pt.payment_verified_by IS NULL
+                    AND pt.active = 1)
+                ) AS total_draft_payment_order,
 
-                -- Total Proceed Builty Order From User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND payment_verify_by = {user_id}
-                THEN 1 END) AS total_proceed_payment_order_from_user,
+                -- Total Proceed Payment Order From User (Both Tables)
+                (
+                    COUNT(CASE 
+                        WHEN sales_proceed_for_packing = 1 
+                            AND payment_confirm_status = 1 
+                            AND cancel_order_status = 0 
+                            AND payment_verify_by = {user_id}
+                    THEN 1 END)
+                    +
+                    (SELECT COUNT(*) 
+                    FROM payment_transations pt
+                    WHERE pt.payment_verified_by = {user_id}
+                    AND pt.active = 1)
+                ) AS total_proceed_payment_order_from_user,
 
-                -- Total Today Order Builty By User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-      					AND payment_verify_by = {user_id}
-                        AND DATE(payment_date_time) = CURRENT_DATE 
-                THEN 1 END) AS total_today_payment_order_by_user
+                -- Total Today Payment Order By User (Both Tables)
+                (
+                    COUNT(CASE 
+                        WHEN sales_proceed_for_packing = 1 
+                            AND payment_confirm_status = 1 
+                            AND payment_verify_by = {user_id}
+                            AND DATE(payment_date_time) = CURRENT_DATE
+                    THEN 1 END)
+                    +
+                    (SELECT COUNT(*) 
+                    FROM payment_transations pt
+                    WHERE pt.payment_verified_by = {user_id}
+                    AND pt.active = 1
+                    AND DATE(payment_verified_at) = CURRENT_DATE)
+                ) AS total_today_payment_order_by_user
 
             FROM live_order_track;
             

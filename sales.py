@@ -368,6 +368,7 @@ def all_market_events():
                     location
                 FROM market_events
                 WHERE active = 1
+                AND CURDATE() BETWEEN start_date AND end_date
                 ORDER BY start_date ASC;
             """)
             events = cursor.fetchall()
@@ -797,7 +798,8 @@ def generate_bill_pdf(invoice_id):
             t.pincode AS transport_pincode,
             t.name AS transport_name,
             t.city AS transport_city,
-            t.days AS transport_days
+            t.days AS transport_days,
+            lot.sales_date_time AS invoice_date
             FROM invoices i 
             JOIN buddy c ON i.customer_id = c.id
             JOIN live_order_track lot ON i.id = lot.invoice_id
@@ -859,8 +861,8 @@ def generate_bill_pdf(invoice_id):
             })
 
         # Get invoice creation date
-        formatted_time = invoice_data['created_at'].strftime("%d/%m/%Y %I:%M %p") if invoice_data.get(
-            'created_at') else datetime.datetime.now().strftime("%d/%m/%Y %I:%M %p")
+        formatted_time = invoice_data['invoice_date'].strftime("%d/%m/%Y") if invoice_data.get(
+            'invoice_date') else datetime.datetime.now().strftime("%d/%m/%Y")
 
         # Generate PDF (rest of the PDF generation code remains the same)
         buffer = BytesIO()
@@ -1203,7 +1205,7 @@ def generate_bill_pdf(invoice_id):
         # Return PDF file
         return send_file(
             buffer,
-            as_attachment=True,
+            as_attachment=False,
             download_name=f"{customer['name']}_{bill_no}.pdf",
             mimetype='application/pdf'
         )
@@ -1612,20 +1614,16 @@ class MyOrders:
                         builty_proceed_by = %s,
                         builty_received = 1,
                         builty_date_time = NOW(),
-                        payment_verify_by = %s,
-                        payment_date_time = {payment_date_time},
-                        payment_confirm_status = %s,
                         left_to_paid_mode = %s
                     WHERE id = %s;
-                """.format(payment_date_time=payment_date_time if payment_date_time else "NULL")
+                """
 
                 self.cursor.execute(update_query, (
                     user_id, user_id, user_id,
-                    payment_verify_by,
-                    payment_confirm_status,
                     left_to_paid_mode,
                     live_order_track_id
-                ))
+                ))  
+                print('DONE',update_query)
                 self.conn.commit()
 
             
