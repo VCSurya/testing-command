@@ -253,9 +253,20 @@ def invoice_detailes(invoice_number=None):
             cursor.execute(querry_3, (invoice_number,))
             images = cursor.fetchall()
 
+            querry_4 = """
+                
+                SELECT charge_name,amount FROM `additional_charges` 
+                LEFT JOIN invoices on additional_charges.invoice_id = invoices.id  
+                WHERE invoices.invoice_number = %s;
+            
+            """
+
+            cursor.execute(querry_4, (invoice_number,))
+            charges = cursor.fetchall()
+
             cursor.close()
             connection.close()
-            return {'status': True, 'data': data,'items':items,'images':images}
+            return {'status': True, 'data': data,'items':items,'images':images,'charges':charges}
         else:
             cursor.close()
             connection.close()

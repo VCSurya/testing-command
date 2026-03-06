@@ -20,6 +20,20 @@ class ManagerModel:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
+    def get_additional_charges(self,invoice_id):
+        
+        query = '''
+            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
+        '''
+
+        self.cursor.execute(query, (invoice_id,))
+        additional_charges = self.cursor.fetchall()
+
+        if not additional_charges:
+            return []
+
+        return additional_charges
+
     def get_dashboard_data(self,user_id):
         query_1 = f"""
             
@@ -788,6 +802,12 @@ def verify_order_list():
 
         if events:
             merged_orders = merge_orders_products(events)
+
+            for invoice_id in merged_orders:
+                obj = ManagerModel()
+                charges = obj.get_additional_charges(invoice_id['id']) 
+                invoice_id['charges'] = charges
+
             return jsonify(merged_orders)
         
         return jsonify({'success': False, 'message': 'No events found'}),500

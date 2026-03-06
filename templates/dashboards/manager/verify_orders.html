@@ -1721,6 +1721,7 @@
             invoices.forEach((inv, idx) => {
                 // Ensure products is always an array
                 const products = Array.isArray(inv.products) ? inv.products : [];
+                const charges = Array.isArray(inv.charges) ? inv.charges : [];
                 // Map backend fields to frontend expected fields
                 const invoiceObj = {
                     number: inv.invoice_number,
@@ -1732,6 +1733,7 @@
                     gst_included: inv.gst_included,
                     transport_company_name: inv.transport_company_name,
                     products: products,
+                    charges: charges,
                     payment_status: inv.payment_confirm_status === 1 || inv.status === 'Paid' ? 'Paid' : 'Pending',
                     trackingStatus: (typeof inv.trackingStatus !== 'undefined') ? inv.trackingStatus : 0, // TODO: Map from backend
                     grand_total: inv.grand_total,
@@ -1879,6 +1881,11 @@
 
                                     return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
                                 }).join('')}
+
+                                    ${invoiceObj.charges.map(p => {
+                                    return `<tr><td>${p.charge_name}</td><td></td><td></td><td>₹${(p.amount).toLocaleString()}</td></tr>`;
+                                }).join('')}
+                                
                                 <tr>
                                     <th>Grand Total</th>
                                     <th>₹${invoiceObj.grand_total.toLocaleString()}</th>

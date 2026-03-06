@@ -305,6 +305,26 @@ class Sales:
 
                 cursor.execute(insert_item_query, item_values)
 
+            # Step 4: Insert charges
+            insert_charges_query = """
+                INSERT INTO additional_charges (
+                    invoice_id, charge_name, amount, created_at
+                ) VALUES (%s, %s, %s, NOW())
+            """
+
+            for charge in invoice_data['charges']:
+               
+                charge_name = charge['name']
+                charge_amount = int(charge['amount'])
+                
+                item_values = (
+                    invoice_id,
+                    charge_name,
+                    charge_amount
+                )
+
+                cursor.execute(insert_charges_query, item_values)
+
             self.conn.commit()
             return {"invoice_id": invoice_id, "invoice_number": invoice_number}
 
@@ -616,6 +636,8 @@ def save_invoice_into_database():
 
         # Get products from form data
         products = request.form.get('products')
+        charges = json.loads(request.form.get('charges'))
+
         if products or customer_id:
             products = json.loads(products)
         else:
@@ -691,6 +713,7 @@ def save_invoice_into_database():
             'payment_note': request.form.get('payment_note', ''),
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
+            'charges':charges,
             'event_id': event_id,
             'completed': 0,
         }
@@ -1226,6 +1249,20 @@ class MyOrders:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
+    def get_additional_charges(self,invoice_id):
+        
+        query = '''
+            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
+        '''
+
+        self.cursor.execute(query, (invoice_id,))
+        additional_charges = self.cursor.fetchall()
+
+        if not additional_charges:
+            return []
+
+        return additional_charges
+
     def merge_orders_products(self, data):
 
         merged = {}
@@ -1416,6 +1453,10 @@ class MyOrders:
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
+        for invoice_id in merged_orders:
+            charges = self.get_additional_charges(invoice_id['id']) 
+            invoice_id['charges'] = charges
+
         return merged_orders
 
     def fetch_ready_to_go_orders(self, user_id):
@@ -1423,43 +1464,26 @@ class MyOrders:
             SELECT 
 
                 inv.id,
-
                 inv.invoice_number,
-
                 inv.grand_total,
-
                 inv.payment_mode,
-
                 inv.paid_amount,
-
                 inv.left_to_paid,
-
                 inv.sales_note,
-
                 inv.payment_note,
-
                 inv.gst_included,
-
                 inv.created_at,
-
                 inv.delivery_mode,
-            
+                
                 b.name AS customer,
-
                 b.address,
-
                 b.state,
-
                 b.pincode,
-
                 b.mobile,
-            
+
                 ii.quantity,
-
                 ii.price,
-
                 ii.gst_tax_amount,
-
                 ii.total_amount,
             
                 p.name,
@@ -1496,6 +1520,10 @@ class MyOrders:
 
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
+        
+        for invoice_id in merged_orders:
+            charges = self.get_additional_charges(invoice_id['id']) 
+            invoice_id['charges'] = charges
 
         return merged_orders
 
@@ -2020,6 +2048,11 @@ class Canceled_Orders:
 
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
+        
+        for invoice_id in merged_orders:
+            obj = MyOrders()
+            charges = obj.get_additional_charges(invoice_id['id']) 
+            invoice_id['charges'] = charges
 
         return merged_orders
 
@@ -2237,6 +2270,8 @@ class EditBill:
 
         # Create products list with basePrice and without total_amount
         unified_dict['products'] = []
+        unified_dict['charges'] = []
+        
         for item in invoice_data:
             quantity = item['quantity']
             total_amount = float(item['total_amount']) if isinstance(
@@ -2253,6 +2288,10 @@ class EditBill:
 
             unified_dict['products'].append(product)
 
+        obj = MyOrders()
+        charges = obj.get_additional_charges(invoice_id)
+        unified_dict['charges'] = charges
+    
         return unified_dict
 
     def update_invoice_detail(self, invoice_data):
@@ -2305,12 +2344,18 @@ class EditBill:
 
             cursor.execute(update_invoice_query, invoice_values)
 
-            # Step 2: Fetch & delete old invoice items
+            # Step 2: Fetch & delete old invoice items and charges
             cursor.execute("SELECT id FROM invoice_items WHERE invoice_id = %s;", (invoice_id,))
             all_old_items_ids = cursor.fetchall()
 
             for (item_id,) in all_old_items_ids:
                 cursor.execute("DELETE FROM invoice_items WHERE id = %s;", (item_id,))
+
+            cursor.execute("SELECT id FROM additional_charges WHERE invoice_id = %s;", (invoice_id,))
+            all_old_charges_ids = cursor.fetchall()
+
+            for (charges_id,) in all_old_charges_ids:
+                cursor.execute("DELETE FROM additional_charges WHERE id = %s;", (charges_id,))
 
             if invoice_data['delivery_mode'] == "porter" or invoice_data['delivery_mode'] == "at_store":
                 cursor.execute("DELETE FROM live_order_track WHERE invoice_id = %s;", (invoice_id,))
@@ -2338,7 +2383,27 @@ class EditBill:
                     invoice_id, product_id, quantity, price, total_amount, gst_tax_amount
                 ))
 
-            # Step 4: Final commit
+            # Step 4: Insert charges
+            insert_charges_query = """
+                INSERT INTO additional_charges (
+                    invoice_id, charge_name, amount, created_at
+                ) VALUES (%s, %s, %s, NOW())
+            """
+
+            for charge in invoice_data['charges']:
+               
+                charge_name = charge['name']
+                charge_amount = int(charge['amount'])
+                
+                item_values = (
+                    invoice_id,
+                    charge_name,
+                    charge_amount
+                )
+
+                cursor.execute(insert_charges_query, item_values)
+
+            # Step 5: Final commit
             self.conn.commit()
             return {"status": True, 'msg': "All Things Are Done!"}
         
@@ -2424,6 +2489,8 @@ def update_invoice_into_database():
 
         # Get products from form data
         products = request.form.get('products')
+        charges = json.loads(request.form.get('charges'))
+
         if products or customer_id:
             products = json.loads(products)
         else:
@@ -2501,6 +2568,7 @@ def update_invoice_into_database():
             'payment_note': request.form.get('payment_note', ''),
             'gst_included': IncludeGST,
             'products': product_data_for_sql_table,
+            'charges':charges,
             'event_id': event_id,
             'completed': 0,
         }

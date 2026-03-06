@@ -1689,12 +1689,12 @@
                             <div class="form-group" id="section">
                                 <div class="section-header">
                                     <span for="customerSelect" class="icon">📦</span>
-                                    SELECT CUSTOMER
-                                    <!-- <button type="button"
+                                    SELECT ITEMS
+                                    <button type="button"
                                         style="border:none;padding: 0px 10px;float: right;background-color: #ffffff;color: #1e094d;"
-                                        id="addCustomerBtn">
-                                        <span id="addProductBtn"> <i class="bi bi-plus-circle"></i> Add Item </span>
-                                    </button> -->
+                                        id="addChargesBtn">
+                                        <span> <i class="bi bi-plus-circle"></i> Charges </span>
+                                    </button>
                                 </div>
 
                                 <br>
@@ -2270,15 +2270,50 @@
         </div>
     </div>
 
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
+    <!-- Add Additional Charges Modal -->
+    <div class="modal fade" id="chargesModal" tabindex="-1" aria-labelledby="chargesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="chargesModalLabel">Add Additional Charge</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Charge Name -->
+                    <div class="mb-3">
+                        <label for="chargesName" class="form-label">Charge Name</label>
+                        <input type="text" class="form-control" id="chargesName" placeholder="e.g. Delivery Fee">
+                    </div>
+
+                    <!-- Charge Amount -->
+                    <div class="mb-3">
+                        <label for="chargesAmount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="chargesAmount" min="0" step="0.01"
+                                placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="chargesError" class="text-danger small d-none">
+                        Please enter valid charge name and amount.
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="addCharge()">
+                        + Add Charge
+                    </button>
+                </div>
+
+            </div>
+        </div>
     </div>
-
-    <div id="loadingSpinner" style="display: none;">
-        <p id="loadingMessage">Saving Invoice...</p>
-    </div>
-
-
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2446,9 +2481,53 @@
 
             let products = [];
             let selectedProducts = [];
+            let addCharges = [];
             let grandTotal = 0;
             const GST_RATE = 18; // 18% GST
             let currentProduct = null;
+
+
+            window.addCharge = function () {
+
+                const nameInput = document.getElementById("chargesName");
+                const amountInput = document.getElementById("chargesAmount");
+                const errorDiv = document.getElementById("chargesError");
+
+                const name = nameInput.value.trim();
+                const amount = parseFloat(amountInput.value);
+
+                // Validation
+                if (name === "" || isNaN(amount) || amount <= 0) {
+                    errorDiv.classList.remove("d-none");
+                    return;
+                }
+
+                errorDiv.classList.add("d-none");
+
+                if (selectedProducts.length > 0) {
+                    addCharges.push({
+                        name: name,
+                        amount: amount,
+                    });
+                } else {
+                    alert('add product first.')
+                }
+
+                updateProductTable();
+                updateTotals();
+
+                // Close modal
+                const modalElement = document.getElementById("chargesModal");
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+
+                // Reset fields
+                nameInput.value = "";
+                amountInput.value = "";
+
+            }
+
+
 
             async function fetchProducts(query) {
 
@@ -2807,6 +2886,7 @@
             // Set up event listeners
             // document.getElementById('addProductBtn').addEventListener('click', showProductDetailsModal);
             document.getElementById('addCustomerBtn').addEventListener('click', addCustomerModal);
+            document.getElementById('addChargesBtn').addEventListener('click', addChargesModal);
 
             document.getElementById('confirmAddCustomer').addEventListener('click', addCustomer);
             document.getElementById('confirmAddProduct').addEventListener('click', addProduct);
@@ -2966,7 +3046,10 @@
 
             // Update totals
             function updateTotals() {
-                grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                productTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                chargesTotal = addCharges.reduce((sum, charges) => sum + charges.amount, 0);
+                grandTotal = productTotal + chargesTotal;
+                
                 document.getElementById('grand-total-value').textContent = `${grandTotal.toFixed(2)}`;
                 document.getElementById('input-grand-total-value').value = grandTotal.toFixed(2);
                 document.getElementById('finalGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -3068,6 +3151,18 @@
                     .catch(error => {
                         console.error('Error fetching events:', error);
                     });
+            }
+
+            // Show Charges Details Modal
+            function addChargesModal() {
+                if (!selectedProducts || selectedProducts.length === 0) {
+                    alert("Please select a product first.");
+                    return;
+                }
+
+                const chargesModalElement = document.getElementById("chargesModal");
+                const chargesModal = new bootstrap.Modal(chargesModalElement);
+                chargesModal.show();
             }
 
             // Show product details modal
@@ -3203,7 +3298,8 @@
                 }
             }
 
-            function addProductsFromList(products) {
+            async function addProductsFromList(products,charges) {
+                
                 products.forEach(prod => {
                     addOrUpdateProduct({
                         id: prod.product_id,
@@ -3212,11 +3308,22 @@
                         quantity: prod.quantity,
                     });
                 });
-                console.log(selectedProducts);
-                updateProductTable();
+
+                
+                charges.forEach(charge => {
+
+                    addCharges.push({
+                            name:charge.charge_name,
+                            amount:parseFloat(charge.amount),
+                    });
+
+                });
+                
+                await updateProductTable();
                 updateTotals();
             }
-            addProductsFromList(invoiceData.products || []);
+
+            addProductsFromList(invoiceData.products || [],invoiceData.charges || []);
 
             // Add product to the bill
             function addProduct(id, name, price) {
@@ -3281,7 +3388,7 @@
             }
 
             // Update product table
-            function updateProductTable() {
+            async function updateProductTable() {
                 const tableBody = document.getElementById('productTableBody');
                 const cardContainer = document.getElementById('productCardContainer');
                 tableBody.innerHTML = '';
@@ -3335,6 +3442,7 @@
 
                     
                     `;
+                    addCharges = [];
                     return;
                 }
                 else {
@@ -3419,6 +3527,28 @@
                     `;
                         tableBody.appendChild(row);
                     });
+
+                    addCharges.forEach((charges, index) => {
+                        const row = document.createElement('tr');
+                        row.className = 'product-row';
+                        row.innerHTML = `
+                        <td class="px-4 py-3 font-semibold text-gray-700 tracking-wide">
+                            ${charges.name}
+                        </td>
+
+                        <td style="width: 15%; text-align: center;">
+                        </td>
+
+                        <td></td>
+
+                        <td class="text-center">₹${charges.amount}</td>
+
+                        <td >
+                                <div  class=" text-danger pointer text-center" onclick="removeCharges(${index})"><i class="fa-solid fa-trash"></i></div>
+                        </td>
+                    `;
+                        tableBody.appendChild(row);
+                    });
                 }
                 // Render product cards for mobile view
                 if (cardContainer) {
@@ -3469,6 +3599,28 @@
                                     `;
                             cardContainer.appendChild(card);
                         });
+
+                        addCharges.forEach((charges, index) => {
+                            const card = document.createElement('div');
+                            card.className = 'product-card';
+                            card.innerHTML = `
+                                <div class="item-container"> 
+                                    <div class="item-name-label">
+                                        <span>❏ ${charges.name} </span>
+                                        <i class="fas fa-trash" style="color:red;" onclick="removeCharges(${index})"></i>                                        
+                                    </div>
+
+                                    <div class="amount-display">
+                                        <span class="total-label">Charge:</span>
+                                        <div class="amount-value">
+                                            <span class="rupee-symbol">₹</span>
+                                            <span id="amount-value">${charges.amount}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            cardContainer.appendChild(card);
+                        });
                     }
                 }
 
@@ -3505,6 +3657,12 @@
                 updateTotals();
             };
 
+            // Remove product from the bill
+            window.removeCharges = function (index) {
+                addCharges.splice(index, 1);
+                updateProductTable();
+                updateTotals();
+            };
 
             // Handle manual input of price
             window.updateProductPrice = function (index, event) {
@@ -3634,6 +3792,7 @@
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
+                formData.append('charges', JSON.stringify(addCharges));
                 formData.append('customerId', customerId);
 
                 // Show the modal with loading animation
@@ -3727,54 +3886,8 @@
 
             }
 
-            // Helper functions for UI feedback
-            function showLoadingSpinner() {
-                // Create or show your loading spinner
-                const spinner = document.getElementById('loadingSpinner');
-                if (spinner) {
-                    spinner.style.display = 'block';
-                }
-            }
-
-            function hideLoadingSpinner() {
-                const spinner = document.getElementById('loadingSpinner');
-                if (spinner) {
-                    spinner.style.display = 'none';
-                }
-            }
-
-            function updateLoadingMessage(message) {
-                const messageEl = document.getElementById('loadingMessage');
-                if (messageEl) {
-                    messageEl.textContent = message;
-                }
-            }
-
-            function showSuccessMessage(message) {
-                alert(message); // Replace with better toast notification
-            }
-
-            function showErrorMessage(message) {
-                alert(`Error: ${message}`); // Replace with better error notification
-            }
-
-
         });
 
-        // Show loading spinner
-        function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-        // Hide loading spinner
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-        // Show loading spinner on form submission
-        document.getElementById('billingForm').addEventListener('submit', showLoading);
-        // Hide loading spinner on form reset
-        document.getElementById('billingForm').addEventListener('reset', hideLoading);
-        // Hide loading spinner on page load
-        window.addEventListener('load', hideLoading);
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>

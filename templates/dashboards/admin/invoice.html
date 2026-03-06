@@ -163,8 +163,6 @@
 
             document.title = data.data.INVOICE_ID;
 
-            console.log(data);
-
             const invoice_date = new Date(data.data.INVOICE_DATE);
             const totalQty = data.items.reduce((sum, item) => sum + Number(item.ITEM_QTY), 0);
             const totalPrice = data.items.reduce((sum, item) => sum + Number(item.ITEM_PRICE), 0);
@@ -375,6 +373,18 @@
                                             </td>
                                         </tr>
                                     `).join('')}
+
+                                                                            ${data.charges.map(charge => `
+                                                            <tr>
+                                                                <td class="px-3 py-4 whitespace-nowrap text-gray-100 font-medium">${charge.charge_name}</td>
+                                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300"></td>
+                                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300"></td>
+                                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-300"></td>
+                                                                <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-bold">₹${charge.amount}
+                                                            </tr>
+
+                                        `).join('')}
+
                                     <tr class="bg-gray-800">
                                             <td class="px-3 py-4 whitespace-nowrap text-xl font-extrabold text-gray-100">Grand Total:</td>
                                             <td class="px-3 py-4 whitespace-nowrap text-right text-gray-100 font-medium">${totalQty}</td>

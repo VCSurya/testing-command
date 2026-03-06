@@ -2452,36 +2452,7 @@
             });
         });
 
-        function addCharge() {
-            const nameInput = document.getElementById("chargesName");
-            const amountInput = document.getElementById("chargesAmount");
-            const errorDiv = document.getElementById("chargesError");
 
-            const name = nameInput.value.trim();
-            const amount = parseFloat(amountInput.value);
-
-            // Validation
-            if (name === "" || isNaN(amount) || amount <= 0) {
-                errorDiv.classList.remove("d-none");
-                return;
-            }
-
-            errorDiv.classList.add("d-none");
-
-            // 👉 Here you can:
-            // 1. Append charge to table
-            // 2. Update grand total
-            // 3. Send AJAX request to backend
-
-            // Close modal
-            const modalElement = document.getElementById("chargesModal");
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            modal.hide();
-
-            // Reset fields
-            nameInput.value = "";
-            amountInput.value = "";
-        }
 
     </script>
 
@@ -2652,9 +2623,51 @@
 
             let products = [];
             let selectedProducts = [];
+            let addCharges = [];
             let grandTotal = 0;
             const GST_RATE = 18; // 18% GST
             let currentProduct = null;
+
+            window.addCharge = function () {
+
+                const nameInput = document.getElementById("chargesName");
+                const amountInput = document.getElementById("chargesAmount");
+                const errorDiv = document.getElementById("chargesError");
+
+                const name = nameInput.value.trim();
+                const amount = parseFloat(amountInput.value);
+
+                // Validation
+                if (name === "" || isNaN(amount) || amount <= 0) {
+                    errorDiv.classList.remove("d-none");
+                    return;
+                }
+
+                errorDiv.classList.add("d-none");
+
+                if (selectedProducts.length > 0) {
+                    addCharges.push({
+                        name: name,
+                        amount: amount,
+                    });
+                } else {
+                    alert('add product first.')
+                }
+
+                updateProductTable();
+                updateTotals();
+
+                // Close modal
+                const modalElement = document.getElementById("chargesModal");
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+
+                // Reset fields
+                nameInput.value = "";
+                amountInput.value = "";
+
+            }
+
 
             async function fetchProducts(query) {
 
@@ -3124,7 +3137,11 @@
 
             // Update totals
             function updateTotals() {
-                grandTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                
+                productTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
+                chargesTotal = addCharges.reduce((sum, charges) => sum + charges.amount, 0);
+                grandTotal = productTotal + chargesTotal;
+
                 document.getElementById('grand-total-value').textContent = `${grandTotal.toFixed(2)}`;
                 document.getElementById('input-grand-total-value').value = grandTotal.toFixed(2);
                 document.getElementById('finalGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -3227,24 +3244,18 @@
                     });
             }
 
-            // Show customer details modal
+            // Show Charges Details Modal
             function addChargesModal() {
+                if (!selectedProducts || selectedProducts.length === 0) {
+                    alert("Please select a product first.");
+                    return;
+                }
 
-                const modal = new bootstrap.Modal(document.getElementById('chargesModal'));
-
-
-                // document.getElementById('customerName').value = '';
-                // document.getElementById('customerAddress').value = '';
-                // document.getElementById('customerState').value = '';
-                // document.getElementById('customerPincode').value = '';
-                // document.getElementById('customerMobile').value = '';
-                // document.getElementById('CustomerCompanyName').value = '';
-                // document.getElementById('customerCity').value = '';
-
-                modal.show();
-
+                const chargesModalElement = document.getElementById("chargesModal");
+                const chargesModal = new bootstrap.Modal(chargesModalElement);
+                chargesModal.show();
             }
-
+            
             // Show charges details modal
             function addCustomerModal() {
 
@@ -3480,6 +3491,7 @@
 
                     
                     `;
+                    addCharges = [];
                     return;
                 }
                 else {
@@ -3564,6 +3576,30 @@
                     `;
                         tableBody.appendChild(row);
                     });
+
+                    addCharges.forEach((charges, index) => {
+                        const row = document.createElement('tr');
+                        row.className = 'product-row';
+                        row.innerHTML = `
+                        <td class="px-4 py-3 font-semibold text-gray-700 tracking-wide">
+                            ${charges.name}
+                        </td>
+
+                        <td style="width: 15%; text-align: center;">
+                        </td>
+
+                        <td></td>
+
+                        <td class="text-center">₹${charges.amount}</td>
+
+                        <td >
+                                <div  class=" text-danger pointer text-center" onclick="removeCharges(${index})"><i class="fa-solid fa-trash"></i></div>
+                        </td>
+                    `;
+                        tableBody.appendChild(row);
+                    });
+
+
                 }
                 // Render product cards for mobile view
                 if (cardContainer) {
@@ -3614,6 +3650,30 @@
                                     `;
                             cardContainer.appendChild(card);
                         });
+
+
+                        addCharges.forEach((charges, index) => {
+                            const card = document.createElement('div');
+                            card.className = 'product-card';
+                            card.innerHTML = `
+                                <div class="item-container"> 
+                                    <div class="item-name-label">
+                                        <span>❏ ${charges.name} </span>
+                                        <i class="fas fa-trash" style="color:red;" onclick="removeCharges(${index})"></i>                                        
+                                    </div>
+
+                                    <div class="amount-display">
+                                        <span class="total-label">Charge:</span>
+                                        <div class="amount-value">
+                                            <span class="rupee-symbol">₹</span>
+                                            <span id="amount-value">${charges.amount}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            cardContainer.appendChild(card);
+                        });
+
                     }
                 }
 
@@ -3647,6 +3707,13 @@
             // Remove product from the bill
             window.removeProduct = function (index) {
                 selectedProducts.splice(index, 1);
+                updateProductTable();
+                updateTotals();
+            };
+
+            // Remove product from the bill
+            window.removeCharges = function (index) {
+                addCharges.splice(index, 1);
                 updateProductTable();
                 updateTotals();
             };
@@ -3780,6 +3847,7 @@
                 // Prepare form data
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
+                formData.append('charges', JSON.stringify(addCharges));
                 formData.append('customerId', customerId);
 
                 // Show the modal with loading animation

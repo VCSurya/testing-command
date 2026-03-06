@@ -90,6 +90,20 @@ class PackagingModel:
         self.conn.close()
 
         return result
+    
+    def get_additional_charges(self,invoice_id):
+        
+        query = '''
+            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
+        '''
+
+        self.cursor.execute(query, (invoice_id,))
+        additional_charges = self.cursor.fetchall()
+
+        if not additional_charges:
+            return []
+
+        return additional_charges
 
     def merge_orders_products(self,data):
 
@@ -265,6 +279,10 @@ class PackagingModel:
     
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
+        
+        for invoice_id in merged_orders:
+            charges = self.get_additional_charges(invoice_id['id']) 
+            invoice_id['charges'] = charges
 
         return merged_orders
 
@@ -360,6 +378,10 @@ class PackagingModel:
     
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
+
+        for invoice_id in merged_orders:
+            charges = self.get_additional_charges(invoice_id['id']) 
+            invoice_id['charges'] = charges
 
         return merged_orders
 
