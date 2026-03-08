@@ -473,7 +473,7 @@
             //     description: "All orders dispatched for transport by you."
             // },
             total_locked_draft_transport_order: {
-                title: "Drafts Orders",
+                title: "Draft Orders",
                 icon: "repeat", // Represents pending/looping process
                 color: "bg-gray-500",
                 shadow: "shadow-gray-500/60",
@@ -484,7 +484,7 @@
                 icon: "truck", // Transport in progress
                 color: "bg-emerald-600",
                 shadow: "shadow-emerald-600/60",
-                description: "Orders dispatched but builty not yet received."
+                description: "Your orders awaiting for dispatch."
             },
             total_today_order_transport_by_user: {
                 title: "Today's Dispatches",
@@ -564,7 +564,7 @@
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Drafts Orders' ? "+ '/transport/ready-to-go-for-transport'" : config.title === 'My Pending Orders' ? "+ '/transport/my-transport-orders'"  : ''}"
+                ${config.title === 'Draft Orders' ? "+ '/transport/ready-to-go-for-transport'" : config.title === 'My Pending Orders' ? "+ '/transport/my-transport-orders'"  : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->

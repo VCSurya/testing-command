@@ -1211,6 +1211,8 @@ def get_customers_data():
             b.state,
             b.pincode,
             b.mobile,
+            b.city,
+            b.company,   
             u1.name AS created_by,
             u2.name AS updated_by
             
@@ -1229,48 +1231,68 @@ def get_customers_data():
 
 @admin_bp.route('/admin/customer/add', methods=['POST'])
 @login_required('Admin')
-def add_customer():
-
-    data = request.json
-    
-    name = data.get('name')
-    address = data.get('address')
-    state = data.get('state')
-    pincode = data.get('pincode')
-    mobile = data.get('mobile')
-
-    if not all([name, address, state, pincode, mobile]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
-
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
-    created_by = session.get('user_id')  # Get current user's ID from session
-    
-    cursor = conn.cursor()
-
+def add_new_customer():
     try:
-        # Check if username already exists
-        cursor.execute("SELECT * FROM buddy WHERE mobile = %s and active = 1", (mobile,))
+        data = request.get_json()
+        required_fields = ['name', 'address', 'pincode', 'mobile']
+        if not all(field in data for field in required_fields):
+            return jsonify({'message': 'Missing required fields'}), 400
+
+        name = data.get('name', '')
+        state = data.get('state', '')
+        address = data.get('address', '')
+        pincode = data.get('pincode', '')
+        mobile = data.get('mobile', '')
+        city = data.get('city', '')
+        company = data.get('company', '')
+
+        conn = get_db_connection()
+
+        if not conn:
+            return jsonify({'success': False,'message': 'Database connection failed'}), 500
+
+        if not all([name, address, state, pincode, mobile]):
+            return jsonify({'success': False,'message': 'Please fill in all fields with valid information.'}),500
+
+        if not mobile.isdigit():
+            return jsonify({'success': False,'message': 'Enter valid mobile number'}),500
+
+        if not pincode.isdigit():
+            return jsonify({'success': False,'message': 'Enter valid PINCODE number'}),500
+    
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if mobile exists
+        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
         existing_user = cursor.fetchone()
         
         if existing_user:
-            return jsonify({'success': False, 'message': f'{mobile}: Mobile already exists'})
-
-        # Insert new user
-        cursor.execute("""
-            INSERT INTO buddy (name, address, state, pincode, mobile, created_by, updated_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (name, address, state, pincode, mobile, created_by, created_by))
+            return jsonify({'success': False, 'message': f'{mobile}: Customer already exists'})
+                
+        # Insert into database
+        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile, city, company, created_by) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)",
+                                          (name, address, state, pincode, mobile, city, company, session.get('user_id')))
         conn.commit()
-
-        return jsonify({'success': True, 'message': 'Customer added successfully'})
-    except mysql.connector.Error as err:
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
-    finally:
+        
+        mobile = int(mobile)
+        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
+        exist = cursor.fetchone()
+        
         cursor.close()
         conn.close()
+
+        if exist:
+            return jsonify({'success': True, 'message': 'Customer added successfully'})
+        
+        else:
+            return jsonify({'success': False, "message":"Somthing went wrong, Try Again!"})
+
+
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        print(traceback.print_exc())
+        return jsonify({'success': False,'message': 'Internal server error'}), 500
 
 @admin_bp.route('/admin/customers/<int:user_id>/update', methods=['PUT'])
 @login_required('Admin')
@@ -1282,7 +1304,9 @@ def update_customer(user_id):
     state = data.get('state')
     pincode = data.get('pincode')
     mobile = data.get('mobile')
-    updated_by = session.get('user_id')  # Get current user's username from session
+    company_name = data.get('company_name')
+    city = data.get('city')
+    updated_by = session.get('user_id')
     
 
     # Validate required fields
@@ -1299,9 +1323,9 @@ def update_customer(user_id):
         # Update user in database
         cursor.execute("""
             UPDATE buddy
-            SET name = %s, address = %s, state = %s, pincode = %s, mobile = %s,updated_by = %s, updated_at = NOW()
+            SET name = %s, address = %s, state = %s, pincode = %s, mobile = %s, company=%s, city=%s, updated_by = %s, updated_at = NOW()
             WHERE id = %s AND active = 1;
-        """, (name, address, state, pincode, mobile, updated_by, user_id))
+        """, (name, address, state, pincode, mobile, company_name, city, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Customer detailes updated successfully'})
     except mysql.connector.Error as err:

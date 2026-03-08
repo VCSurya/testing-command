@@ -1871,7 +1871,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${invoiceObj.products.map(p => {
+                                ${invoiceObj.products.map((p,index) => {
                                     const name = p && typeof p.name === 'string' ? p.name : '';
                                     const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
@@ -1879,11 +1879,11 @@
                                     const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
                                     const total_price = base_price + tax_price;
 
-                                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                                    return `<tr><td>${index+1}. ${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
                                 }).join('')}
 
                                     ${invoiceObj.charges.map(p => {
-                                    return `<tr><td>${p.charge_name}</td><td></td><td></td><td>₹${(p.amount).toLocaleString()}</td></tr>`;
+                                    return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${(p.amount).toLocaleString()}</td></tr>`;
                                 }).join('')}
                                 
                                 <tr>
@@ -1917,17 +1917,18 @@
                                             <div class="text-right shrink-0">
                                                 <div class="text-sm font-medium text-green-400">
                                                     ${invoiceObj.payment_mode
-                            ? invoiceObj.payment_mode
-                                .replace(/_/g, ' ')
-                                .toLowerCase()
-                                .replace(/\b\w/g, c => c.toUpperCase())
-                            : ''
-                        }
+                                                        ? invoiceObj.payment_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
                                                 </div>
                                                 <div class="font-extrabold text-3xl text-white">
                                                     ₹${invoiceObj.amount_paid.toLocaleString()}
                                                 </div>
                                             </div>
+                                            
                                         </div>
 
                                         
@@ -1958,12 +1959,12 @@
                                             <div class="text-right shrink-0">
                                                 <div class="text-sm font-medium text-green-400">
                                                     ${invoiceObj.payment_mode
-                                ? invoiceObj.payment_mode
-                                    .replace(/_/g, ' ')
-                                    .toLowerCase()
-                                    .replace(/\b\w/g, c => c.toUpperCase())
-                                : ''
-                            }
+                                                        ? invoiceObj.payment_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
                                                 </div>
                                                 <div class="font-extrabold text-3xl text-white">
                                                     ₹${invoiceObj.amount_paid.toLocaleString()}
@@ -1994,16 +1995,16 @@
 
                                             <!-- Right -->
                                             <div class="text-right shrink-0">
-                                                <div class="text-sm font-medium text-green-400">
+                                                <div class="text-sm font-medium text-red-400">
                                                     ${invoiceObj.left_to_paid_mode
-                                ? invoiceObj.left_to_paid_mode
-                                    .replace(/_/g, ' ')
-                                    .toLowerCase()
-                                    .replace(/\b\w/g, c => c.toUpperCase())
-                                : ''
-                            }
+                                                        ? invoiceObj.left_to_paid_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-white">
+                                                <div class="font-extrabold text-3xl text-red-400">
                                                     ₹${invoiceObj.left_to_paid.toLocaleString()}
                                                 </div>
                                             </div>
@@ -2037,14 +2038,14 @@
                                             <div class="text-right shrink-0">
                                                 <div class="text-sm font-medium text-green-400">
                                                     ${invoiceObj.left_to_paid_mode
-                                ? invoiceObj.left_to_paid_mode
-                                    .replace(/_/g, ' ')
-                                    .toLowerCase()
-                                    .replace(/\b\w/g, c => c.toUpperCase())
-                                : ''
-                            }
+                                                        ? invoiceObj.left_to_paid_mode
+                                                            .replace(/_/g, ' ')
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, c => c.toUpperCase())
+                                                        : ''
+                                                    }
                                                 </div>
-                                                <div class="font-extrabold text-3xl text-white">
+                                                <div class="font-extrabold text-3xl text-green">
                                                     ₹${invoiceObj.left_to_paid.toLocaleString()}
                                                 </div>
                                             </div>

@@ -873,10 +873,12 @@
                 <div class="col-md-3">
                     <select class="form-select" id="roleFilter">
                         <option value="1">Name</option>
-                        <option value="5">Mobile</option>
+                        <option value="7">Mobile</option>
                         <option value="2">Address</option>
-                        <option value="3">State</option>
-                        <option value="4">Pincode</option>
+                        <option value="3">Company</option>
+                        <option value="4">State</option>
+                        <option value="5">City</option>
+                        <option value="6">Pincode</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -893,7 +895,9 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Address</th>
+                        <th>Company</th>
                         <th>State</th>
+                        <th>City</th>
                         <th>Pincode</th>
                         <th>Mobile</th>
                         <th>Created By</th>
@@ -919,25 +923,42 @@
                 <div class="modal-body">
                     <form id="addUserForm">
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name" required>
+                            <label class="form-label">Customer Name</label>
+                            <input type="text" class="form-control" name="name" placeholder="Eg. Rajesh Patel" required>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <input type="text" class="form-control" name="address" required>
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-control" name="company"
+                                placeholder="Eg. Patel Enterprises Pvt. Ltd." required>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city" placeholder="Eg. Ahmedabad" required>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state" required>
+                            <input type="text" class="form-control" name="state" placeholder="Eg. Gujarat" required>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Pincode</label>
-                            <input type="text" class="form-control" name="pincode" required>
+                            <input type="text" class="form-control" name="pincode" placeholder="Eg. 380001" required>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Mobile</label>
-                            <input type="text" class="form-control" name="mobile" required>
+                            <input type="text" class="form-control" name="mobile" placeholder="Eg. 9876543210" required>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control" name="address"
+                                placeholder="Eg. 123, MG Road, Navrangpura" required>
+                        </div>
+
                     </form>
                 </div>
                 <div class="modal-footer" style="display: flex; justify-content: space-between;">
@@ -965,12 +986,20 @@
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-control" name="company_name" required>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Address</label>
                             <input type="text" class="form-control" name="address" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">State</label>
                             <input type="text" class="form-control" name="state" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Pincode</label>
@@ -1022,7 +1051,9 @@
                     { data: 'id' },
                     { data: 'name' },
                     { data: 'address' },
+                    { data: 'company' },
                     { data: 'state' },
+                    { data: 'city' },
                     { data: 'pincode' },
                     { data: 'mobile' },
                     { data: 'created_by' },
@@ -1097,6 +1128,8 @@
                     state: $('input[name="state"]').val(),
                     pincode: $('input[name="pincode"]').val(),
                     mobile: $('input[name="mobile"]').val(),
+                    company: $('input[name="company"]').val(),
+                    city: $('input[name="city"]').val(),
                 };
 
                 $.ajax({
@@ -1153,6 +1186,8 @@
                 $('#editUserForm input[name="state"]').val(rowData.state);
                 $('#editUserForm input[name="pincode"]').val(rowData.pincode);
                 $('#editUserForm input[name="mobile"]').val(rowData.mobile);
+                $('#editUserForm input[name="company_name"]').val(rowData.company);
+                $('#editUserForm input[name="city"]').val(rowData.city);
                 $('#editUserModal').modal('show');
 
             });
@@ -1170,6 +1205,8 @@
                     state: $('#editUserForm input[name="state"]').val(),
                     pincode: $('#editUserForm input[name="pincode"]').val(),
                     mobile: $('#editUserForm input[name="mobile"]').val(),
+                    company_name: $('#editUserForm input[name="company_name"]').val(),
+                    city: $('#editUserForm input[name="city"]').val(),
                 };
 
                 $.ajax({

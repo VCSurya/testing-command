@@ -20,6 +20,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 import random
 import string
 from decimal import Decimal
+from reportlab.lib.enums import TA_RIGHT
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -347,8 +348,7 @@ def get_transport_input(input,id_mode):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        print(f"Input: {input}, ID Mode: {id_mode}")
-    
+        
         if id_mode == '1':
             cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE id = '{input}';")
             customers = cursor.fetchall()
@@ -358,7 +358,7 @@ def get_transport_input(input,id_mode):
         if input.isdigit():
             cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
         else:
-            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE city LIKE '{input}%' LIMIT 15;")
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE city LIKE '{input}%' or name LIKE '{input}%'  LIMIT 15;")
 
         customers = cursor.fetchall()
         return jsonify(customers)
@@ -776,26 +776,6 @@ def generate_bill_pdf(invoice_id):
         from io import BytesIO
         import datetime
 
-        def watermark(canvas, doc):
-            width, height = A4
-
-            canvas.saveState()
-
-            # Low opacity
-            canvas.setFillAlpha(0.5)
-
-            # Font & color
-            canvas.setFont("Helvetica-Bold", 130)
-            canvas.setFillColor(colors.lightpink)
-
-            # Center & rotate
-            canvas.translate(width / 2, height / 2)
-            canvas.rotate(30)
-
-            # Draw text
-            canvas.drawCentredString(0, 0, 'UNPAID')
-
-            canvas.restoreState()
 
         # Get invoice data from database
         conn = get_db_connection()
@@ -822,12 +802,14 @@ def generate_bill_pdf(invoice_id):
             t.name AS transport_name,
             t.city AS transport_city,
             t.days AS transport_days,
+            u.name,
             lot.sales_date_time AS invoice_date
             FROM invoices i 
             JOIN buddy c ON i.customer_id = c.id
             JOIN live_order_track lot ON i.id = lot.invoice_id
+            JOIN users u ON i.invoice_created_by_user_id = u.id
             LEFT JOIN transport t ON i.transport_id = t.id
-            WHERE i.id = %s 
+            WHERE i.id = %s;
         """, (invoice_id,))
 
         invoice_data = cursor.fetchone()
@@ -838,7 +820,8 @@ def generate_bill_pdf(invoice_id):
             'mobile': invoice_data.get('c_mobile',''),
             'address': invoice_data.get('c_address',''),
             'pincode': invoice_data.get('c_pincode',''),
-            'state': invoice_data.get('c_state','')
+            'state': invoice_data.get('c_state',''),
+            'salesman': invoice_data.get('name','')
         }
 
         # Get invoice products
@@ -850,6 +833,15 @@ def generate_bill_pdf(invoice_id):
         """, (invoice_id,))
 
         products = cursor.fetchall()
+        
+
+        # Get invoice charges
+        cursor.execute("""
+            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
+        """, (invoice_id,))
+
+        charges = cursor.fetchall()
+        
         cursor.close()
         conn.close()
 
@@ -959,7 +951,6 @@ def generate_bill_pdf(invoice_id):
 
         product_data = [headers]
         total_tax_amount = 0
-        hsn_tax_summary = {}
 
         for idx, product in enumerate(products_formatted, 1):
 
@@ -972,6 +963,18 @@ def generate_bill_pdf(invoice_id):
                 f"{product['total']}"
             ])
             total_tax_amount += float(product['tax_price'])
+
+
+        product_data.append([])
+        for charge in charges:
+            product_data.append([
+                "",
+                f"{charge['charge_name']}",
+                '',
+                '',
+                '',
+                f"{charge['amount']}"
+            ])
 
         product_table = Table(product_data, colWidths=col_widths)
         product_table.setStyle(TableStyle([
@@ -1032,9 +1035,6 @@ def generate_bill_pdf(invoice_id):
             tax_widths = [2*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch]
 
             tax_data = [tax_headers]
-            # for hsn, values in hsn_tax_summary.items():
-            #     taxable = values['taxable']
-            #     tax = values['tax']
             half_tax = total_tax_amount / 2
 
             tax_data.append([
@@ -1067,30 +1067,38 @@ def generate_bill_pdf(invoice_id):
             return ' '.join(result_words)
 
         delivery_mode_table = [
-            ["Delivery Mode", capitalize_each_word(delivery_mode)]
+            ["Delivery Mode", capitalize_each_word(delivery_mode), "", "Salesman", capitalize_each_word(customer['salesman'])]
         ]
 
-        delivery_mode_table = Table(delivery_mode_table, colWidths=[2.6*inch, 5.4*inch])
+        delivery_mode_table = Table(
+            delivery_mode_table,
+            colWidths=[1.5*inch, 2.3*inch, 0.2*inch, 1.5*inch, 2.5*inch]
+        )
+
         delivery_mode_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            # Bold only the tag names column
+            ('BACKGROUND', (3, 0), (3, -1), colors.lightgrey),
+
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            # Normal font for values
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTNAME', (3, 0), (3, -1), 'Helvetica-Bold'),
+
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+
+            # Grid only for the two groups (not the spacer column)
+            ('GRID', (0,0), (1,-1), 0.5, colors.black),
+            ('GRID', (3,0), (4,-1), 0.5, colors.black),
         ]))
 
 
         if delivery_mode == "transport":
             info_data = [
-                ["Transport Name", "City" , "Pincode", "Delivery"]
+                ["Transport Name", "City" , "Pincode"]
             ]
-            info_data.append([transport_name,transport_city,transport_pincode,f"{transport_days} Days"])
+            info_data.append([transport_name,transport_city,transport_pincode])
 
-            info_table = Table(info_data, colWidths=[3*inch, 3.4*inch,0.8*inch,0.8*inch])
+            info_table = Table(info_data, colWidths=[3.8*inch, 3.4*inch,0.8*inch])
             info_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -1187,6 +1195,12 @@ def generate_bill_pdf(invoice_id):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ]))
 
+        signature_style = ParagraphStyle(
+            'SignatureStyle',
+            alignment=TA_RIGHT,
+            fontSize=12
+        )
+
         # Build PDF elements
         elements.append(Paragraph("SMART TRADERS", title_style))
         elements.append(Paragraph(
@@ -1202,7 +1216,9 @@ def generate_bill_pdf(invoice_id):
         elements.append(Spacer(1, 10))
         elements.append(delivery_mode_table)
         if delivery_mode == "transport":
+            elements.append(Spacer(1, 10))
             elements.append(info_table)
+            
         elements.append(Spacer(1, 10))
 
         if tax_summary_table:
@@ -1213,12 +1229,15 @@ def generate_bill_pdf(invoice_id):
         elements.append(Spacer(1, 10))
         elements.append(terms_table)
         elements.append(Spacer(1, 10))
-
         elements.append(Paragraph("TAX INVOICE ORIGINAL FOR RECIPIENT",
                                   ParagraphStyle('Footer',
                                                  parent=normal_style,
                                                  alignment=1,
                                                  fontName='Helvetica-Bold')))
+
+        elements.append(Spacer(1, 40))
+        elements.append(Spacer(1, 5))
+        elements.append(Paragraph("Authorized Signature", signature_style))
 
         # Build PDF
         doc.title = f"{customer['name']}"
@@ -3000,8 +3019,8 @@ def get_customers_balance():
             return jsonify({'error': 'Database connection failed'}), 500
 
         cursor = conn.cursor(dictionary=True)
-        query = f"""
-            SELECT 
+        query = """
+        SELECT 
             (SELECT 
                         COALESCE(SUM(inv.left_to_paid), 0)
                         FROM invoices inv 
@@ -3011,7 +3030,7 @@ def get_customers_balance():
                         AND lot.sales_proceed_for_packing = 1
                         AND inv.left_to_paid > 0
                         AND inv.customer_id = %s) -
-            (SELECT sum(amount) FROM `payment_transations` WHERE customer_id = %s and active = 1 and payment_verified_by is not null ) as balance;
+            (SELECT COALESCE(SUM(amount), 0) FROM `payment_transations` WHERE customer_id = %s and active = 1 and payment_verified_by is not null ) as balance;
         """
         cursor.execute(query, (search, search))
         results = cursor.fetchone()

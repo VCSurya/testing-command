@@ -433,7 +433,7 @@
                         <button class="btn btn-outline-primary me-3 p-0" id="sidebarToggle" title="Menu">
                             <i class="bi bi-list fs-5"></i>
                         </button>
-                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Account Station</h4>
+                        <h4 class="mb-0 fw-semibold text" style="font-size: 2em;">Account</h4>
                     </div>
                 </div>
                 <div class="container-fluid px-4" style="padding-top: 100px;">
@@ -512,18 +512,18 @@
             //     description: "Total orders you have dispatched successfully and builty recived."
             // },
             total_draft_payment_order: {
-                title: "Draft Payment Orders",
-                icon: "repeat", // Pending/ready to proceed
+                title: "Draft Payments",
+                icon: "repeat",
                 color: "bg-gray-500",
                 shadow: "shadow-gray-500/60",
-                description: "Successfully dispatched orders, payment not received."
+                description: "Pending Payment Verification."
             },
             total_today_payment_order_by_user: {
-                title: "Today's Dispatched Orders",
+                title: "Today's Processed Payments",
                 icon: "check-circle",
                 color: "bg-green-700",
                 shadow: "shadow-green-700/60",
-                description: "Today orders you have dispatched successfully and builty recived."
+                description: "Payments that have been successfully verified and processed today."
             }
         };
 
@@ -581,7 +581,7 @@
             return `
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick=" window.location.href = ''
-                ${config.title === 'Draft Payment Orders' ? "+ '/account/verify-payment'" : ''}"
+                ${config.title === 'Draft Payments' ? "+ '/account/verify-payment'" : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->

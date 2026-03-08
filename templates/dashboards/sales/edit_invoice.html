@@ -1807,7 +1807,7 @@
                                                 <i class="fas fa-search"></i>
                                             </span>
                                             <input type="text" id="transportSearch"
-                                                placeholder="Enter Transport City or Pincode"
+                                                placeholder="Enter Transport Name or City or Pincode"
                                                 class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                                                 autocomplete="off">
                                         </div>
@@ -2150,7 +2150,7 @@
                     <div class="form-group mb-3">
                         <label for="customerTransportSearch">Transport:</label>
                         <input type="text" class="form-control" id="customerTransportSearch"
-                            placeholder="Enter Transport City or Pincode">
+                            placeholder="Enter Transport Name or City or Pincode">
                         <input type="text" class="form-control" id="CustomerTransportCompanyId"
                             name="customer_transport_id" hidden>
                     </div>
@@ -2632,6 +2632,12 @@
                 }
             });
 
+            document.addEventListener('click', (e) => {
+                if (!transportDropdown.contains(e.target) && !transportDropdown.contains(e.target)) {
+                    transportDropdown.classList.add('hidden');
+                }
+            });
+
             ///// Search Transportation
             async function fetchTransport(query, mode) {
 
@@ -3049,7 +3055,7 @@
                 productTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
                 chargesTotal = addCharges.reduce((sum, charges) => sum + charges.amount, 0);
                 grandTotal = productTotal + chargesTotal;
-                
+
                 document.getElementById('grand-total-value').textContent = `${grandTotal.toFixed(2)}`;
                 document.getElementById('input-grand-total-value').value = grandTotal.toFixed(2);
                 document.getElementById('finalGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -3298,8 +3304,8 @@
                 }
             }
 
-            async function addProductsFromList(products,charges) {
-                
+            async function addProductsFromList(products, charges) {
+
                 products.forEach(prod => {
                     addOrUpdateProduct({
                         id: prod.product_id,
@@ -3309,21 +3315,21 @@
                     });
                 });
 
-                
+
                 charges.forEach(charge => {
 
                     addCharges.push({
-                            name:charge.charge_name,
-                            amount:parseFloat(charge.amount),
+                        name: charge.charge_name,
+                        amount: parseFloat(charge.amount),
                     });
 
                 });
-                
+
                 await updateProductTable();
                 updateTotals();
             }
 
-            addProductsFromList(invoiceData.products || [],invoiceData.charges || []);
+            addProductsFromList(invoiceData.products || [], invoiceData.charges || []);
 
             // Add product to the bill
             function addProduct(id, name, price) {
@@ -3451,7 +3457,7 @@
                         const row = document.createElement('tr');
                         row.className = 'product-row';
                         row.innerHTML = `
-                        <td>${product.name}</td>
+                        <td>${index+1}. ${product.name}</td>
 
                         <td style="width: 15%; text-align: center;">
                             <div style="
@@ -3533,7 +3539,7 @@
                         row.className = 'product-row';
                         row.innerHTML = `
                         <td class="px-4 py-3 font-semibold text-gray-700 tracking-wide">
-                            ${charges.name}
+                            ❏ ${charges.name}
                         </td>
 
                         <td style="width: 15%; text-align: center;">
@@ -3561,7 +3567,7 @@
                                     
                                     <div class="item-container"> 
                                         <div class="item-name-label">
-                                            <span>❏ ${product.name} </span>
+                                            <span>${index+1}. ${product.name} </span>
                                             <i class="fas fa-trash" style="color:red;" onclick="removeProduct(${index})"></i>                                        
                                         </div>
 

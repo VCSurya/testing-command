@@ -1816,7 +1816,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${invoiceObj.products.map(p => {
+                    ${invoiceObj.products.map((p,index) => {
                     const name = p && typeof p.name === 'string' ? p.name : '';
                     const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
@@ -1824,11 +1824,11 @@
                     const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
                     const total_price = base_price + tax_price;
 
-                    return `<tr><td>${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                    return `<tr><td>${index+1}. ${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
                 }).join('')}
 
                     ${invoiceObj.charges.map(p => {
-                            return `<tr><td>${p.charge_name}</td><td></td><td></td><td>₹${(p.amount).toLocaleString()}</td></tr>`;
+                            return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${(p.amount).toLocaleString()}</td></tr>`;
                         }).join('')}
 
                             </tbody>
