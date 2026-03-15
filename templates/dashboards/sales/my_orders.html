@@ -1704,39 +1704,29 @@
                         </div>
                     
                     
-                    ${invoiceObj.trackingStatus < 2 ? `
                     
                     ${invoiceObj.amount_paid === invoiceObj.grand_total
-                            ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                </div>
-                            `
-                            : invoiceObj.amount_paid > 0
                                 ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
-                                </div>
-                            `
+                                    <div>
+                                    <strong>Payment Status:</strong>
+                                    <span style="color: var(--success-green); font-weight: 600;">Paid</span>
+                                    </div>
+                                `
+                                : invoiceObj.amount_paid > 0
+                                    ? `
+                                    <div>
+                                    <strong>Payment Status:</strong>
+                                    <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
+                                    </div>
+                                `
                                 : `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
-                                </div>
-                            `
-                        }
-                    
-                    ` : `
-                    
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                </div>
-
-                    `}
-
+                                    <div>
+                                    <strong>Payment Status:</strong>
+                                    <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
+                                    </div>
+                                `
+                    }
+ 
                     
 
                         
@@ -1891,7 +1881,6 @@
                         
                         <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
                         
-                        ${invoiceObj.trackingStatus < 2 ? `
                          
                         ${invoiceObj.amount_paid === invoiceObj.grand_total
                             ? `
@@ -1947,15 +1936,7 @@
                                     </div>
                                 </div>
                             `
-                        }` : `
-                        
-                            <div class="amounts-container3">
-                                <div style="color: var(--success-green);">
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
-                                </div>
-                            </div>
-                        `}
+                        }
 
 
                         </div>
