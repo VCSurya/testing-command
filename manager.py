@@ -1594,8 +1594,6 @@ def get_transport_data():
             p.name,
             p.pincode,
             p.city,
-            p.days,
-            p.charges,
             u1.name AS created_by,
             u2.name AS updated_by
             from transport p
@@ -1620,11 +1618,10 @@ def add_transport():
     name = data.get('name')
     pincode = data.get('pincode')
     city = data.get('city')
-    charges = data.get('charges')
-    days = data.get('days')
+
     created_by = session.get('user_id')  # Get current user's ID from session
 
-    if not all([name, pincode, city, charges, days]):
+    if not all([name, pincode, city]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
 
     conn = get_db_connection()
@@ -1636,21 +1633,12 @@ def add_transport():
     if not pincode.isdigit():
         return jsonify({'success': False, 'message': 'Enter Valid Pincode.'})
     
-    if not charges.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Charges.'})
-    
-    if not days.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Days.'})
-    
-    if int(days) <= 0 or int(charges) <= 0:
-        return jsonify({'success': False, 'message': 'Enter Valid Data.'})
-
     try:
         # Insert new user
         cursor.execute("""
             INSERT INTO transport (name, pincode, city, charges, days, created_by, updated_by)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (name, pincode, city, charges, days, created_by, created_by))
+        """, (name, pincode, city, 0, 1, created_by, created_by))
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport added successfully'})
     except mysql.connector.Error as err:
@@ -1667,14 +1655,12 @@ def update_transport(user_id):
     
     name = data.get('name')
     city = data.get('city')
-    charges = data.get('charges')
     pincode = data.get('pincode')
-    days = data.get('days')
     updated_by = session.get('user_id')  # Get current user's username from session
 
 
     # Validate required fields
-    if not all([name, pincode, city, charges, days]):
+    if not all([name, pincode, city]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
 
     conn = get_db_connection()
@@ -1685,15 +1671,6 @@ def update_transport(user_id):
 
     if not pincode.isdigit():
         return jsonify({'success': False, 'message': 'Enter Valid Pincode.'})
-    
-    if not charges.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Charges.'})
-    
-    if not days.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Days.'})
-    
-    if int(days) <= 0 or int(charges) <= 0:
-        return jsonify({'success': False, 'message': 'Enter Valid Data.'})
     
     # Get database connection
     conn = get_db_connection()
@@ -1707,13 +1684,14 @@ def update_transport(user_id):
         # Update user in database
         cursor.execute("""
             UPDATE transport
-            SET name = %s, city = %s, charges = %s, pincode = %s, days = %s, updated_by = %s, updated_at = NOW()
+            SET name = %s, city = %s, pincode = %s, updated_by = %s, updated_at = NOW()
             WHERE id = %s AND active = 1;
-        """, (name, city, charges, pincode, days, updated_by, user_id))
+        """, (name, city, pincode, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport details updated successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as e:
+        print(e)
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     
     finally:

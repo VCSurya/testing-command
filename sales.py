@@ -250,14 +250,15 @@ class Sales:
 
             insert_invoice_query = """
                 INSERT INTO invoices (
-                    customer_id, delivery_mode, grand_total, gst_included,
+                    id,customer_id, delivery_mode, grand_total, gst_included,
                     invoice_created_by_user_id, left_to_paid, paid_amount,
                     payment_mode, payment_note, sales_note, transport_id,
                     invoice_number, event_id ,completed,created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,NOW())
+                ) VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,NOW())
             """
 
             invoice_values = (
+                int(invoice_data['billno']),
                 int(invoice_data['customer_id']),
                 invoice_data['delivery_mode'],
                 float(invoice_data['grand_total']),
@@ -618,6 +619,7 @@ def save_invoice_into_database():
     try:
 
         # Get form data
+        billno = request.form.get('billno')
         customer_id = request.form.get('customerId')
         delivery_mode = request.form.get('delivery_mode')
         transport_id = request.form.get('transport_id')
@@ -628,6 +630,17 @@ def save_invoice_into_database():
         sales_note = request.form.get('sales_note', '')
         IncludeGST = request.form.get('IncludeGST', 'off')
         event_id = request.form.get('event_id', None)
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False,'error': 'Database connection failed'}), 200
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(f"SELECT id FROM `invoices` WHERE id = {billno};")
+        exist_billno = cursor.fetchone()
+
+        if exist_billno:
+            return jsonify({'success': False,'error': 'Bill number already exists.'}),200
 
         sales = Sales()
 
@@ -641,30 +654,25 @@ def save_invoice_into_database():
         if products or customer_id:
             products = json.loads(products)
         else:
-            return jsonify({'error': 'Some data is Missing in the bill'}), 400
+            return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
 
         if grand_total < 0:
-            return jsonify({'error': 'Some data is Missing in the bill'}), 400
+            return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
 
         # Get customer details to validate
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database connection failed'}), 500
-
         if not customer_id or customer_id == "": 
-            return jsonify({'error': 'Invalid mobile number'}), 500
+            return jsonify({'success': False,'error': 'Invalid mobile number'}), 200
 
-        cursor = conn.cursor(dictionary=True)
         cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
         customer = cursor.fetchone()
 
         if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
+            return jsonify({'success': False,'error': 'Customer not found'}), 200
 
         # Need transport_id 
         if delivery_mode == 'transport':
             if not transport_id:
-                return jsonify({'error': 'Some data is Missing in the bill'}), 400
+                return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
 
             try:
                 cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (transport_id, customer['id']))
@@ -702,6 +710,7 @@ def save_invoice_into_database():
 
         # Prepare bill data for database
         bill_data = {
+            'billno':billno,
             'customer_id': customer['id'],
             'delivery_mode': delivery_mode,
             'grand_total': grand_total,
@@ -730,10 +739,10 @@ def save_invoice_into_database():
 
                     if not response['success']:
                         sales.close_connection()
-                        return jsonify({'error': response['error']}), 500
+                        return jsonify({'success': False,'error': response['error']}), 200
 
             else:
-                return jsonify({'error': result}), 500
+                return jsonify({'success': False,'error': result}), 200
 
             sales.close_connection()
 
@@ -744,13 +753,13 @@ def save_invoice_into_database():
                 'invoice_id' : result['invoice_id']
             }), 200
         else:
-            return jsonify({'error': 'Database Error!'}), 500
+            return jsonify({'success': False,'error': 'Database Error!'}), 200
 
     except Exception as e:
         print(f"Error saving invoice: {e}")
         import traceback
         print(traceback.print_exc())
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False,'error': str(e)}), 200
 
 
 @sales_bp.route('/sales/download_invoice_pdf/<string:invoice_id>', methods=['GET'])
@@ -1252,7 +1261,7 @@ def generate_bill_pdf(invoice_id):
             mimetype='application/pdf'
         )
 
-    except Exception as e:
+    except Exception as e:  
         import traceback
         print(f"Error generating PDF: {traceback.print_exc()}")
         return jsonify({'error': 'Invoice Not Found!'}), 500
@@ -1281,6 +1290,51 @@ class MyOrders:
             return []
 
         return additional_charges
+
+    def my_orders_tracking_status(self, data):
+
+        for item in data:
+
+            # change created_at date formate
+            item['created_at'] = item['created_at'].strftime(
+                "%d/%m/%Y %I:%M %p")
+            
+            # passed tracking status with date
+            trackingStatus = 0
+
+            if item['sales_proceed_for_packing']:
+                trackingStatus = 1
+
+                if item['payment_confirm_status']:
+                    trackingStatus = 2
+
+                    if item['packing_proceed_for_transport']:
+                        trackingStatus = 3
+
+                        if item['transport_proceed_for_builty']:
+                            trackingStatus = 4
+
+                            if item['builty_received']:
+                                trackingStatus = 5
+
+                                if item['verify_by_manager']:
+                                    trackingStatus = 6
+
+            item.pop('verify_by_manager')
+            item.pop('builty_received')
+            item.pop('transport_proceed_for_builty')
+            item.pop('packing_proceed_for_transport')
+            item.pop('payment_confirm_status')
+            item.pop('sales_proceed_for_packing')
+
+            item['trackingStatus'] = trackingStatus
+
+
+
+
+
+
+        return data
 
     def merge_orders_products(self, data):
 
@@ -1376,11 +1430,44 @@ class MyOrders:
         return list(merged.values())
 
     def fetch_my_orders(self, user_id):
-        query = f"""
-            SELECT 
+        query = """
 
+            SELECT 
                 inv.id,
                 inv.invoice_number,
+                inv.created_at,
+                lot.sales_proceed_for_packing,
+                lot.packing_proceed_for_transport,
+                lot.transport_proceed_for_builty,
+                lot.builty_received,
+                lot.payment_confirm_status,
+                lot.verify_by_manager
+
+            FROM invoices inv
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+
+            WHERE inv.invoice_created_by_user_id = %s
+            AND lot.cancel_order_status = 0
+            AND lot.sales_proceed_for_packing = 1
+            AND inv.completed = 0
+            ORDER BY inv.created_at DESC;
+
+        """
+
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+
+        if not all_order_data:
+            return []
+
+        my_orders = self.my_orders_tracking_status(all_order_data)
+        return my_orders
+
+    def fetch_order_details(self, invoiceNumber):
+        query = """
+
+            SELECT 
+                inv.id,
                 inv.customer_id,
                 inv.grand_total,
                 inv.payment_mode,
@@ -1456,14 +1543,16 @@ class MyOrders:
             LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
             LEFT JOIN users upay ON lot.payment_verify_by = upay.id 
 
-            WHERE inv.invoice_created_by_user_id = %s
+            WHERE 
+            inv.invoice_number = %s
             AND lot.cancel_order_status = 0
             AND lot.sales_proceed_for_packing = 1
             AND inv.completed = 0
-            ORDER BY inv.created_at DESC; 
+            ORDER BY inv.created_at DESC;
+
         """
 
-        self.cursor.execute(query, (user_id,))
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
 
         if not all_order_data:
@@ -1476,7 +1565,7 @@ class MyOrders:
             charges = self.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        return merged_orders
+        return merged_orders[0]
 
     def fetch_ready_to_go_orders(self, user_id):
         query = f"""
@@ -1785,6 +1874,39 @@ def sales_my_orders_list():
         return jsonify(orders)
 
     except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@sales_bp.route('/sales/invoice-detailes/<invoiceNumber>', methods=['GET'])
+def sales_order(invoiceNumber):
+    """
+    Fetch the list of orders for the logged-in sales user.
+    """
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = MyOrders()
+        orders = my_orders.fetch_order_details(invoiceNumber)
+        my_orders.close()
+        if not orders:
+            return jsonify([]), 200
+
+        return jsonify(orders)
+
+    except Exception as e:
+        import traceback
+        print(traceback.print_exc())
         print(f"Error fetching orders: {e}")
         return jsonify({'error': 'Failed to fetch orders'}), 500
 

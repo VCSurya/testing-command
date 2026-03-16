@@ -1604,92 +1604,15 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        async function renderInvoices(invoices) {
-            const list = document.getElementById('invoiceList');
-            list.innerHTML = '';
-            if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = `
-                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" style="margin:0 auto 12px;">
-                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
-                </li>
-                `;
-                return;
-            }
-            invoices.forEach((inv, idx) => {
-                // Ensure products is always an array
-                const products = Array.isArray(inv.products) ? inv.products : [];
-                const charges = Array.isArray(inv.charges) ? inv.charges : [];
+        const invoiceCache = {};
 
-                // Map backend fields to frontend expected fields
-                const invoiceObj = {
-                    main_id: inv.id,
-                    number: inv.invoice_number,
-                    date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.mobile,
-                    customer_address: inv.address,
-                    delivery_mode: inv.delivery_mode,
-                    gst_included: inv.gst_included,
-                    transport_company_name: inv.transport_company_name,
-                    products: products,
-                    charges: charges,
-                    payment_status: inv.payment_confirm_status === 1 || inv.status === 'Paid' ? 'Paid' : 'Pending',
-                    trackingStatus: (typeof inv.trackingStatus !== 'undefined') ? inv.trackingStatus : 0, // TODO: Map from backend
-                    grand_total: inv.grand_total,
-                    amount_paid: inv.paid_amount,
-                    left_to_paid: inv.left_to_paid,
-                    payment_mode: inv.payment_mode,
-                    payment_note: inv.payment_note,
-                    sales_note: inv.sales_note,
-                    trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id,
-                    transport_name: inv.transport_name,
-                    transport_city: inv.transport_city,
-                    transport_days: inv.transport_days,
-                    transport_pincode: inv.transport_pincode,
-                    payu_name: inv.payu_name,
-                    bu_name: inv.bu_name,
-                    tu_name: inv.tu_name,
-                    pu_name: inv.pu_name
-                };
-                const li = document.createElement('li');
-                li.className = 'invoice-item';
-                li.innerHTML = `
-                    <div class="invoice-header">
-                        <span>❑ ${invoiceObj.main_id}</span>
-                        <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
+        function buildInvoiceDetails(invoiceObj) {
 
-                            <div class="invoice-actions">
+            const products = Array.isArray(invoiceObj.products) ? invoiceObj.products : [];
+            const charges = Array.isArray(invoiceObj.charges) ? invoiceObj.charges : [];
 
-                                <button class="glass-btn" title="Download PDF" onclick="
-                                        event.stopPropagation();
-                                        window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
-                                    ">
-                                    <!-- PDF File Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
-                                    </svg>
-                                </button>
-
-                                
-                                ${invoiceObj.trackingStatus < 2 ? ` 
-
-                                    <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>   
-                                    
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="invoice-details">
+            return `
+                     <div class="invoice-details">
                         <div id="invoice_date_2" ><strong> Date:</strong> 
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
@@ -1704,16 +1627,15 @@
                         </div>
                     
                     
-                    ${invoiceObj.trackingStatus < 2 ? `
                     
-                    ${invoiceObj.amount_paid === invoiceObj.grand_total
+                    ${invoiceObj.paid_amount === invoiceObj.grand_total
                             ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--success-green); font-weight: 600;">Paid</span>
                                 </div>
                             `
-                            : invoiceObj.amount_paid > 0
+                            : invoiceObj.paid_amount > 0
                                 ? `
                                 <div>
                                 <strong>Payment Status:</strong>
@@ -1728,17 +1650,6 @@
                             `
                         }
                     
-                    ` : `
-                    
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                </div>
-
-                    `}
-
-                    
-
                         
                     ${invoiceObj.delivery_mode === 'transport' ? `
                         <div title="${invoiceObj.delivery_mode}">
@@ -1891,9 +1802,7 @@
                         
                         <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
                         
-                        ${invoiceObj.trackingStatus < 2 ? `
-                         
-                        ${invoiceObj.amount_paid === invoiceObj.grand_total
+                        ${invoiceObj.paid_amount === invoiceObj.grand_total
                             ? `
                                 <div class="amounts-container3">
                                     <div style="color: var(--success-green);">
@@ -1902,12 +1811,12 @@
                                     </div>
                                 </div>
                             `
-                            : invoiceObj.amount_paid > 0
+                            : invoiceObj.paid_amount > 0
                                 ? `
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
                                     <div style="color: var(--warning);">
                                         <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()} (${invoiceObj.payment_mode
+                                        ₹${invoiceObj.paid_amount.toLocaleString()} (${invoiceObj.payment_mode
                                     ? invoiceObj.payment_mode
                                         .replace(/_/g, ' ')                 // replace underscores
                                         .toLowerCase()                      // make all lowercase
@@ -1947,15 +1856,7 @@
                                     </div>
                                 </div>
                             `
-                        }` : `
-                        
-                            <div class="amounts-container3">
-                                <div style="color: var(--success-green);">
-                                    <strong>Grand Total:</strong>
-                                    ₹${invoiceObj.grand_total.toLocaleString()}
-                                </div>
-                            </div>
-                        `}
+                        }
 
 
                         </div>
@@ -1978,18 +1879,99 @@
                         </div
 
                     </div>
+    `;
+        }
 
+        async function renderInvoices(invoices) {
+            const list = document.getElementById('invoiceList');
+            list.innerHTML = '';
+
+            invoices.forEach(inv => {
+
+                const li = document.createElement('li');
+                li.className = 'invoice-item';
+
+                li.innerHTML = `
+                    <div class="invoice-header" data-id="${inv.invoice_number}">
+                        <span>❑ ${inv.id}</span>
+                        <div class="invoice-id-row">
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${inv.created_at}</span>
+
+                            <div class="invoice-actions">
+
+                                <button class="glass-btn" title="Download PDF" onclick="
+                                        event.stopPropagation();
+                                        window.open('${window.location.origin}/sales/download_invoice_pdf/${inv.invoice_number}', '_blank');
+                                    ">
+                                    <!-- PDF File Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
+                                    </svg>
+                                </button>
+
+                                ${inv.trackingStatus < 2 ? ` 
+
+                                    <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${inv.invoice_number}','${inv.id}', this)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>   
+                                    
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="invoice-details">
+                        <div class="loading">Loading...</div>
+                    </div>
                 `;
-                li.querySelector('.invoice-header').addEventListener('click', function () {
-                    document.querySelectorAll('.invoice-item').forEach(item => {
-                        if (item !== li) item.classList.remove('active');
-                    });
+
+                const header = li.querySelector('.invoice-header');
+
+                header.addEventListener('click', async function () {
+
+                    document.querySelectorAll('.invoice-item')
+                        .forEach(item => {
+                            if (item !== li) item.classList.remove('active');
+                        });
+
                     li.classList.toggle('active');
+
+                    const invoiceNumber = this.dataset.id;
+
+                    const detailContainer = li.querySelector('.invoice-details');
+
+                    // already loaded
+                    if (invoiceCache[invoiceNumber]) {
+                        detailContainer.innerHTML = invoiceCache[invoiceNumber];
+                        return;
+                    }
+
+                    // show loader
+                    detailContainer.innerHTML = "Loading...";
+
+                    try {
+
+                        const res = await fetch(`/sales/invoice-detailes/${invoiceNumber}`);
+                        const data = await res.json();
+
+                        const html = buildInvoiceDetails(data);
+
+                        invoiceCache[invoiceNumber] = html;
+
+                        detailContainer.innerHTML = html;
+
+                    } catch (err) {
+                        detailContainer.innerHTML = "Failed to load invoice";
+                    }
+
                 });
+
                 list.appendChild(li);
             });
         }
-
+        
         async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');

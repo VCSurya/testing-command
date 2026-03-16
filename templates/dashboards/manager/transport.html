@@ -877,8 +877,6 @@
                         <option value="2">Pincode</option>
                         <option value="1">Name</option>
                         <option value="3">City</option>
-                        <option value="4">Charges</option>
-                        <option value="5">Days</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -896,8 +894,6 @@
                         <th>Name</th>
                         <th>Pincode</th>
                         <th>City</th>
-                        <th>Charges (₹)</th>
-                        <th>Days</th>
                         <th>Created By</th>
                         <th>Updated By</th>
                         <th>Actions</th>
@@ -932,14 +928,6 @@
                             <label class="form-label">Pincode</label>
                             <input type="number" class="form-control" name="pincode" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Charges</label>
-                            <input type="number" class="form-control" name="charges" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Days</label>
-                            <input type="number" class="form-control" name="days" required>
-                        </div>
                     </form>
                 </div>
                 <div class="modal-footer" style="display: flex; justify-content: space-between;">
@@ -972,14 +960,6 @@
                         <div class="mb-3">
                             <label class="form-label">Pincode</label>
                             <input type="number" class="form-control" name="pincode" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Charges</label>
-                            <input type="number" class="form-control" name="charges" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Days</label>
-                            <input type="number" class="form-control" name="days" required>
                         </div>
                     </form>
                 </div>
@@ -1023,8 +1003,6 @@
                     { data: 'name' },
                     { data: 'pincode' },
                     { data: 'city' },
-                    { data: 'charges' },
-                    { data: 'days' },
                     { data: 'created_by' },
                     { data: 'updated_by' },
                     {
@@ -1095,8 +1073,6 @@
                     name: $('input[name="name"]').val(),
                     pincode: $('input[name="pincode"]').val(),
                     city: $('input[name="city"]').val(),
-                    charges: $('input[name="charges"]').val(),
-                    days: $('input[name="days"]').val(),
                 };
 
                 $.ajax({
@@ -1148,9 +1124,7 @@
                 $('#editUserForm input[name="id"]').val(rowData.id);
                 $('#editUserForm input[name="name"]').val(rowData.name);
                 $('#editUserForm input[name="city"]').val(rowData.city);
-                $('#editUserForm input[name="charges"]').val(rowData.charges);
                 $('#editUserForm input[name="pincode"]').val(rowData.pincode);
-                $('#editUserForm input[name="days"]').val(rowData.days);
                 $('#editUserModal').modal('show');
 
             });
@@ -1165,9 +1139,7 @@
                 const formData = {
                     name: $('#editUserForm input[name="name"]').val(),
                     city: $('#editUserForm input[name="city"]').val(),
-                    charges: $('#editUserForm input[name="charges"]').val(),
                     pincode: $('#editUserForm input[name="pincode"]').val(),
-                    days: $('#editUserForm input[name="days"]').val(),
                 };
 
                 $.ajax({

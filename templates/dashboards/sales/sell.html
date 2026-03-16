@@ -1694,6 +1694,40 @@
                     <div class="billing-container">
                         <form id="billingForm">
 
+                            <!-- Enter Bill Number -->
+                            <div class="form-group" id="section">
+                                <div class="section-header">
+                                    <span for="enterBillno" class="text-xl">❑</span>
+                                    BILLNO
+                                </div>
+                                <br>
+                                <div class="space-y-1">
+                                    <div class="relative">
+                                        <input 
+                                            type="text"
+                                            id="enterBillno"
+                                            name="billno"
+                                            placeholder="Example : 4019"
+                                            inputmode="numeric"
+                                            pattern="[0-9]*"
+                                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                                            class="w-full pl-10 pr-4 py-3 
+                                                bg-gradient-to-br from-slate-50 to-indigo-50
+                                                border border-slate-200 
+                                                rounded-xl
+                                                focus:ring-2 focus:ring-indigo-500 
+                                                focus:border-indigo-500
+                                                outline-none 
+                                                transition-all duration-300
+                                                text-lg font-semibold tracking-wider
+                                                shadow-sm hover:shadow-md"
+                                            autocomplete="off"
+                                        >
+                                    </div>
+                                    <hr class="border-slate-100">
+                                </div>
+                            </div>
+
                             <!-- Customer Information -->
                             <div class="form-group" id="section">
                                 <div class="section-header">
@@ -3835,6 +3869,13 @@
                     return;
                 }
 
+                var billno = document.getElementById('enterBillno').value;
+                
+                if (!billno || billno === "" || billno === "N/A") {
+                    alert('Please Enter Bill Number.'+ billno);
+                    return;
+                }
+
                 var customerId = document.getElementById('selectedMobile').textContent;
 
                 if (!customerId || customerId === "" || customerId === "N/A") {
@@ -3890,7 +3931,7 @@
                         return response.json(); // Expecting JSON response with invoice_number
                     })
                     .then(data => {
-                        if (data.success && data.invoice_number) {
+                        if (data.success) {
 
                             document.getElementById('popupCloseBtnRelode').value = "true"; // Explicitly as a string
                             printPopupModalLabel.textContent = 'Invoice Generated Successfully';
@@ -3927,14 +3968,13 @@
                             modalFooter.style.display = 'none';
                             responseContent.innerHTML = `
                             <div class="alert alert-danger">
-                                Failed To Save Invoice.
+                                ${data.error}
                             </div>`;
                         }
                     })
                     .catch(error => {
                         printPopupModalLabel.textContent = 'Failed To Generate Invoice';
                         popupCloseBtn.disabled = false;
-                        console.error('Error:', error);
                         loadingDots.style.display = 'none';
                         responseContent.style.display = 'block';
                         modalFooter.style.display = 'none';
