@@ -1586,7 +1586,7 @@
                 </div>
             </div>
             <h2 class="text-2xl font-bold text-slate-800 mb-2">Process Failed</h2>
-            <p class="text-slate-600 mb-8 leading-relaxed">We encountered an error while starting the shipment process.
+            <p class="text-slate-600 mb-8 leading-relaxed" id="errorMsg">We encountered an error while starting the shipment process.
             </p>
             <button onclick="closePopups()"
                 class="w-full bg-rose-500 text-white font-semibold py-3 rounded-xl hover:bg-rose-600 transition-colors">Try
@@ -1890,7 +1890,7 @@
             });
         }
 
-        function showStatus(type) {
+        function showStatus(type,msg) {
             const successOverlay = document.getElementById('successOverlay');
             const failedOverlay = document.getElementById('failedOverlay');
             const failedCard = document.getElementById('failedCard');
@@ -1899,6 +1899,7 @@
                 successOverlay.classList.add('active');
                 createConfetti();
             } else {
+                document.getElementById('errorMsg').textContent = msg;
                 failedOverlay.classList.add('active');
                 failedCard.classList.remove('animate-shake');
                 void failedCard.offsetWidth;
@@ -1950,7 +1951,6 @@
             updateStep(1, "Verifying...");
             setTimeout(() => updateStep(2, "Preparing..."), 800);
             setTimeout(() => updateStep(3, "Updating..."), 1600);
-            setTimeout(() => updateStep(4, "Finalizing..."), 3200);
 
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -1964,13 +1964,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber })
                 });
+                
+                const data = await response.json();
 
                 if (!response.ok) {
-                    showStatus('failed');
+                    showStatus('failed',data.error);
                     return;
                 }
-
-                const data = await response.json();
 
                 // ✅ NOW this truly waits
                 await fetchInvoices();
@@ -1987,7 +1987,7 @@
                 }, 2500);
 
             } catch (err) {
-                showStatus('failed');
+                showStatus('failed',err);
                 console.error("Error:", err);
             }
         }

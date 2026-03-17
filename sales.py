@@ -235,7 +235,7 @@ class Sales:
     def add_invoice_detail(self, invoice_data):
 
         if not self.conn:
-            return "Database connection is not available."
+            return {"success": False,'error': "Database connection is not available."}
 
         try:
             cursor = self.conn.cursor()
@@ -280,7 +280,7 @@ class Sales:
             cursor.execute(insert_invoice_query, invoice_values)
             invoice_id = cursor.lastrowid
 
-            # Step 3: Insert invoice_items
+            # Step 3: Insert invoice_items and update the stock
             insert_item_query = """
                 INSERT INTO invoice_items (
                     invoice_id, product_id, quantity, price, total_amount,
@@ -328,12 +328,35 @@ class Sales:
                 cursor.execute(insert_charges_query, item_values)
 
             self.conn.commit()
-            return {"invoice_id": invoice_id, "invoice_number": invoice_number}
+            return {"success": True,"invoice_id": invoice_id, "invoice_number": invoice_number}
 
-        except mysql.connector.Error as e:
+        except Exception as e:
             self.conn.rollback()
-            return f"Error: {str(e)}"
-            
+            import traceback
+            print(traceback.print_exc())
+            return {"success": False,'error': str(e)}
+
+    def check_stock(self,products):
+        
+        if not self.data_base_connection_check():
+            return {"success": False,'error': 'Database Error!'}
+        cursor = self.conn.cursor(dictionary=True)
+        
+        try:
+            for product in products:
+                cursor.execute(F"SELECT id FROM `products` WHERE quantity >= {product[1]} and id = {product[0]};")
+                exist_stock = cursor.fetchone()
+                if not exist_stock:
+                    return {
+                        "success": False,
+                        "error": "Some products in your cart are out of stock. Please add all items again."
+                    }
+
+            return {"success":True}
+
+        except Exception as e:
+            return {"success": False,'error': str(e)}
+
     def close_connection(self):
         # Close the database connection if it exists
         if self.conn:
@@ -542,7 +565,7 @@ def get_products_input(input):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(f"SELECT id,name,selling_price as price FROM products WHERE name LIKE '%{input}%' LIMIT 30")
+        cursor.execute(f"SELECT id,name,selling_price as price, quantity FROM products WHERE name LIKE '%{input}%' LIMIT 30")
         products = cursor.fetchall()
         return jsonify(products)
     except Exception as e:
@@ -624,7 +647,7 @@ def save_invoice_into_database():
         delivery_mode = request.form.get('delivery_mode')
         transport_id = request.form.get('transport_id')
         payment_mode = request.form.get('payment_mode')
-        payment_type = request.form.get('payment_type')
+        # payment_type = request.form.get('payment_type')
         paid_amount = float(request.form.get('paid_amount', 0))
         grand_total = float(request.form.get('grand_total', 0))
         sales_note = request.form.get('sales_note', '')
@@ -708,6 +731,12 @@ def save_invoice_into_database():
                 f"{total_amount:.0f}"
             ])
 
+
+        stock = sales.check_stock(product_data_for_sql_table) 
+
+        if not stock['success']:
+            return jsonify(stock), 200
+            
         # Prepare bill data for database
         bill_data = {
             'billno':billno,
@@ -730,7 +759,7 @@ def save_invoice_into_database():
         # Save to database
         if sales.data_base_connection_check():
             result = sales.add_invoice_detail(bill_data)
-            if result['invoice_id']:
+            if result.get("success"):
 
                 if bill_data['completed'] == 0:
                     # Insert into live order track
@@ -1691,7 +1720,7 @@ class MyOrders:
         except Exception as e:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
-
+                
     def start_shipment(self, invoiceNumber):
         try:
 
@@ -1699,6 +1728,7 @@ class MyOrders:
             select_query = """
 
                 SELECT
+                    i.id as invId,
                     lot.id,
                     i.delivery_mode,
                     i.left_to_paid,
@@ -1713,6 +1743,7 @@ class MyOrders:
             """
             self.cursor.execute(select_query, (invoiceNumber,))
             result = self.cursor.fetchone()
+            invId = result['invId']
             live_order_track_id = result['id'] if result else None
             delivery_mode = result['delivery_mode'] if result else None
             payment_mode = result['payment_mode'] if result else None
@@ -1727,12 +1758,8 @@ class MyOrders:
                     WHERE id = %s;
                 """
                 self.cursor.execute(update_query, (live_order_track_id,))
-                self.conn.commit()
 
             else:
-                payment_verify_by = user_id if left_to_paid == 0 else None
-                payment_date_time = "NOW()" if left_to_paid == 0 else None
-                payment_confirm_status = 1 if left_to_paid == 0 else 0
                 left_to_paid_mode = payment_mode if left_to_paid == 0 else "not_paid"
 
                 # Construct query with placeholders
@@ -1759,10 +1786,35 @@ class MyOrders:
                     left_to_paid_mode,
                     live_order_track_id
                 ))  
-                print('DONE',update_query)
-                self.conn.commit()
 
-            
+            # update stocks
+            fetch_products = "SELECT product_id,quantity FROM `invoice_items` WHERE invoice_id = %s" 
+            self.cursor.execute(fetch_products, (invId,))
+            products = self.cursor.fetchall()
+            for product in products:
+                query = """
+                    UPDATE products
+                    SET quantity = quantity - %s
+                    WHERE id = %s
+                    AND quantity >= %s
+                """
+                values = (
+                    product['quantity'],
+                    product['product_id'],
+                    product['quantity']
+                )
+
+                self.cursor.execute(query, values)
+
+                # 🔴 IMPORTANT CHECK
+                if self.cursor.rowcount == 0:
+                    self.conn.rollback()
+                    return {
+                        "success": False,
+                        "error": f"Insufficient stock!"
+                    }
+
+            self.conn.commit()
             return {"success": True, "message": "Order successfully shipped"}
 
         except Exception as e:
@@ -1932,10 +1984,10 @@ def start_shipment():
         if response['success']:
             return jsonify({"success": True, "message": 'Order Successfully Shipped!'}), 200
 
-        return jsonify({'success': False, 'message': 'Shipment Failed: Something Went Wrong!'}), 500
+        return jsonify(response), 500
 
     except Exception as e:
-        return jsonify({'success': False, 'message': 'Shipment Failed: Something Went Wrong!'}), 500
+        return jsonify({'success': False, 'message': f'Shipment Failed: {str(e)}'}), 500
 
 
 @sales_bp.route('/sales/my-ready-to-go-orders-list', methods=['GET'])

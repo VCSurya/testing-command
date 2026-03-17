@@ -4,6 +4,7 @@ import mysql.connector
 from datetime import datetime
 import pytz
 from collections import defaultdict
+from decimal import Decimal
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -1450,6 +1451,7 @@ def get_products_data():
             p.name,
             p.purchase_price,
             p.selling_price,
+            p.quantity,
             u1.name AS created_by,
             u2.name AS updated_by
 
@@ -1541,6 +1543,46 @@ def update_product(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Product details updated successfully'})
     except mysql.connector.Error as err:
+        print(err)
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+@manager_bp.route('/manager/products/<int:user_id>/update-stock', methods=['PUT'])
+@login_required('Manager')
+def update_product_stock(user_id):
+    data = request.json
+    
+    qty = data.get('qty')
+    price = data.get('price')
+
+    updated_by = session.get('user_id')  # Get current user's username from session
+    
+    # Validate required fields
+    if not all([qty, price]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    
+    if int(qty) <= 0 and int(price) <= 0:
+        return jsonify({'success': False, 'message': 'Required valid input'})
+
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        # Update user in database
+        cursor.execute("""
+            UPDATE products
+            SET quantity = quantity + %s, purchase_price = %s,updated_by = %s, updated_at = NOW()
+            WHERE id = %s AND active = 1;
+        """, (qty,price,updated_by, user_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Product stock updated successfully'})
+    
+    except Exception as err:
         print(err)
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     finally:
