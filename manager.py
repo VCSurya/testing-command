@@ -1556,6 +1556,7 @@ def update_product_stock(user_id):
     
     qty = data.get('qty')
     price = data.get('price')
+    note = data.get('note')
 
     updated_by = session.get('user_id')  # Get current user's username from session
     
@@ -1579,11 +1580,67 @@ def update_product_stock(user_id):
             SET quantity = quantity + %s, purchase_price = %s,updated_by = %s, updated_at = NOW()
             WHERE id = %s AND active = 1;
         """, (qty,price,updated_by, user_id))
+
+        cursor.execute("""
+            INSERT INTO stock_transactions 
+            (product_id, type, quantity, note, created_by)
+            VALUES 
+            (%s, 'IN', %s, %s, %s);
+        """, (user_id,qty, note + f' purchase_price : {price}',updated_by))
+        
         conn.commit()
         return jsonify({'success': True, 'message': 'Product stock updated successfully'})
     
     except Exception as err:
         print(err)
+        conn.rollback()
+        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@manager_bp.route('/manager/products/<int:user_id>/update-wastage-stock', methods=['PUT'])
+@login_required('Manager')
+def update_product_wastage_stock(user_id):
+    data = request.json
+    
+    qty = data.get('qty')
+    reason = data.get('reason')
+
+    updated_by = session.get('user_id')  # Get current user's username from session
+    
+    # Validate required fields
+    if not all([qty, reason]):
+        return jsonify({'success': False, 'message': 'Required fields are missing'})
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        # Update user in database
+        cursor.execute("""
+            UPDATE products
+            SET quantity = quantity - %s,updated_by = %s, updated_at = NOW()
+            WHERE id = %s AND active = 1 AND quantity >= %s ;
+        """, (qty,updated_by, user_id,qty))
+
+        cursor.execute("""
+            INSERT INTO stock_transactions 
+            (product_id, type, quantity, note, created_by)
+            VALUES 
+            (%s, 'OUT', %s, %s, %s);
+        """, (user_id,qty, reason,updated_by))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Product stock updated successfully'})
+    
+    except Exception as err:
+        print(err)
+        conn.rollback()
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     finally:
         cursor.close()

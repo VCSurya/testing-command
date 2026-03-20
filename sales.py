@@ -712,12 +712,24 @@ def save_invoice_into_database():
             tax_rate = 18
 
         product_data_for_sql_table = []
+
         for product in products:
-            qty = product['quantity']
+            # Validate quantity
+            qty_raw = product.get('quantity')
+
+            try:
+                qty = int(qty_raw)
+                if qty <= 0:
+                    return jsonify({'success': False,'error': 'Invalid Quantity!'}), 200
+
+            except (ValueError, TypeError):
+                return jsonify({'success': False,'error': "Invalid Quantity!"}), 200
+
             rate = float(product['finalPrice'])
 
             # Calculate the original amount (before GST)
             original_amount = rate / (1 + tax_rate / 100)
+
             # Calculate the GST amount
             gst_amount = rate - original_amount
             tax_amount = float(f"{gst_amount:.2f}")
@@ -1656,6 +1668,8 @@ class MyOrders:
             return []
 
         # Merge products into orders
+
+        print(all_order_data)
         merged_orders = self.merge_orders_products(all_order_data)
         
         for invoice_id in merged_orders:
@@ -2015,6 +2029,8 @@ def sales_my_ready_to_go_orders_list():
 
     except Exception as e:
         print(f"Error fetching orders: {e}")
+        import traceback
+        print(traceback.print_exc())
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
     finally:
@@ -2251,16 +2267,34 @@ class Canceled_Orders:
 
     def confirm_canceled_order(self, id):
 
-        query = """
-                UPDATE cancelled_orders
-                SET confirm_by_saler = 1,confirm_at = NOW()
-                WHERE id = %s;
-        """
         try:
 
-            self.cursor.execute(query, (id,))
-            self.conn.commit()
+            # update stocks
+            fetch_products = "SELECT product_id,quantity FROM `invoice_items` WHERE invoice_id = (SELECT invoice_id from cancelled_orders WHERE id = %s);" 
+            self.cursor.execute(fetch_products, (id,))
+            products = self.cursor.fetchall()
 
+            for product in products:
+                query = """
+                    UPDATE products
+                    SET quantity = quantity + %s
+                    WHERE id = %s
+                """
+                values = (
+                    product['quantity'],
+                    product['product_id']
+                )
+
+                self.cursor.execute(query, values)
+
+            query = """
+                    UPDATE cancelled_orders
+                    SET confirm_by_saler = 1,confirm_at = NOW()
+                    WHERE id = %s;
+            """
+            self.cursor.execute(query, (id,))
+
+            self.conn.commit()
             return {"success": True}
 
         except Exception as e:

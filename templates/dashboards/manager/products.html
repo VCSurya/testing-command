@@ -1020,6 +1020,17 @@
                             placeholder-gray-500" placeholder="0.00">
                         </div>
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">
+                            Note:
+                        </label>
+                        <div class="relative">
+                            <textarea id="purchase-note" class="w-full pl-7 pr-3 py-2 bg-gray-800 border border-gray-700 text-gray-100 rounded-lg 
+                            focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none 
+                            placeholder-gray-500" placeholder="Enter note here..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Footer -->
@@ -1306,6 +1317,7 @@
                 document.getElementById('ProductName').innerText = rowData.name;
                 document.getElementById('PurchaseProductId').value = rowData.id;
                 document.getElementById('purchase-qty').value = 0;
+                document.getElementById('purchase-note').value = "";
                 document.getElementById('purchase-price').value = 0;
                 $('#PurchaseModal').modal('show');
 
@@ -1320,6 +1332,7 @@
                 const userId = document.getElementById('PurchaseProductId').value;
                 const qty = document.getElementById('purchase-qty').value;
                 const price = document.getElementById('purchase-price').value;
+                const note = document.getElementById('purchase-note').value.trim();
 
                 // Validation
                 if (qty === '' || isNaN(qty) || qty <= 0) {
@@ -1336,7 +1349,7 @@
                     url: `/manager/products/${userId}/update-stock`,
                     method: 'PUT',
                     contentType: 'application/json',
-                    data: JSON.stringify({ qty: qty, price: price }),
+                    data: JSON.stringify({ qty: qty, price: price,note:note }),
 
                     success: function (response) {
 
@@ -1379,6 +1392,7 @@
                 document.getElementById('WastageProductName').innerText = rowData.name;
                 document.getElementById('WastageProductId').value = rowData.id;
                 document.getElementById('wastage-qty').value = 0;
+                document.getElementById('wastage-qty').max = rowData.quantity;
                 document.getElementById('wastage-reason').value = "";
                 $('#WastageModal').modal('show');
 
@@ -1391,6 +1405,7 @@
                 document.getElementById("loader").classList.remove("hidden");
 
                 const userId = document.getElementById('WastageProductId').value;
+                const qty_max = document.getElementById('wastage-qty').max;
                 const qty = document.getElementById('wastage-qty').value;
                 const reason = document.getElementById('wastage-reason').value.trim();
 
@@ -1405,6 +1420,12 @@
                     return; 
                 }
 
+                if(Number(qty) > Number(qty_max)){
+                    alert('Enter a valid quantity (exceeds available stock in westing).');
+                    document.getElementById("loader").classList.add("hidden");
+                    return;
+                }
+
                 $.ajax({
                     url: `/manager/products/${userId}/update-wastage-stock`,
                     method: 'PUT',
@@ -1415,7 +1436,7 @@
 
                         if (response.success) {
 
-                            $('#PurchaseModal').modal('hide');
+                            $('#WastageModal').modal('hide');
 
                             usersTable.ajax.reload(function () {
 
