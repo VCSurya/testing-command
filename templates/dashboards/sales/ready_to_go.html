@@ -2201,20 +2201,41 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            ${invoiceObj.products.map((p,index) => {
-                            const name = p && typeof p.name === 'string' ? p.name : '';
-                            const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                            ${invoiceObj.products.map((p, index) => {
+                                const name = p && typeof p.name === 'string' ? p.name : '';
+                                const qty = p && typeof p.qty === 'number' ? p.qty : 0;
 
-                            const base_price = p && typeof p.price === 'number' ? p.price : '';
-                            const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                            const total_price = base_price + tax_price;
+                                const base_price = p && typeof p.price === 'number' ? p.price : 0;
+                                const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : 0;
+                                const total_price = base_price + tax_price;
 
-                            return `<tr><td>${index + 1}. ${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                        }).join('')}
+                                // fallback: if stock not available, assume enough stock
+                                const stock = (p && typeof p.stock === 'number' && !isNaN(p.stock)) ? p.stock : qty;
+
+                                // condition for low stock
+                                const isLowStock = stock < qty;
+
+                                return `
+                                        <tr class="${isLowStock ? 'bg-red-100' : ''}">
+                                            <td>
+                                                ${index + 1}. ${name}
+                                                ${isLowStock 
+                                                    ? `<span class="ml-2 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700">
+                                                        ${stock}-In Stock
+                                                    </span>` 
+                                                    : ''
+                                                }
+                                            </td>
+                                            <td>${qty}</td>
+                                            <td>₹${total_price}</td>
+                                            <td>₹${(total_price * qty).toLocaleString()}</td>
+                                        </tr>
+                                `;
+                                }).join('')}
 
                             ${invoiceObj.charges.map(p => {
-                            return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
-                        }).join('')}
+                                return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
+                            }).join('')}
                         
                             </tbody>
                         </table>

@@ -1,1 +1,0 @@
-[{'product_id': 7, 'quantity': 1}]

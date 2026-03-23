@@ -2556,6 +2556,7 @@
 
                     const response = await fetch(`/sales/input-products/${encodeURIComponent(query)}`);
                     const products = await response.json();
+                    console.log(products);
                     renderProductDropdown(products);
 
                 } catch (error) {
@@ -2577,12 +2578,14 @@
                 if (list.length === 0) {
                     productDropdown.innerHTML = '<div class="p-4 text-slate-400 text-sm">No product found</div>';
                 } else {
-                    productDropdown.innerHTML = list.map(c => `
+                    productDropdown.innerHTML = list.map(c => {
+                    const qty = (c.stock !== undefined && !isNaN(c.stock)) ? c.stock : c.quantity;
+                    return `
                     <div 
                         data-id="${c.id}"
                         data-name="${encodeURIComponent(c.name)}"
                         data-price="${c.price}"
-                        data-quantity="${c.stock}"
+                        data-quantity="${qty}"
                         onclick="selectProducts(this)" 
                         class="p-2 sm:p-3 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-none transition-colors
                         ${c.quantity == 0
@@ -2621,7 +2624,7 @@
                         </div>
 
                     </div>
-                `).join('');
+                `;}).join('');
                 }
                 toggleLoadingHide();
                 productDropdown.classList.remove('hidden');
@@ -3402,7 +3405,7 @@
                 if (existingProductIndex !== -1) {
                     // Update the existing product
 
-                    if (selectedProducts[existingProductIndex].quantity === selectedProducts[existingProductIndex].stock) {
+                    if (selectedProducts[existingProductIndex].quantity >= selectedProducts[existingProductIndex].stock) {
                         alert(selectedProducts[existingProductIndex].stock + ' In Stock')
                         return;
                     }
@@ -3505,7 +3508,11 @@
                         const row = document.createElement('tr');
                         row.className = 'product-row';
                         row.innerHTML = `
-                        <td>${index + 1}. ${product.name}</td>
+                        <td>${index + 1}. ${product.name} 
+                            <span class="ml-2 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700">
+                                ${product.stock}-In Stock
+                            </span> 
+                        </td>
 
                         <td style="width: 15%; text-align: center;">
                             <div style="
@@ -3615,7 +3622,11 @@
                                     
                                     <div class="item-container"> 
                                         <div class="item-name-label">
-                                            <span>${index + 1}. ${product.name} </span>
+                                            <span>${index + 1}. ${product.name} 
+                                            <span class="ml-2 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-green-200 text-black-700">
+                                                ${product.stock}-In Stock
+                                            </span>     
+                                            </span>
                                             <i class="fas fa-trash" style="color:red;" onclick="removeProduct(${index})"></i>                                        
                                         </div>
 
@@ -3759,8 +3770,10 @@
             // Increase product quantity
             window.increaseQuantity = function (index) {
 
-                if (selectedProducts[index].quantity === selectedProducts[index].stock) {
-                    alert('Out Of Stock')
+                if (selectedProducts[index].quantity >= selectedProducts[index].stock) {   
+                    document.getElementById('quantity-input-'+index).value = selectedProducts[index].stock;
+                    selectedProducts[index].quantity = selectedProducts[index].stock;
+                    alert('Out Of Stock');
                     return;
                 }
 

@@ -1456,6 +1456,7 @@ class MyOrders:
                 "price": float(item["price"]),
                 "tax_amount": float(item["gst_tax_amount"]),
                 "total": float(item["total_amount"]),
+                "stock": int(item["stock"]),
             }
 
             if order_id not in merged:
@@ -1636,6 +1637,7 @@ class MyOrders:
                 ii.total_amount,
             
                 p.name,
+                p.quantity as stock,
 
                 lot.sales_proceed_for_packing,
 
@@ -1668,8 +1670,6 @@ class MyOrders:
             return []
 
         # Merge products into orders
-
-        print(all_order_data)
         merged_orders = self.merge_orders_products(all_order_data)
         
         for invoice_id in merged_orders:
@@ -2576,14 +2576,8 @@ class EditBill:
             cursor.execute("SELECT id FROM invoice_items WHERE invoice_id = %s;", (invoice_id,))
             all_old_items_ids = cursor.fetchall()
 
-            for (item_id,) in all_old_items_ids:
-                cursor.execute("DELETE FROM invoice_items WHERE id = %s;", (item_id,))
-
             cursor.execute("SELECT id FROM additional_charges WHERE invoice_id = %s;", (invoice_id,))
             all_old_charges_ids = cursor.fetchall()
-
-            for (charges_id,) in all_old_charges_ids:
-                cursor.execute("DELETE FROM additional_charges WHERE id = %s;", (charges_id,))
 
             if invoice_data['delivery_mode'] == "porter" or invoice_data['delivery_mode'] == "at_store":
                 cursor.execute("DELETE FROM live_order_track WHERE invoice_id = %s;", (invoice_id,))
@@ -2632,6 +2626,12 @@ class EditBill:
                 cursor.execute(insert_charges_query, item_values)
 
             # Step 5: Final commit
+            for (item_id,) in all_old_items_ids:
+                cursor.execute("DELETE FROM invoice_items WHERE id = %s;", (item_id,))
+            
+            for (charges_id,) in all_old_charges_ids:
+                cursor.execute("DELETE FROM additional_charges WHERE id = %s;", (charges_id,))
+
             self.conn.commit()
             return {"status": True, 'msg': "All Things Are Done!"}
         
@@ -2782,6 +2782,12 @@ def update_invoice_into_database():
                 f"{total_amount:.0f}"
             ])
 
+        sales = Sales()
+        stock = sales.check_stock(product_data_for_sql_table) 
+
+        if not stock['success']:
+            return jsonify(stock), 200
+
         # Prepare bill data for database
         bill_data = {
             'invoice_id': invoice_id,
@@ -2800,6 +2806,8 @@ def update_invoice_into_database():
             'event_id': event_id,
             'completed': 0,
         }
+        
+        print(product_data_for_sql_table)
 
         # Save to database
         update = EditBill()
