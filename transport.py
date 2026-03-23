@@ -42,8 +42,7 @@ class TransportModel:
                		AND packing_proceed_for_transport = 1 
                		AND payment_confirm_status = 1
       		   		AND transport_proceed_for_builty = 0	
-                    AND transport_lock = 1 
-                    AND transport_proceed_by = {user_id}	
+                    AND transport_lock = 0 	
           		THEN 1 END) AS total_my_draft_transport_order,
                   
                 -- Total Proceed Transport Order From User
@@ -278,8 +277,7 @@ class TransportModel:
                     WHERE lot.transport_proceed_for_builty = 0
                         AND inv.completed = 0
                         AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
-                        AND lot.transport_lock = 1 
-                        AND lot.transport_proceed_by = {session.get('user_id')}
+                        AND lot.transport_lock = 0
 
                     ORDER BY inv.created_at DESC;
        

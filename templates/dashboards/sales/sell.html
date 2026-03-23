@@ -1703,15 +1703,9 @@
                                 <br>
                                 <div class="space-y-1">
                                     <div class="relative">
-                                        <input 
-                                            type="text"
-                                            id="enterBillno"
-                                            name="billno"
-                                            placeholder="Example : 4019"
-                                            inputmode="numeric"
-                                            pattern="[0-9]*"
-                                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-                                            class="w-full pl-10 pr-4 py-3 
+                                        <input type="text" id="enterBillno" name="billno" placeholder="Example : 4019"
+                                            inputmode="numeric" pattern="[0-9]*"
+                                            oninput="this.value=this.value.replace(/[^0-9]/g,'')" class="w-full pl-10 pr-4 py-3 
                                                 bg-gradient-to-br from-slate-50 to-indigo-50
                                                 border border-slate-200 
                                                 rounded-xl
@@ -1720,9 +1714,7 @@
                                                 outline-none 
                                                 transition-all duration-300
                                                 text-lg font-semibold tracking-wider
-                                                shadow-sm hover:shadow-md"
-                                            autocomplete="off"
-                                        >
+                                                shadow-sm hover:shadow-md" autocomplete="off">
                                     </div>
                                     <hr class="border-slate-100">
                                 </div>
@@ -2759,8 +2751,8 @@
                         data-quantity="${c.quantity}"
                         onclick="selectProducts(this)" 
                         class="p-2 sm:p-3 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-none transition-colors
-                        ${c.quantity == 0 
-                            ? 'bg-red-50 hover:bg-red-100' 
+                        ${c.quantity == 0
+                            ? 'bg-red-50 hover:bg-red-100'
                             : 'bg-emerald-50 hover:bg-emerald-100'
                         }">
 
@@ -2784,15 +2776,14 @@
 
                         <!-- RIGHT STOCK -->
                         <div class="flex-shrink-0 ml-2">
-                            ${
-                                c.quantity == 0 
-                                ? `<span class="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700 whitespace-nowrap">
+                            ${c.quantity == 0
+                            ? `<span class="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700 whitespace-nowrap">
                                         Out of Stock
                                 </span>`
-                                : `<span class="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-emerald-200 text-emerald-700 whitespace-nowrap">
-                                        ${c.quantity} left
+                            : `<span class="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-emerald-200 text-emerald-700 whitespace-nowrap">
+                                        In Stock
                                 </span>`
-                            }
+                        }
                         </div>
 
                     </div>
@@ -2815,7 +2806,7 @@
                 const price = el.dataset.price;
                 const stock = Number(el.dataset.quantity);
 
-                if (stock <= 0){
+                if (stock <= 0) {
                     alert('Out Of Stock');
                     return;
                 }
@@ -2833,7 +2824,7 @@
                     // document.getElementById('modalIncludeGST').checked = true;
                     updateModalFinalPrice();
                 }
-                addProduct(id, name, price,stock);
+                addProduct(id, name, price, stock);
             }
 
             document.addEventListener('click', (e) => {
@@ -3213,7 +3204,7 @@
 
             // Update totals
             function updateTotals() {
-                
+
                 productTotal = selectedProducts.reduce((sum, product) => sum + product.total, 0);
                 chargesTotal = addCharges.reduce((sum, charges) => sum + charges.amount, 0);
                 grandTotal = productTotal + chargesTotal;
@@ -3331,7 +3322,7 @@
                 const chargesModal = new bootstrap.Modal(chargesModalElement);
                 chargesModal.show();
             }
-            
+
             // Show charges details modal
             function addCustomerModal() {
 
@@ -3476,6 +3467,12 @@
                 const existingProductIndex = selectedProducts.findIndex(p => p.id == id);
                 if (existingProductIndex !== -1) {
                     // Update the existing product
+
+                    if (selectedProducts[existingProductIndex].quantity === selectedProducts[existingProductIndex].stock) {
+                        alert(selectedProducts[existingProductIndex].stock + ' In Stock')
+                        return;
+                    }
+
                     selectedProducts[existingProductIndex].quantity += quantity;
                     selectedProducts[existingProductIndex].total += productTotal;
                 } else {
@@ -3577,7 +3574,7 @@
                         const row = document.createElement('tr');
                         row.className = 'product-row';
                         row.innerHTML = `
-                        <td>${index+1}. ${product.name}</td>
+                        <td>${index + 1}. ${product.name}</td>
 
                         <td style="width: 15%; text-align: center;">
                             <div style="
@@ -3689,7 +3686,7 @@
                                     
                                     <div class="item-container"> 
                                         <div class="item-name-label">
-                                            <span>${index+1}. ${product.name} </span>
+                                            <span>${index + 1}. ${product.name} </span>
                                             <i class="fas fa-trash" style="color:red;" onclick="removeProduct(${index})"></i>                                        
                                         </div>
 
@@ -3824,7 +3821,7 @@
                 if (!isNaN(inputValue) && inputValue >= 0) {
                     selectedProducts[index].quantity = inputValue;
                     selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
-                    
+
                     updateProductTable();
                     updateTotals();
                 } else {
@@ -3836,12 +3833,12 @@
 
             // Increase product quantity
             window.increaseQuantity = function (index) {
-                
+
                 if (selectedProducts[index].quantity === selectedProducts[index].stock) {
-                        alert('Out Of Stock')
-                        return;
+                    alert('Out Of Stock')
+                    return;
                 }
-                
+
                 if (selectedProducts[index]) {
                     selectedProducts[index].quantity += 1;
                     selectedProducts[index].total = selectedProducts[index].finalPrice * selectedProducts[index].quantity;
@@ -3919,9 +3916,9 @@
                 }
 
                 var billno = document.getElementById('enterBillno').value;
-                
+
                 if (!billno || billno === "" || billno === "N/A") {
-                    alert('Please Enter Bill Number.'+ billno);
+                    alert('Please Enter Bill Number.' + billno);
                     return;
                 }
 

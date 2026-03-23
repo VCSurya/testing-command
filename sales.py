@@ -2471,7 +2471,7 @@ class EditBill:
                 invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id,t.name as t_name,
                 t.pincode as t_pincode, t.city as t_city , t.days as t_days,
 
-                ip.quantity, ip.total_amount, p.name as product_name 
+                ip.quantity, ip.total_amount, p.name as product_name, p.quantity as stock 
                 FROM invoice_items ip 
                 JOIN products p ON ip.product_id = p.id 
                 JOIN invoices ON invoices.id = ip.invoice_id
@@ -2510,7 +2510,8 @@ class EditBill:
                 'product_id': item['product_id'],
                 'product_name': item['product_name'],
                 'quantity': quantity,
-                'basePrice': base_price
+                'basePrice': base_price,
+                'stock': item['stock'],
             }
 
             unified_dict['products'].append(product)

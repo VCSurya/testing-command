@@ -354,10 +354,10 @@
                         <a class="nav-link active" href="/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
-                    <li class="nav-item">
+                    <!-- <li class="nav-item">
                         <a class="nav-link " href="/transport/ready-to-go-for-transport"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
-                    </li>
+                    </li> -->
                     <li class="nav-item">
                         <a class="nav-link" href="/transport/my-transport-orders"><i
                                 class="bi bi-box-seam me-2"></i>My
@@ -400,7 +400,7 @@
                     <!-- Start: Main Reusable Dashboard Div -->
                     <div id="packing-dashboard-container">
                         <!-- Dashboard Grid -->
-                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                        <div id="stats-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
                             <!-- Stats cards will be injected here by JavaScript -->
                             <div class="col-span-full text-center py-10 text-gray-400" id="loading-indicator">
                                 <svg class="animate-spin h-6 w-6 mr-3 inline text-indigo-500"
@@ -472,13 +472,13 @@
             //     shadow: "shadow-indigo-600/60",
             //     description: "All orders dispatched for transport by you."
             // },
-            total_locked_draft_transport_order: {
-                title: "Draft Orders",
-                icon: "repeat", // Represents pending/looping process
-                color: "bg-gray-500",
-                shadow: "shadow-gray-500/60",
-                description: "Orders saved as drafts, awaiting dispatch."
-            },
+            // total_locked_draft_transport_order: {
+            //     title: "Draft Orders",
+            //     icon: "repeat", // Represents pending/looping process
+            //     color: "bg-gray-500",
+            //     shadow: "shadow-gray-500/60",
+            //     description: "Orders saved as drafts, awaiting dispatch."
+            // },
             total_my_draft_transport_order: {
                 title: "My Pending Orders",
                 icon: "truck", // Transport in progress

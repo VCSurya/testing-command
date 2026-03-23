@@ -51,8 +51,7 @@ class PackagingModel:
                         AND cancel_order_status = 0 
                         AND packing_proceed_for_transport = 0 
                         AND payment_confirm_status = 1 
-                        AND pack_lock = 1 
-                        AND packing_proceed_by = {user_id}
+                        AND pack_lock = 0
                     THEN 1 END) AS total_my_draft_packing_order,
 
                 -- Replaced Canceled orders from cancelled_orders table
@@ -263,8 +262,7 @@ class PackagingModel:
                     AND inv.completed = 0
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
                     AND lot.payment_confirm_status = 1
-                    AND lot.pack_lock = 1 
-                    AND lot.packing_proceed_by = {session.get('user_id')}
+                    AND lot.pack_lock = 0
                     ORDER BY inv.created_at DESC;                
                     
                 """
@@ -288,7 +286,7 @@ class PackagingModel:
 
     def fetch_my_packing_orders(self):
         query = f"""
-                                        SELECT
+                    SELECT
     
                         inv.id,                    
                         inv.invoice_number,
