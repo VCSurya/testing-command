@@ -70,100 +70,68 @@ class Dasebored:
 
     def get_dasebored_data(self,user_id):
         query = f"""
+       
         SELECT 
-        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0) AS total_sales_order_count,
-        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0) AS total_sales_order_sum,
-        
-        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 1 AND cancel_order_status = 0) AS completed_order_count,
-        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 1 AND cancel_order_status = 0) AS completed_order_sum,
-        
-        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 0 AND cancel_order_status = 0) AS pending_order_count,
-        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND completed = 0 AND cancel_order_status = 0) AS pending_order_sum,
-        
-        (SELECT COUNT(*) FROM live_order_track 
-            JOIN invoices ON invoices.id = live_order_track.invoice_id 
-            WHERE live_order_track.sales_proceed_for_packing = 1 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS running_order_count,
-        
-        (SELECT COUNT(*) FROM live_order_track 
-            JOIN invoices ON invoices.id = live_order_track.invoice_id      
-            WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0) AS draft_order_count,
-        
-        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id}) AS total_cancelled_orders,
-        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id} AND cancelled_orders.confirm_by_saler = 0) AS pending_cancelled_orders,
-        (SELECT COUNT(*) from invoices JOIN cancelled_orders on cancelled_orders.invoice_id = invoices.id WHERE invoices.invoice_created_by_user_id = {user_id} AND cancelled_orders.confirm_by_saler = 1) AS confirmed_cancelled_orders,
-        
-        (SELECT COUNT(*) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_count,
-        (SELECT IFNULL(SUM(grand_total), 0) FROM invoices WHERE invoice_created_by_user_id = {user_id} AND cancel_order_status = 0 AND DATE(created_at) = CURRENT_DATE()) AS today_order_sum,
-        
-        (SELECT COUNT(*) FROM live_order_track 
-            JOIN invoices ON invoices.id = live_order_track.invoice_id 
-            WHERE live_order_track.sales_proceed_for_packing = 0 AND invoices.invoice_created_by_user_id = {user_id} AND invoices.completed = 0 AND invoices.cancel_order_status = 0 AND DATE(invoices.created_at) = CURRENT_DATE()) AS today_draft_order_count,
+            COUNT(CASE 
+                WHEN lot.sales_proceed_for_packing = 1 
+                AND i.completed = 0 
+                AND i.cancel_order_status = 0 
+                THEN 1 END) AS running_order_count,
 
-        (SELECT COUNT(*) FROM live_order_track
-            JOIN invoices ON invoices.id = live_order_track.invoice_id 
-        WHERE
-            sales_proceed_for_packing = 1 
-            AND live_order_track.cancel_order_status = 0 
-            AND invoices.cancel_order_status = 0 
-            AND packing_proceed_for_transport = 1 
-            AND payment_confirm_status = 1
-            AND transport_proceed_for_builty = 1
-            AND builty_received = 0
-            AND invoices.invoice_created_by_user_id = {user_id}
-            ) AS total_draft_builty_order
+            COUNT(CASE 
+                WHEN co.confirm_by_saler = 0 
+                THEN 1 END) AS pending_cancelled_orders,
+
+            COUNT(CASE 
+                WHEN i.cancel_order_status = 0 
+                AND i.created_at >= CURRENT_DATE() 
+                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
+                THEN 1 END) AS today_order_count,
+
+            SUM(CASE 
+                WHEN i.cancel_order_status = 0 
+                AND i.created_at >= CURRENT_DATE() 
+                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
+                THEN i.grand_total ELSE 0 END) AS today_order_sum,
+
+            COUNT(CASE 
+                WHEN lot.sales_proceed_for_packing = 0 
+                AND i.completed = 0 
+                AND i.cancel_order_status = 0
+                AND i.created_at >= CURRENT_DATE() 
+                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
+                THEN 1 END) AS today_draft_order_count,
+
+            COUNT(CASE 
+                WHEN lot.sales_proceed_for_packing = 1 
+                AND lot.cancel_order_status = 0 
+                AND i.cancel_order_status = 0 
+                AND lot.packing_proceed_for_transport = 1 
+                AND lot.payment_confirm_status = 1
+                AND lot.transport_proceed_for_builty = 1
+                AND lot.builty_received = 0
+                THEN 1 END) AS total_draft_builty_order
+
+        FROM invoices i
+        LEFT JOIN live_order_track lot ON lot.invoice_id = i.id
+        LEFT JOIN cancelled_orders co ON co.invoice_id = i.id
+
+        WHERE i.invoice_created_by_user_id = {user_id};
+
         """ 
 
         try:    
             self.cursor.execute(query,)
             result = self.cursor.fetchone()
+            return jsonify({"success":True,"data":result})
+            
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"success":False,"error": str(e)})
+
         finally:
+            self.cursor.close()
             self.conn.close()
 
-        def safe_int(value):
-            return int(value) if value is not None else 0
-
-        def safe_float(value):
-            return float(value) if value is not None else 0.0
-
-        response = {
-            "total_sales_orders": {
-                "count": safe_int(result["total_sales_order_count"]),
-            },
-            "completed_orders": {
-                "count": safe_int(result["completed_order_count"]),
-                "sum": safe_float(result["completed_order_sum"])
-            },
-            "pending_orders": {
-                "count": safe_int(result["pending_order_count"]),
-                "sum": safe_float(result["pending_order_sum"])
-            },
-            "running_orders": {
-                "count": safe_int(result["running_order_count"])
-            },
-            "draft_orders": {
-                "count": safe_int(result["draft_order_count"])
-            },
-            "cancelled_orders": {
-                "total": safe_int(result["total_cancelled_orders"]),
-                "pending_confirmation": safe_int(result["pending_cancelled_orders"]),
-                "confirmed": safe_int(result["confirmed_cancelled_orders"])
-            },
-            "today_orders": {
-                "count": safe_int(result["today_order_count"]),
-                "sum": safe_float(result["today_order_sum"])
-            },
-            "today_draft_orders": {
-                "count": safe_int(result["today_draft_order_count"])
-            },
-            "total_draft_builty_order":{
-                "count": safe_int(result["total_draft_builty_order"])
-            }
-        }
-
-
-        return jsonify(response)
 
 
 
@@ -1549,6 +1517,7 @@ class MyOrders:
                 ii.created_at,
                 p.id AS products_id,
                 p.name,
+                p.quantity as stock,
                 lot.id AS live_order_track_id,
                 lot.sales_proceed_for_packing,
                 lot.sales_date_time,

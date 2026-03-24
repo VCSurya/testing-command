@@ -1,14 +1,14 @@
 import mysql.connector
 import os
 from functools import wraps
-from flask import json, jsonify, redirect, url_for, session
+from flask import json,redirect, url_for, session
 from dotenv import load_dotenv
 from base64 import b64encode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
 from base64 import b64decode
-
+from functools import wraps
 # Load environment variables
 load_dotenv()
 
@@ -33,16 +33,23 @@ def get_db_connection():
         print(f"Database connection error: {err}")
         return None
 
-def login_required(required_role=None):
+def login_required(required_roles=None):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_id' not in session:
                 return redirect(url_for('login_page'))
             
-            if required_role:
+            if required_roles:
                 user_role = session.get('role')
-                if user_role != required_role:
+                
+                # Ensure required_roles is iterable
+                if isinstance(required_roles, str):
+                    roles = [required_roles]
+                else:
+                    roles = required_roles
+                
+                if user_role not in roles:
                     return redirect(get_redirect_url(user_role))
             
             return f(*args, **kwargs)
@@ -90,23 +97,27 @@ def decrypt_password(encrypted_password):
 
 def get_invoice_id(invoice_number=None):
     connection = get_db_connection()
-    if connection:
+    if not connection:
+        return {'status': False, 'invoice_id': None}
+    try:
         cursor = connection.cursor()
         cursor.execute("SELECT id FROM invoices WHERE invoice_number = %s", (invoice_number,))
         invoice_id = cursor.fetchone()
-        cursor.close()
-        connection.close()
         if invoice_id:
             return {'status': True, 'invoice_id': invoice_id[0]}
         else:
             return {'status': False, 'invoice_id': None}
-
-    return {'status': False, 'invoice_id': None}
+    finally:
+        cursor.close()
+        connection.close()
 
 def invoice_detailes(invoice_number=None):
 
     connection = get_db_connection()
-    if connection:
+    if not connection:
+        return {'status': False, 'data': None}
+
+    try:
         cursor = connection.cursor(dictionary=True)
         
         querry_1 = """
@@ -205,7 +216,7 @@ def invoice_detailes(invoice_number=None):
                     LEFT JOIN users bu ON live_order_track.builty_proceed_by = bu.id
                     LEFT JOIN users vu ON live_order_track.verify_by_manager_id = vu.id
                     LEFT JOIN users cancelu ON cancelled_orders.cancelled_by = cancelu.id
-					LEFT JOIN transport ON invoices.transport_id = transport.id
+                    LEFT JOIN transport ON invoices.transport_id = transport.id
 
                     WHERE invoices.invoice_number = %s
                     AND live_order_track.sales_proceed_for_packing = 1;
@@ -264,17 +275,14 @@ def invoice_detailes(invoice_number=None):
             cursor.execute(querry_4, (invoice_number,))
             charges = cursor.fetchall()
 
-            cursor.close()
-            connection.close()
             return {'status': True, 'data': data,'items':items,'images':images,'charges':charges}
         else:
-            cursor.close()
-            connection.close()
             return {'status': False, 'data': None}
-
-    return {'status': False, 'data': None}
-
-
+    
+    finally:
+        cursor.close()
+        connection.close()
+        
 def delete_user_log(data):
     try:
         with open('static/delete_logs.json', 'r') as f:
