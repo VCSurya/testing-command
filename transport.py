@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, send_from_directory, session
-from packaging import UPLOAD_FOLDER
+from packing import UPLOAD_FOLDER
 from utils import get_db_connection, login_required, get_invoice_id
 from datetime import datetime
 import pytz

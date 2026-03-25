@@ -1,13 +1,16 @@
+from gevent import monkey
+monkey.patch_all()
+
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import os
 from utils import get_db_connection, login_required, encrypt_password, get_redirect_url
 from flask_cors import CORS
-from flask_socketio import SocketIO, disconnect
+from flask_socketio import SocketIO, disconnect,join_room,leave_room
 
 # import blueprints
 from manager import manager_bp
 from sales import sales_bp
-from packaging import packaging_bp
+from packing import packaging_bp
 from transport import transport_bp
 from account import account_bp
 from admin import admin_bp
@@ -17,8 +20,13 @@ CORS(app)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
 
-socketio = SocketIO(app, manage_session=False)
-user_sockets = {}
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    message_queue='redis://localhost:6379/0',
+    async_mode='gevent',
+    manage_session=False
+)
 
 # Registered blueprints
 app.register_blueprint(manager_bp)
@@ -153,29 +161,25 @@ def handle_connect():
         disconnect()
         return
 
-    if user_id in user_sockets:
-        deactivate_user(user_id)
+    # 🔥 Force logout previous sessions
+    socketio.emit('force_logout', room=str(user_id))
 
-    user_sockets[user_id] = request.sid
+    # Join user-specific room
+    join_room(str(user_id))
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
     user_id = session.get('user_id')
-
-    if user_id and user_sockets.get(user_id) == request.sid:
-        del user_sockets[user_id]
+    if user_id:
+        leave_room(str(user_id))
 
 def deactivate_user(user_id):
-    # 1. Emit logout event
-    if user_id in user_sockets:
-        socketio.emit('force_logout', to=user_sockets[user_id])
+    socketio.emit('force_logout', room=str(user_id))
 
 def deactivate_all_user():
-    # 1. Emit logout events
-    for i in list(user_sockets.values()):
-        socketio.emit('force_logout', to=i)
-
+    socketio.emit('force_logout', broadcast=True)
+    
 app.deactivate_user = deactivate_user
 app.deactivate_all_user = deactivate_all_user
 
@@ -183,3 +187,5 @@ if __name__ == '__main__':
     # app.run(debug=True,host='0.0.0.0',port=5000)  # Set debug=False in production
     socketio.run(app, debug=True,host='0.0.0.0',port=5000)
     # app.run()
+
+    # gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 4 --worker-connections 1000 --bind 0.0.0.0:5000 --timeout 60 app:app
