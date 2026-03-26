@@ -1159,37 +1159,37 @@
                 <ul class="nav flex-column">
 
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/dashboard"><i
+                        <a class="nav-link " href="/salespro/sales/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/sell"><i class="bi bi-graph-up me-2"></i>Selling</a>
+                        <a class="nav-link " href="/salespro/sales/sell"><i class="bi bi-graph-up me-2"></i>Selling</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/sales/ready-to-go-orders"><i
+                        <a class="nav-link" href="/salespro/sales/ready-to-go-orders"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My
+                        <a class="nav-link active" href="/salespro/sales/my-orders"><i class="bi bi-box-seam me-2"></i>My
                             Orders</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/cancel-orders">
+                        <a class="nav-link " href="/salespro/sales/cancel-orders">
                             <i class="bi bi-x-circle me-2"></i>Canceled
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/builty/ready-to-gos">
+                        <a class="nav-link " href="/salespro/builty/ready-to-gos">
                             <i class="bi bi-journal-text me-2"></i>Builty
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/sales/payments">
+                        <a class="nav-link " href="/salespro/sales/payments">
                             <i class="bi bi-credit-card me-2"></i>Payments
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/logout">
+                        <a class="nav-link " href="/salespro/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
                     </li>
@@ -1442,7 +1442,7 @@
 
         async function deleteInvoice(invoiceNumber) {
             try {
-                const response = await fetch(`/sales/delete_invoice/${invoiceNumber}`, { method: 'DELETE' });
+                const response = await fetch(`/salespro/sales/delete_invoice/${invoiceNumber}`, { method: 'DELETE' });
                 if (!response.ok) throw new Error('Failed to delete');
 
                 const result = await response.json();
@@ -1537,7 +1537,7 @@
 
         async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/sales/cancel_order', {
+                const response = await fetch('/salespro/sales/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
@@ -1590,7 +1590,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/sales/my-orders-list');
+                const response = await fetch('/salespro/sales/my-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1901,7 +1901,7 @@
 
                                 <button class="glass-btn" title="Download PDF" onclick="
                                         event.stopPropagation();
-                                        window.open('${window.location.origin}/sales/download_invoice_pdf/${inv.invoice_number}', '_blank');
+                                        window.open('${window.location.origin}/salespro/sales/download_invoice_pdf/${inv.invoice_number}', '_blank');
                                     ">
                                     <!-- PDF File Icon -->
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
@@ -1953,7 +1953,7 @@
 
                     try {
 
-                        const res = await fetch(`/sales/invoice-detailes/${invoiceNumber}`);
+                        const res = await fetch(`/salespro/sales/invoice-detailes/${invoiceNumber}`);
                         const data = await res.json();
 
                         const html = buildInvoiceDetails(data);
@@ -2057,11 +2057,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

@@ -398,15 +398,15 @@
 
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/dashboard"><i
+                        <a class="nav-link active" href="/salespro/dashboard"><i
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/account/verify-payment"><i
+                        <a class="nav-link " href="/salespro/account/verify-payment"><i
                                 class="bi bi-clipboard-check me-2"></i>Verify Payment</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/logout">
+                        <a class="nav-link " href="/salespro/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
                     </li>
@@ -559,7 +559,7 @@
         // Function to simulate the API call with the provided JSON data
         async function fetchPackingData() {
             // In a real application, you would replace this with:
-            const response = await fetch('/account/account-dasebored-orders');
+            const response = await fetch('/salespro/account/account-dasebored-orders');
             const data = await response.json();
 
             return data;
@@ -581,7 +581,7 @@
             return `
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick=" window.location.href = ''
-                ${config.title === 'Draft Payments' ? "+ '/account/verify-payment'" : ''}"
+                ${config.title === 'Draft Payments' ? "+ '/salespro/account/verify-payment'" : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->
@@ -654,11 +654,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

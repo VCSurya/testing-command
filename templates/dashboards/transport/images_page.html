@@ -195,7 +195,7 @@
 
             async function fetchImages(id) {
                 try {
-                    const res = await fetch(`/transport/images/${id}`);
+                    const res = await fetch(`/salespro/transport/images/${id}`);
                     const data = await res.json();
 
                     if (data.success && Array.isArray(data.images) && data.images.length > 0) {

@@ -1254,11 +1254,11 @@
                         <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <!-- <li class="nav-item">
-                        <a class="nav-link active" href="/transport/ready-to-go-for-transport"><i
+                        <a class="nav-link active" href="/salespro/transport/ready-to-go-for-transport"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li> -->
                     <li class="nav-item">
-                        <a class="nav-link " href="/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My
+                        <a class="nav-link " href="/salespro/transport/my-transport-orders"><i class="bi bi-box-seam me-2"></i>My
                             Orders</a>
                     </li>
                     <li class="nav-item">
@@ -1618,7 +1618,7 @@
 
         async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/transport/cancel_order', {
+                const response = await fetch('/salespro/transport/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
@@ -1646,7 +1646,7 @@
             }, 10);
 
             try {
-                const response = await fetch('/transport/lock-transportation', {
+                const response = await fetch('/salespro/transport/lock-transportation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1701,7 +1701,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/transport/draft-orders-list');
+                const response = await fetch('/salespro/transport/draft-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1998,11 +1998,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

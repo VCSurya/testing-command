@@ -355,11 +355,11 @@
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <!-- <li class="nav-item">
-                        <a class="nav-link " href="/transport/ready-to-go-for-transport"><i
+                        <a class="nav-link " href="/salespro/transport/ready-to-go-for-transport"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft Orders</a>
                     </li> -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/transport/my-transport-orders"><i
+                        <a class="nav-link" href="/salespro/transport/my-transport-orders"><i
                                 class="bi bi-box-seam me-2"></i>My
                             Orders</a>
                     </li>
@@ -541,7 +541,7 @@
         // Function to simulate the API call with the provided JSON data
         async function fetchPackingData() {
             // In a real application, you would replace this with:
-            const response = await fetch('/transport/transport-dasebored-orders');
+            const response = await fetch('/salespro/transport/transport-dasebored-orders');
             const data = await response.json();
 
             return data;
@@ -564,7 +564,7 @@
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Draft Orders' ? "+ '/transport/ready-to-go-for-transport'" : config.title === 'My Pending Orders' ? "+ '/transport/my-transport-orders'"  : ''}"
+                ${config.title === 'Draft Orders' ? "+ '/salespro/transport/ready-to-go-for-transport'" : config.title === 'My Pending Orders' ? "+ '/salespro/transport/my-transport-orders'"  : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->
@@ -640,11 +640,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

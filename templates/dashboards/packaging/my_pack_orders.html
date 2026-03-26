@@ -1835,7 +1835,7 @@
 
         async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/packing/cancel_order', {
+                const response = await fetch('/salespro/packing/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
@@ -2645,11 +2645,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

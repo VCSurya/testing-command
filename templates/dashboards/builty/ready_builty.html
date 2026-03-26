@@ -1251,7 +1251,7 @@
                         <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/builty/ready-to-go"><i
+                        <a class="nav-link active" href="/salespro/builty/ready-to-go"><i
                                 class="bi bi-clipboard-check me-2"></i>Draft
                             Orders</a>
                     </li>
@@ -1564,7 +1564,7 @@
 
         async function cancelOrder(invoiceNumber, Invoiceid, reason) {
             try {
-                const response = await fetch('/builty/cancel_order', {
+                const response = await fetch('/salespro/builty/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ track_order_id: invoiceNumber, invoice_id: Invoiceid, reason: reason })
@@ -1594,7 +1594,7 @@
             }, 10);
 
             try {
-                const response = await fetch('/builty/builty-recived', {
+                const response = await fetch('/salespro/builty/builty-recived', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1648,7 +1648,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/builty/builty-orders-list');
+                const response = await fetch('/salespro/builty/builty-orders-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -1847,11 +1847,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 

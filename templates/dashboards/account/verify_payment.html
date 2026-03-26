@@ -1293,14 +1293,14 @@
 
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link " href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                        <a class="nav-link " href="/salespro/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/account/verify-payment"><i
+                        <a class="nav-link active" href="/salespro/account/verify-payment"><i
                                 class="bi bi-clipboard-check me-2"></i>Verify Payments</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/logout">
+                        <a class="nav-link " href="/salespro/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>Log out
                         </a>
                     </li>
@@ -1693,7 +1693,7 @@
             processing.classList.remove('hidden');
 
             try {
-                const response = await fetch('/account/payment-recived', {
+                const response = await fetch('/salespro/account/payment-recived', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1874,7 +1874,7 @@
 
         async function cancelOrder(invoiceNumber, reason) {
             try {
-                const response = await fetch('/account/cancel_order', {
+                const response = await fetch('/salespro/account/cancel_order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber: invoiceNumber, reason: reason })
@@ -1898,7 +1898,7 @@
             processing.classList.remove('hidden');
 
             try {
-                const response = await fetch('/account/payment-verifyed', {
+                const response = await fetch('/salespro/account/payment-verifyed', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2055,7 +2055,7 @@
                 </div>
             `;
             try {
-                const response = await fetch('/account/orders-payment-list');
+                const response = await fetch('/salespro/account/orders-payment-list');
                 if (!response.ok) throw new Error('Failed to fetch invoices');
                 const data = await response.json();
                 allInvoices = Array.isArray(data) ? data : [];
@@ -2485,11 +2485,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

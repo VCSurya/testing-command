@@ -357,7 +357,7 @@
                                 class="bi bi-speedometer2 me-2"></i>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="/builty/ready-to-go"><i class="bi bi-clipboard-check me-2"></i>Draft
+                        <a class="nav-link " href="/salespro/builty/ready-to-go"><i class="bi bi-clipboard-check me-2"></i>Draft
                             Orders</a>
                     </li>
                     <li class="nav-item">
@@ -518,7 +518,7 @@
         // Function to simulate the API call with the provided JSON data
         async function fetchPackingData() {
             // In a real application, you would replace this with:
-            const response = await fetch('/builty/builty-dasebored-orders');
+            const response = await fetch('/salespro/builty/builty-dasebored-orders');
             const data = await response.json();
 
             return data;
@@ -541,7 +541,7 @@
                 <div class="dashboard-card bg-white p-6 rounded-2xl border border-gray-100 flex flex-col justify-between"
                 onclick="
                 window.location.href = ''
-                ${config.title === 'Draft Builty Orders' ? "+ '/builty/ready-to-go'" : ''}"
+                ${config.title === 'Draft Builty Orders' ? "+ '/salespro/builty/ready-to-go'" : ''}"
                 >
                     
                     <!-- Title now takes the full top row -->
@@ -614,11 +614,13 @@
     </script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
+        const socket = io("https://smarttraders.live", {
+            path: "/salespro/socket.io/"
+        });
 
         socket.on("force_logout", () => {
             // Optional: call logout endpoint
-            window.location.href = "/logout";
+            window.location.href = "/salespro/logout";
         });
     </script>
 </body>

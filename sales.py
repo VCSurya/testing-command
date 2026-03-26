@@ -98,8 +98,6 @@ class Dasebored:
                 WHEN lot.sales_proceed_for_packing = 0 
                 AND i.completed = 0 
                 AND i.cancel_order_status = 0
-                AND i.created_at >= CURRENT_DATE() 
-                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
                 THEN 1 END) AS today_draft_order_count,
 
             COUNT(CASE 
