@@ -184,8 +184,8 @@ app.deactivate_user = deactivate_user
 app.deactivate_all_user = deactivate_all_user
 
 if __name__ == '__main__':
-    # app.run(debug=True,host='0.0.0.0',port=5000)  # Set debug=False in production
-    socketio.run(app, debug=True,host='0.0.0.0',port=5000)
+    app.run(debug=True,host='0.0.0.0',port=5005)  # Set debug=False in production
+    # socketio.run(app, debug=True,host='0.0.0.0',port=5005)
     # app.run()
 
     # gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 4 --worker-connections 1000 --bind 0.0.0.0:5000 --timeout 60 app:app

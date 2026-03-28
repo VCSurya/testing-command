@@ -1702,90 +1702,14 @@
             }
         }
 
-        // Render invoices from dynamic backend data
-        let allInvoices = [];
-        async function renderInvoices(invoices) {
-            const list = document.getElementById('invoiceList');
-            list.innerHTML = '';
-            if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML = `<li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" style="margin:0 auto 12px;">
-                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
-                </li>`;
-                return;
-            }
-            invoices.forEach((inv, idx) => {
-                // Ensure products is always an array
-                const products = Array.isArray(inv.products) ? inv.products : [];
-                const charges = Array.isArray(inv.charges) ? inv.charges : [];
-                // Map backend fields to frontend expected fields
-                const invoiceObj = {
-                    number: inv.invoice_number,
-                    main_id: inv.id,
-                    date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.mobile,
-                    customer_address: inv.address,
-                    delivery_mode: inv.delivery_mode,
-                    gst_included: inv.gst_included,
-                    transport_company_name: inv.transport_company_name,
-                    products: products,
-                    charges: charges,
-                    payment_status: inv.payment_confirm_status === 1 || inv.status === 'Paid' ? 'Paid' : 'Pending',
-                    trackingStatus: (typeof inv.trackingStatus !== 'undefined') ? inv.trackingStatus : 0, // TODO: Map from backend
-                    grand_total: inv.grand_total,
-                    amount_paid: inv.paid_amount,
-                    left_to_paid: inv.left_to_paid,
-                    payment_mode: inv.payment_mode,
-                    payment_note_1: inv.payment_note_1,
-                    payment_note_2: inv.payment_note_2,
-                    sales_note: inv.sales_note,
-                    trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id,
-                    usale: inv.username,
-                    upack: inv.pu_name,
-                    utrans: inv.tu_name,
-                    ubuilty: inv.bu_name,
-                    upay: inv.payu_name,
-                    left_to_paid_mode: inv.left_to_paid_mode,
-                    payment_date_time: inv.payment_date_time,
+        function buildInvoiceDetails(invoiceObj,invoiceNumber) {
 
-                };
-                const li = document.createElement('li');
-                li.className = 'invoice-item';
-                li.innerHTML = `
-                    <div class="invoice-header">
-                        <span>❑ ${invoiceObj.main_id}</span>
-                        <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#c3bfbf;" id="invoice_date_1">${invoiceObj.date}</span>
-
-                            <div class="invoice-actions">
-
-                                ${invoiceObj.payment_status === 'Paid' ? `
-
-                                <button class="glass-btn" title="Download PDF" onclick="
-                                    event.stopPropagation();
-                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
-                                ">
-                                    <!-- PDF File Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
-                                    </svg>
-                                </button>
-
-                                ` : ''}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="invoice-details">
+            return `
+            <div class="invoice-details">
                         <div id="invoice_date_2" style="margin-top: 10px;"><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#ffffff;">${invoiceObj.date}</span>
+                            <span style="font-size:0.9em;color:#ffffff;">${invoiceObj.created_at}</span>
                         </div>
-                        <div title=${invoiceObj.customer_address}>
+                        <div title=${invoiceObj.address}>
                             <strong>Customer:</strong> ${invoiceObj.customer}
                              ${invoiceObj.gst_included == 1 ? `
                                 <div class="gst-label">
@@ -1804,7 +1728,7 @@
                             .toLowerCase()                     // make everything lowercase first
                             .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
                         : ''
-                    }${invoiceObj.transport_company_name ? ` - ${invoiceObj.transport_company_name}` : ''}
+                    }${invoiceObj.transport_name ? ` - ${invoiceObj.transport_name}` : ''}
                         </div>
                         
                                                ${invoiceObj.delivery_mode === 'post' || invoiceObj.delivery_mode === 'transport' ? `
@@ -1896,7 +1820,7 @@
                         <div class="flex flex-col md:flex-row gap-4 mt-3">
 
 
-                            ${invoiceObj.amount_paid === invoiceObj.grand_total
+                            ${invoiceObj.paid_amount === invoiceObj.grand_total
                         ? `
 
                                     <div class="w-full px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
@@ -1905,11 +1829,11 @@
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
-                                                    ${invoiceObj.usale}
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.pu_name}">
+                                                    ${invoiceObj.pu_name}
                                                 </div>
                                                 <div class="text-sm font-medium text-gray-300">
-                                                    ${invoiceObj.date}
+                                                    ${invoiceObj.created_at}
                                                 </div>
                                             </div>
 
@@ -1925,7 +1849,7 @@
                                                     }
                                                 </div>
                                                 <div class="font-extrabold text-3xl text-white">
-                                                    ₹${invoiceObj.amount_paid.toLocaleString()}
+                                                    ₹${invoiceObj.paid_amount.toLocaleString()}
                                                 </div>
                                             </div>
                                             
@@ -1939,7 +1863,7 @@
 
                                     </div>
                                 `
-                        : invoiceObj.amount_paid > 0
+                        : invoiceObj.paid_amount > 0
                             ? `
                                     <div class="w-full md:w-1/2 px-3 py-3 rounded-xl bg-gray-800 border border-gray-700 shadow-lg
                                                 flex flex-col justify-between transition hover:shadow-xl">
@@ -1947,11 +1871,11 @@
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.usale}">
-                                                    ${invoiceObj.usale}
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.username}">
+                                                    ${invoiceObj.username}
                                                 </div>
                                                 <div class="text-sm font-medium text-gray-300">
-                                                    ${invoiceObj.date}
+                                                    ${invoiceObj.created_at}
                                                 </div>
                                             </div>
 
@@ -1967,7 +1891,7 @@
                                                     }
                                                 </div>
                                                 <div class="font-extrabold text-3xl text-white">
-                                                    ₹${invoiceObj.amount_paid.toLocaleString()}
+                                                    ₹${invoiceObj.paid_amount.toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>
@@ -1985,8 +1909,8 @@
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.upay}">
-                                                    ${invoiceObj.upay}
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.payu_name}">
+                                                    ${invoiceObj.payu_name}
                                                 </div>
                                                 <div class="text-sm font-medium text-gray-300">
                                                     ${invoiceObj.payment_date_time}
@@ -2026,8 +1950,8 @@
                                         <div class="flex justify-between items-start gap-4 text-gray-200">
                                             <!-- Left -->
                                             <div class="flex-1 min-w-0 flex flex-col gap-1">
-                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.upay}">
-                                                    ${invoiceObj.upay}
+                                                <div class="text-xl font-bold text-green-300 truncate" title="${invoiceObj.payu_name}">
+                                                    ${invoiceObj.payu_name}
                                                 </div>
                                                 <div class="text-sm font-medium text-gray-300">
                                                     ${invoiceObj.payment_date_time}
@@ -2062,22 +1986,98 @@
                         </div>
 
                         <div class="next-to-pack-container">
-                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
+                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceNumber}','${invoiceObj.id}')">
                                 Verify Order 
                             </button>
                         </div>
                     </div>
 
+            `;
+        }
+
+
+        // Render invoices from dynamic backend data
+        let allInvoices = [];
+        const invoiceCache = {};
+
+        async function renderInvoices(invoices) {
+            const list = document.getElementById('invoiceList');
+            list.innerHTML = '';
+
+            invoices.forEach(inv => {
+
+                const li = document.createElement('li');
+                li.className = 'invoice-item';
+
+                li.innerHTML = `
+                    <div class="invoice-header" data-id="${inv.invoice_number}">
+                        <span>❑ ${inv.id}</span>
+                        <div class="invoice-id-row">
+                        <span style="font-size:0.9em;color:#c3bfbf;" id="invoice_date_1">${inv.sales_date_time}</span>
+                            <div class="invoice-actions">
+                                <button class="glass-btn" title="Download PDF" onclick="
+                                    event.stopPropagation();
+                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${inv.invoice_number}', '_blank');
+                                ">
+                                    <!-- PDF File Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="invoice-details">
+                        <div class="loading">Loading...</div>
+                    </div>
                 `;
-                li.querySelector('.invoice-header').addEventListener('click', function () {
-                    document.querySelectorAll('.invoice-item').forEach(item => {
-                        if (item !== li) item.classList.remove('active');
-                    });
+
+                const header = li.querySelector('.invoice-header');
+
+                header.addEventListener('click', async function () {
+
+                    document.querySelectorAll('.invoice-item')
+                        .forEach(item => {
+                            if (item !== li) item.classList.remove('active');
+                        });
+
                     li.classList.toggle('active');
+
+                    const invoiceNumber = this.dataset.id;
+
+                    const detailContainer = li.querySelector('.invoice-details');
+
+                    // already loaded
+                    if (invoiceCache[invoiceNumber]) {
+                        detailContainer.innerHTML = invoiceCache[invoiceNumber];
+                        return;
+                    }
+
+                    // show loader
+                    detailContainer.innerHTML = "Loading...";
+
+                    try {
+
+                        const res = await fetch(`/sales/invoice-detailes/${invoiceNumber}`);
+                        const data = await res.json();
+
+                        const html = buildInvoiceDetails(data,invoiceNumber);
+
+                        invoiceCache[invoiceNumber] = html;
+
+                        detailContainer.innerHTML = html;
+
+                    } catch (err) {
+                        detailContainer.innerHTML = "Failed to load invoice";
+                    }
+
                 });
+
                 list.appendChild(li);
             });
         }
+
 
         async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
