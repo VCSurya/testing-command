@@ -695,12 +695,13 @@ def merge_orders_products(data):
 def uploaded_image(filename):
     return send_from_directory("uploads/packaging", filename)
 
-@manager_bp.route('/manager/my-orders-list', methods=['GET'])
-@login_required('Manager')
-def verify_order_list():
+@manager_bp.route('/manager/invoice-detailes/<invoiceNumber>', methods=['GET'])
+def verify_order(invoiceNumber):
+        
     try:
+        
         query = f"""
-               SELECT 
+            SELECT 
                 inv.id, 
                 inv.invoice_number, 
                 inv.customer_id, 
@@ -787,8 +788,9 @@ def verify_order_list():
                 AND lot.builty_received = 1 
                 AND lot.payment_confirm_status = 1 
                 AND inv.completed = 0
-                ORDER BY inv.created_at DESC;
+                AND inv.invoice_number = {invoiceNumber};
         """
+        
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'message': 'Database connection error'})
@@ -803,7 +805,6 @@ def verify_order_list():
 
         if events:
             merged_orders = merge_orders_products(events)
-
             for invoice_id in merged_orders:
                 obj = ManagerModel()
                 charges = obj.get_additional_charges(invoice_id['id']) 
@@ -815,6 +816,54 @@ def verify_order_list():
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}),500
+
+@manager_bp.route('/manager/my-orders-list', methods=['GET'])
+@login_required('Manager')
+def verify_order_list():
+    try:
+
+        query = """
+
+            SELECT 
+                invoices.id, 
+                invoices.invoice_number, 
+                DATE_FORMAT(lot.sales_date_time, '%d %b %Y, %h:%i %p') AS sales_date_time
+            FROM invoices
+            LEFT JOIN live_order_track lot 
+                ON invoices.id = lot.invoice_id 
+            WHERE lot.verify_by_manager = 0 
+                AND lot.cancel_order_status = 0 
+                AND lot.sales_proceed_for_packing = 1 
+                AND lot.packing_proceed_for_transport = 1 
+                AND lot.transport_proceed_for_builty = 1 
+                AND lot.builty_received = 1 
+                AND lot.payment_confirm_status = 1 
+                AND invoices.completed = 0
+            ORDER BY invoices.created_at DESC;
+
+        """
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'message': 'Database connection error'})
+
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(query)
+        all_order_data = cursor.fetchall()
+
+        if not all_order_data:
+            return []
+
+        return jsonify(all_order_data)        
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 @manager_bp.route('/manager/order-verify',methods=['POST'])
 @login_required('Manager')
