@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session,current_app
-from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
+from utils import with_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -15,13 +15,9 @@ formatted_time = now_ist.strftime("%d-%m-%Y %H:%M")
 admin_bp = Blueprint('admin', __name__)
 
 class AdminModel:
-    def __init__(self):
-        self.conn = get_db_connection()
-        if not self.conn:
-            raise Exception("Database connection failed")
-        self.cursor = self.conn.cursor(dictionary=True)
     
-    def get_dashboard_data(self):
+    @with_db_connection
+    def get_dashboard_data(self, conn=None, cursor=None):
         
         query = """
 
@@ -210,12 +206,13 @@ class AdminModel:
         
         """
 
-        self.cursor.execute(query)
-        result = self.cursor.fetchone()
+        cursor.execute(query)
+        result = cursor.fetchone()
         
         return result
 
-    def get_today_performers_data(self):
+    @with_db_connection
+    def get_today_performers_data(self, conn=None, cursor=None):
         
         query = """
             WITH role_stats AS (
@@ -343,8 +340,8 @@ class AdminModel:
 
         """
               
-        self.cursor.execute(query,)
-        data = self.cursor.fetchall()
+        cursor.execute(query,)
+        data = cursor.fetchall()
 
         result = defaultdict(list)
     
@@ -355,7 +352,8 @@ class AdminModel:
             })
         return dict(result)
 
-    def get_all_orders_data(self):
+    @with_db_connection
+    def get_all_orders_data(self, conn=None, cursor=None):
         query = f"""
                     SELECT 
                             invoices.invoice_number,
@@ -456,8 +454,8 @@ class AdminModel:
 
                         ORDER BY stage_date_time ASC;
         """
-        self.cursor.execute(query)
-        data = self.cursor.fetchall()
+        cursor.execute(query)
+        data = cursor.fetchall()
         result = defaultdict(list)
         for item in data:
             result[item["pending_stage"]].append({
@@ -468,7 +466,7 @@ class AdminModel:
             })
 
 
-        self.cursor.execute("""
+        cursor.execute("""
             SELECT 
                 inv.invoice_number, 
                 inv.created_at, 
@@ -490,7 +488,7 @@ class AdminModel:
                 AND inv.left_to_paid > 0
                 ORDER BY inv.created_at DESC;
         """)
-        unpaid_orders = self.cursor.fetchall()
+        unpaid_orders = cursor.fetchall()
         for i in unpaid_orders:
             i['created_at'] = i['created_at'].strftime("%d/%m/%Y %I:%M %p")
     
@@ -499,9 +497,6 @@ class AdminModel:
 
         return dict(result)
 
-    def close(self):
-        self.cursor.close()
-        self.conn.close() # type: ignore
     
 @admin_bp.route('/admin/invoice/<string:invoice_number>')
 @login_required('Admin')
@@ -515,7 +510,6 @@ def show_invoice(invoice_number):
 def admin_dashboard():
     my_mang = AdminModel()
     orders = my_mang.get_dashboard_data()
-    my_mang.close()
     return render_template('dashboards/admin/admin.html', data=orders)
 
 # all orders Routes
@@ -524,29 +518,20 @@ def admin_dashboard():
 def all_orders():
     admin = AdminModel()
     work_data = admin.get_all_orders_data()
-    admin.close()
     return render_template('dashboards/admin/all_orders.html', data=work_data)
 
 @admin_bp.route('/admin/today-performers')
 @login_required('Admin')
 def today_performers():
-    conn = get_db_connection()
     
-    if not conn:
-        return jsonify({"success": False, "message": "Connection Error"})
-
-    cursor = conn.cursor(dictionary=True)
     try:
-        
         admin = AdminModel()
         performers = admin.get_today_performers_data()
-        admin.close()
         return jsonify({"success": True, "data": performers})
 
-    finally:
-        cursor.close()
-        conn.close()
-
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}),500
+    
 def merge_orders_products(data):
 
         merged = {}
@@ -636,7 +621,8 @@ def uploaded_image(filename):
 
 @admin_bp.route('/admin/my-orders-list', methods=['GET'])
 @login_required('Admin')
-def verify_order_list():
+@with_db_connection
+def verify_order_list(conn=None, cursor=None):
     try:
         query = f"""
                SELECT 
@@ -730,18 +716,10 @@ def verify_order_list():
                 AND lot.left_to_paid_mode != 'not_paid'
                 ORDER BY inv.created_at DESC;
         """
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
-
-        cursor = conn.cursor(dictionary=True)
-        try:
-            cursor.execute(query)
-            events = cursor.fetchall()
-        finally:
-            cursor.close()
-            conn.close()
-
+        
+        cursor.execute(query)
+        events = cursor.fetchall()
+    
         if events:
             merged_orders = merge_orders_products(events)
             return jsonify(merged_orders)
@@ -753,17 +731,14 @@ def verify_order_list():
 
 @admin_bp.route('/admin/order-verify',methods=['POST'])
 @login_required('Admin')
-def confirm_verification():
+@with_db_connection
+def confirm_verification(conn=None, cursor=None):
     try:
         
         data = request.json
         
         if data is None or 'InvoiceNumber' not in data or not data.get('InvoiceNumber'):
             return jsonify({'success': False, 'message': 'Invalid input data'}),400
-
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
 
         if not session.get('user_id'):
             return jsonify({'success': False, 'message': 'User Not Found!'})
@@ -772,10 +747,9 @@ def confirm_verification():
         _query = f"""
         SELECT id FROM `live_order_track` WHERE invoice_id = (SELECT id FROM `invoices` WHERE invoice_number = '{data.get('InvoiceNumber')}');
         """
-        cursor_ = conn.cursor(dictionary=True)
         
-        cursor_.execute(_query)
-        live_order_track = cursor_.fetchone()   
+        cursor.execute(_query)
+        live_order_track = cursor.fetchone()   
         if not live_order_track:
             return jsonify({'success': False, 'message': 'Live Order Track Not Found!'}),500
         
@@ -792,17 +766,11 @@ def confirm_verification():
         set completed = 1
         WHERE id = (SELECT invoice_id FROM live_order_track WHERE id = %s);
         """
-
-        cursor = conn.cursor(dictionary=True)
         
-        try:
-            cursor.execute(query,(session.get('user_id'),live_order_track_id))
-            cursor.execute(query_,(live_order_track_id,))
-            conn.commit()
-        finally:
-            cursor.close()
-            conn.close()
-
+        cursor.execute(query,(session.get('user_id'),live_order_track_id))
+        cursor.execute(query_,(live_order_track_id,))
+        
+        conn.commit()
         return {"success": True, "message": f"Done"}
 
     except Exception as e:
@@ -817,12 +785,9 @@ def manager_users():
 
 @admin_bp.route('/admin/users/data')
 @login_required('Admin')
-def get_users_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
-
-    cursor = conn.cursor(dictionary=True)
+@with_db_connection
+def get_users_data(conn=None, cursor=None):
+    
     try:
         cursor.execute("""
         SELECT id, name, username, role, created_by, updated_by,active
@@ -831,34 +796,27 @@ def get_users_data():
         users = cursor.fetchall()
         return jsonify(users)
 
-    finally:
-        cursor.close()
-        conn.close()
-
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
 
 @admin_bp.route('/admin/users/add', methods=['POST'])
 @login_required('Admin')
-def add_user():
-    data = request.json
-    name = data.get('name')
-    username = data.get('username')
-    password = data.get('password')
-    role = data.get('role')
-    created_by = session.get('username')  # Get current user's ID from session
-
-    if not all([name, username, password, role]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
-
-    # Encrypt password
-    encrypted_password = encrypt_password(password)
-
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
-    cursor = conn.cursor()
-
+@with_db_connection
+def add_user(conn=None, cursor=None):
     try:
+        data = request.json
+        name = data.get('name')
+        username = data.get('username')
+        password = data.get('password')
+        role = data.get('role')
+        created_by = session.get('username')  # Get current user's ID from session
+
+        if not all([name, username, password, role]):
+            return jsonify({'success': False, 'message': 'Required fields are missing'})
+
+        # Encrypt password
+        encrypted_password = encrypt_password(password)
+
         # Check if username already exists
         cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         existing_user = cursor.fetchone()
@@ -871,22 +829,18 @@ def add_user():
             VALUES (%s, %s, %s, %s, %s, %s, 1,%s, %s)
         """, (name, username, encrypted_password, role, created_by, created_by, formatted_time, formatted_time))
         conn.commit()
+    
         return jsonify({'success': True, 'message': 'User added successfully'})
-    except mysql.connector.Error as err:
-        return jsonify({'success': False, 'message': str(err)})
-    finally:
-        cursor.close()
-        conn.close()
+    
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)}),500
 
 
 @admin_bp.route('/admin/users/<int:user_id>')
 @login_required('Admin')
-def get_user(user_id):
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
+@with_db_connection
+def get_user(user_id, conn=None, cursor=None):
 
-    cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
             SELECT id, name, username, role ,password
@@ -900,30 +854,23 @@ def get_user(user_id):
         if user:
             return jsonify(user)
         return jsonify({'success': False, 'message': 'User not found'})
-    finally:
-        cursor.close()
-        conn.close()
-
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
 
 
 @admin_bp.route('/admin/users/<int:user_id>/update', methods=['PUT'])
 @login_required('Admin')
-def update_user(user_id):
-    data = request.json
-    name = data.get('name')
-    username = data.get('username')
-    role = data.get('role')
-    password = data.get('password')
-    updated_by = session.get('username')  # Get current user's username from session
-    
-
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
+@with_db_connection
+def update_user(user_id, conn=None, cursor=None):
     try:
+        data = request.json
+        name = data.get('name')
+        username = data.get('username')
+        role = data.get('role')
+        password = data.get('password')
+        updated_by = session.get('username')  # Get current user's username from session
+        
         # Get current timestamp for updated_at
         formatted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         password = encrypt_password(password) if password else None
@@ -938,22 +885,15 @@ def update_user(user_id):
         """, (name, username,role, updated_by, formatted_time, password,user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'User updated successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    finally:
-        cursor.close()
-        conn.close()
-
+    
 @admin_bp.route('/admin/users/deactivate-all', methods=['POST'])
 @login_required('Admin')
-def deactive_users():
-    
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
+@with_db_connection
+def deactive_users(conn=None, cursor=None):
+        
     try:
     
         cursor.execute("""
@@ -962,6 +902,7 @@ def deactive_users():
         """)
         conn.commit()
         current_app.deactivate_all_user()
+
         return jsonify({'success': True, 'message': "All User's deactivat successfully"})
     except mysql.connector.Error as err:
         return jsonify({'success': False, 'message': str(err)})
@@ -971,14 +912,9 @@ def deactive_users():
 
 @admin_bp.route('/admin/users/<int:user_id>/restore', methods=['PUT'])
 @login_required('Admin')
-def restor_user(user_id):
+@with_db_connection
+def restor_user(user_id, conn=None, cursor=None):
     
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
     try:
         
         # Update user in database
@@ -989,28 +925,23 @@ def restor_user(user_id):
         """, (user_id,))
         conn.commit()
         return jsonify({'success': True, 'message': 'User restore successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    finally:
-        cursor.close()
-        conn.close()
-
+    
 
 @admin_bp.route('/admin/users/delete', methods=['POST'])
 @login_required('Admin')
-def delete_user():
+@with_db_connection
+def delete_user(conn=None, cursor=None):
 
     data = request.json
     # {'deleteUserName': 'trans', 'selectedUserId': ''}
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    if data.get('deleteUserName') is None or data.get('deleteUserName') == "":
-        return jsonify({'success': False, 'message': 'Invalid Inofrmation!'})
-        
-    cursor = conn.cursor(dictionary=True)
+
     try:
+    
+        if data.get('deleteUserName') is None or data.get('deleteUserName') == "":
+            return jsonify({'success': False, 'message': 'Invalid Inofrmation!'})
         
         cursor.execute("""
 
@@ -1075,14 +1006,8 @@ def delete_user():
             current_app.deactivate_user(user_exists.get('id'))
             return jsonify({'success': True, 'message': 'User deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    
-    finally:
-        cursor.close()
-        conn.close()
-
-
 
 # Market Events Management Routes
 
@@ -1093,61 +1018,44 @@ def manager_events_page():
 
 @admin_bp.route('/admin/all_events_details', methods=['GET','POST'])
 @login_required('Admin')
-def manager_events():
+@with_db_connection
+def manager_events(conn=None, cursor=None):
 
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
-
-        cursor = conn.cursor(dictionary=True)
-        try:
-            cursor.execute("""
-                SELECT 
-                    id, 
-                    name, 
-                    location, 
-                    DATE_FORMAT(start_date, '%d/%m/%Y') AS formatted_start_date, 
-                    DATE_FORMAT(end_date, '%d/%m/%Y') AS formatted_end_date
-                FROM market_events
-                WHERE active = 1
-                ORDER BY start_date ASC;
-            """)
-            events = cursor.fetchall()
-        finally:
-            cursor.close()
-            conn.close()
+        cursor.execute("""
+            SELECT 
+                id, 
+                name, 
+                location, 
+                DATE_FORMAT(start_date, '%d/%m/%Y') AS formatted_start_date, 
+                DATE_FORMAT(end_date, '%d/%m/%Y') AS formatted_end_date
+            FROM market_events
+            WHERE active = 1
+            ORDER BY start_date ASC;
+        """)
+        events = cursor.fetchall()
         if not events:
             return jsonify({'success': False, 'message': 'No events found'}) if not events else jsonify(events)
 
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
-    return jsonify({'success': False, 'message': 'No events found'}) if not events else jsonify(events)
-
 
 @admin_bp.route('/admin/delete-event', methods=['DELETE'])
 @login_required('Admin')
-def delete_event():
-    event_id = request.json.get('id') # Get event ID from request data
+@with_db_connection
+def delete_event(conn=None, cursor=None):
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
-
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                UPDATE market_events
-                SET active = 0
-                WHERE id = %s AND active = 1
-            """, (event_id,))
-            conn.commit()
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'message': 'Event not found or already deleted'})
-        finally:
-            cursor.close()
-            conn.close()
+        event_id = request.json.get('id') # Get event ID from request data
+        cursor.execute("""
+            UPDATE market_events
+            SET active = 0
+            WHERE id = %s AND active = 1
+        """, (event_id,))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Event not found or already deleted'})
 
         return jsonify({'success': True, 'message': 'Event deleted successfully'})
 
@@ -1156,31 +1064,21 @@ def delete_event():
     
 @admin_bp.route('/admin/add-event', methods=['POST'])
 @login_required('Admin')
-def add_event():
-    event_data = request.json
-    if not all([event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date')]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
+@with_db_connection
+def add_event(conn=None, cursor=None):
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'}), 500
+        event_data = request.json
+        if not all([event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date')]):
+            return jsonify({'success': False, 'message': 'Required fields are missing'})
         
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                INSERT INTO market_events (name, location, start_date, end_date, active)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date'), 1))
-            conn.commit()
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'message': 'Failed to add event'}), 500
+        cursor.execute("""
+            INSERT INTO market_events (name, location, start_date, end_date, active)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (event_data.get('event_name'), event_data.get('location'), event_data.get('start_date'), event_data.get('end_date'), 1))
+        conn.commit()
 
-        except Exception as e:
-            conn.rollback()
-            return jsonify({'success': False, 'message': "Something went wrong, please try again later"}), 500
-        finally:
-            cursor.close()
-            conn.close()
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Failed to add event'}), 500
 
         return jsonify({'success': True, 'message': 'Event added successfully'}), 200
 
@@ -1195,13 +1093,9 @@ def manager_customers():
     return render_template('dashboards/admin/customers.html')
 
 @admin_bp.route('/admin/customers/data')
+@with_db_connection
 @login_required('Admin')
-def get_customers_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
-
-    cursor = conn.cursor(dictionary=True)
+def get_customers_data(conn=None, cursor=None):
     try:
         cursor.execute("""
             SELECT 
@@ -1225,13 +1119,13 @@ def get_customers_data():
         customers = cursor.fetchall()
         return jsonify(customers)
 
-    finally:
-        cursor.close()
-        conn.close()
-
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
+    
 @admin_bp.route('/admin/customer/add', methods=['POST'])
 @login_required('Admin')
-def add_new_customer():
+@with_db_connection
+def add_new_customer(conn=None, cursor=None):
     try:
         data = request.get_json()
         required_fields = ['name', 'address', 'pincode', 'mobile']
@@ -1246,11 +1140,6 @@ def add_new_customer():
         city = data.get('city', '')
         company = data.get('company', '')
 
-        conn = get_db_connection()
-
-        if not conn:
-            return jsonify({'success': False,'message': 'Database connection failed'}), 500
-
         if not all([name, address, state, pincode, mobile]):
             return jsonify({'success': False,'message': 'Please fill in all fields with valid information.'}),500
 
@@ -1260,8 +1149,6 @@ def add_new_customer():
         if not pincode.isdigit():
             return jsonify({'success': False,'message': 'Enter valid PINCODE number'}),500
     
-        cursor = conn.cursor(dictionary=True)
-
         # Check if mobile exists
         cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
         existing_user = cursor.fetchone()
@@ -1272,14 +1159,13 @@ def add_new_customer():
         # Insert into database
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile, city, company, created_by) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)",
                                           (name, address, state, pincode, mobile, city, company, session.get('user_id')))
+        
         conn.commit()
         
         mobile = int(mobile)
         cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
         exist = cursor.fetchone()
         
-        cursor.close()
-        conn.close()
 
         if exist:
             return jsonify({'success': True, 'message': 'Customer added successfully'})
@@ -1289,14 +1175,14 @@ def add_new_customer():
 
 
     except Exception as e:
-        conn.rollback()
         import traceback
         print(traceback.print_exc())
         return jsonify({'success': False,'message': 'Internal server error'}), 500
 
 @admin_bp.route('/admin/customers/<int:user_id>/update', methods=['PUT'])
 @login_required('Admin')
-def update_customer(user_id):
+@with_db_connection
+def update_customer(user_id, conn=None, cursor=None):
     data = request.json
     
     name = data.get('name')
@@ -1313,12 +1199,6 @@ def update_customer(user_id):
     if not all([name, address, state, pincode, mobile]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
     
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
     try:
         # Update user in database
         cursor.execute("""
@@ -1328,21 +1208,18 @@ def update_customer(user_id):
         """, (name, address, state, pincode, mobile, company_name, city, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Customer detailes updated successfully'})
-    except mysql.connector.Error as err:
-        print(err)
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
-    finally:
-        cursor.close()
-        conn.close()
+
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
+
 
 @admin_bp.route('/admin/customers/<int:user_id>/delete', methods=['DELETE'])
 @login_required('Admin')
-def delete_customer(user_id):
-    conn = get_db_connection()
+@with_db_connection
+def delete_customer(user_id, conn=None, cursor=None):
     if not conn:
         return jsonify({'success': False, 'message': 'Database connection error'})
 
-    cursor = conn.cursor()
     try:
         cursor.execute("""
             UPDATE buddy
@@ -1352,12 +1229,8 @@ def delete_customer(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Customer deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    
-    finally:
-        cursor.close()
-        conn.close()
 
 # Product Management Routes
 @admin_bp.route('/admin/products', methods=['GET'])
@@ -1367,12 +1240,9 @@ def manager_products():
 
 @admin_bp.route('/admin/products/data')
 @login_required('Admin')
-def get_products_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
+@with_db_connection
+def get_products_data(conn=None, cursor=None):
 
-    cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
             SELECT 
@@ -1392,13 +1262,13 @@ def get_products_data():
         customers = cursor.fetchall()
         return jsonify(customers)
 
-    finally:
-        cursor.close()
-        conn.close()
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
 
 @admin_bp.route('/admin/products/add', methods=['POST'])
 @login_required('Admin')
-def add_product():
+@with_db_connection
+def add_product(conn=None, cursor=None):
 
     data = request.json
     
@@ -1409,14 +1279,8 @@ def add_product():
     if not all([name, selling_price, purchase_price]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
 
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
     created_by = session.get('user_id')  # Get current user's ID from session
     
-    cursor = conn.cursor()
-
     try:
         # Check if username already exists
         cursor.execute("SELECT * FROM products WHERE name = %s and active = 1", (name,))
@@ -1433,34 +1297,27 @@ def add_product():
         conn.commit()
 
         return jsonify({'success': True, 'message': 'Product added successfully'})
-    except mysql.connector.Error as err:
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
-    finally:
-        cursor.close()
-        conn.close()
+
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
+
 
 @admin_bp.route('/admin/products/<int:user_id>/update', methods=['PUT'])
 @login_required('Admin')
-def update_product(user_id):
-    data = request.json
+@with_db_connection
+def update_product(user_id, conn=None, cursor=None):
     
+    data = request.json
     name = data.get('name')
     selling_price = data.get('selling_price')
     purchase_price = data.get('purchase_price')
 
     updated_by = session.get('user_id')  # Get current user's username from session
     
-
     # Validate required fields
     if not all([name, selling_price, purchase_price]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
     
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
     try:
         # Update user in database
         cursor.execute("""
@@ -1470,21 +1327,17 @@ def update_product(user_id):
         """, (name, selling_price, purchase_price, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Product details updated successfully'})
-    except mysql.connector.Error as err:
-        print(err)
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
-    finally:
-        cursor.close()
-        conn.close()
+
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
 
 @admin_bp.route('/admin/products/<int:user_id>/delete', methods=['DELETE'])
 @login_required('Admin')
-def delete_products(user_id):
-    conn = get_db_connection()
+@with_db_connection
+def delete_products(user_id, conn=None, cursor=None):
     if not conn:
         return jsonify({'success': False, 'message': 'Database connection error'})
 
-    cursor = conn.cursor()
     try:
         cursor.execute("""
             UPDATE products
@@ -1494,14 +1347,9 @@ def delete_products(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Product deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
-    finally:
-        cursor.close()
-        conn.close()
-
-
 # Transport Management Routes
 @admin_bp.route('/admin/transport', methods=['GET'])
 @login_required('Admin')
@@ -1511,12 +1359,9 @@ def transport():
 
 @admin_bp.route('/admin/transport/data')
 @login_required('Admin')
-def get_transport_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
+@with_db_connection
+def get_transport_data(conn=None, cursor=None):
 
-    cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
             SELECT 
@@ -1537,62 +1382,55 @@ def get_transport_data():
         customers = cursor.fetchall()
         return jsonify(customers)
 
-    finally:
-        cursor.close()
-        conn.close()
-
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}),500
 
 @admin_bp.route('/admin/transport/add', methods=['POST'])
 @login_required('Admin')
-def add_transport():
-
-    data = request.json
-    name = data.get('name')
-    pincode = data.get('pincode')
-    city = data.get('city')
-    charges = data.get('charges')
-    days = data.get('days')
-    created_by = session.get('user_id')  # Get current user's ID from session
-
-    if not all([name, pincode, city, charges, days]):
-        return jsonify({'success': False, 'message': 'Required fields are missing'})
-
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
-    cursor = conn.cursor()
-
-    if not pincode.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Pincode.'})
-    
-    if not charges.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Charges.'})
-    
-    if not days.isdigit():
-        return jsonify({'success': False, 'message': 'Enter Valid Days.'})
-    
-    if int(days) <= 0 or int(charges) <= 0:
-        return jsonify({'success': False, 'message': 'Enter Valid Data.'})
+@with_db_connection
+def add_transport(conn=None, cursor=None):
 
     try:
+        data = request.json
+        name = data.get('name')
+        pincode = data.get('pincode')
+        city = data.get('city')
+        charges = data.get('charges')
+        days = data.get('days')
+        created_by = session.get('user_id')  # Get current user's ID from session
+
+        if not all([name, pincode, city, charges, days]):
+            return jsonify({'success': False, 'message': 'Required fields are missing'})
+
+        if not pincode.isdigit():
+            return jsonify({'success': False, 'message': 'Enter Valid Pincode.'})
+        
+        if not charges.isdigit():
+            return jsonify({'success': False, 'message': 'Enter Valid Charges.'})
+        
+        if not days.isdigit():
+            return jsonify({'success': False, 'message': 'Enter Valid Days.'})
+        
+        if int(days) <= 0 or int(charges) <= 0:
+            return jsonify({'success': False, 'message': 'Enter Valid Data.'})
+
         # Insert new user
         cursor.execute("""
             INSERT INTO transport (name, pincode, city, charges, days, created_by, updated_by)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (name, pincode, city, charges, days, created_by, created_by))
         conn.commit()
+
         return jsonify({'success': True, 'message': 'Transport added successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    finally:
-        cursor.close()
-        conn.close()
 
 
 @admin_bp.route('/admin/transport/<int:user_id>/update', methods=['PUT'])
 @login_required('Admin')
-def update_transport(user_id):
+@with_db_connection
+def update_transport(user_id, conn=None, cursor=None):
     data = request.json
     
     name = data.get('name')
@@ -1607,12 +1445,6 @@ def update_transport(user_id):
     if not all([name, pincode, city, charges, days]):
         return jsonify({'success': False, 'message': 'Required fields are missing'})
 
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
-    cursor = conn.cursor()
-
     if not pincode.isdigit():
         return jsonify({'success': False, 'message': 'Enter Valid Pincode.'})
     
@@ -1624,15 +1456,7 @@ def update_transport(user_id):
     
     if int(days) <= 0 or int(charges) <= 0:
         return jsonify({'success': False, 'message': 'Enter Valid Data.'})
-    
-    # Get database connection
-    conn = get_db_connection()
-    
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
-    
+        
     try:
         # Update user in database
         cursor.execute("""
@@ -1643,22 +1467,14 @@ def update_transport(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport details updated successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     
-    finally:
-        cursor.close()
-        conn.close()
-
 
 @admin_bp.route('/admin/transport/<int:user_id>/delete', methods=['DELETE'])
 @login_required('Admin')
-def delete_transport(user_id):
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-
-    cursor = conn.cursor()
+@with_db_connection
+def delete_transport(user_id, conn=None, cursor=None):
     try:
         cursor.execute("""
             UPDATE transport
@@ -1668,24 +1484,14 @@ def delete_transport(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    
-    finally:
-        cursor.close()
-        conn.close()
-
 
 @admin_bp.route('/admin/transport/<int:user_id>/restore', methods=['PUT'])
 @login_required('Admin')
-def restor_transport(user_id):
+@with_db_connection
+def restore_transport(user_id, conn=None, cursor=None):
     
-    # Get database connection
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'success': False, 'message': 'Database connection error'})
-    
-    cursor = conn.cursor()
     try:
         
         # Update user in database
@@ -1695,9 +1501,9 @@ def restor_transport(user_id):
             WHERE id = %s
         """, (user_id,))
         conn.commit()
+        
         return jsonify({'success': True, 'message': 'Transport restore successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
-    finally:
-        cursor.close()
-        conn.close()
+    

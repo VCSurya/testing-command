@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
-from utils import get_db_connection, login_required, encrypt_password,decrypt_password
+from utils import with_db_connection, login_required, encrypt_password,decrypt_password
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -24,20 +24,15 @@ def verify_payment():
 
 
 class AccountModel:
-    def __init__(self):
-        self.conn = get_db_connection()
-        if not self.conn:
-            raise Exception("Database connection failed")
-        self.cursor = self.conn.cursor(dictionary=True)
     
-    def get_additional_charges(self,invoice_id):
+    def get_additional_charges(self,invoice_id,conn=None,cursor=None):
         
         query = '''
             SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
         '''
 
-        self.cursor.execute(query, (invoice_id,))
-        additional_charges = self.cursor.fetchall()
+        cursor.execute(query, (invoice_id,))
+        additional_charges = cursor.fetchall()
 
         if not additional_charges:
             return []
@@ -130,7 +125,8 @@ class AccountModel:
 
         return list(merged.values())
 
-    def fetch_orders_payments(self):
+    @with_db_connection
+    def fetch_orders_payments(self, conn=None, cursor=None):
         query = f"""
                SELECT 
                 0 AS transaction,
@@ -214,14 +210,14 @@ class AccountModel:
                 ORDER BY inv.created_at DESC;
         """
         
-        self.cursor.execute(query)
-        all_order_data = self.cursor.fetchall()
+        cursor.execute(query)
+        all_order_data = cursor.fetchall()
 
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
         for invoice_id in merged_orders:
-            charges = self.get_additional_charges(invoice_id['id']) 
+            charges = self.get_additional_charges(invoice_id['id'],conn,cursor) 
             invoice_id['charges'] = charges
 
         transacton_query = f"""
@@ -247,8 +243,8 @@ class AccountModel:
 
         """
 
-        self.cursor.execute(transacton_query,)
-        results = self.cursor.fetchall()
+        cursor.execute(transacton_query,)
+        results = cursor.fetchall()
         
         formatted_results = []
 
@@ -279,20 +275,22 @@ class AccountModel:
 
         return merged_orders + formatted_results
 
-    def payment_recived(self,data):
+    @with_db_connection
+    def payment_recived(self,data, conn=None, cursor=None):
         try:
             update_query = """
             UPDATE live_order_track SET payment_confirm_status = 1, payment_note = %s, payment_verify_by  = %s,left_to_paid_mode = %s,payment_date_time = NOW() WHERE invoice_id = %s;
             """
-            self.cursor.execute(update_query, (data['accountNote'],session.get('user_id'),data['paymentMethod'],data['inv_id'],))
-            self.conn.commit() 
+            cursor.execute(update_query, (data['accountNote'],session.get('user_id'),data['paymentMethod'],data['inv_id'],))
+            conn.commit() 
             return {"success": True}
             
         except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
+            # rollback on connection, not cursor
             return {"success": False,"msg":e}
 
-    def payment_verify(self,data):
+    @with_db_connection
+    def payment_verify(self,data, conn=None, cursor=None):
         try:
             update_query = """
             
@@ -301,15 +299,15 @@ class AccountModel:
             WHERE active = 1 and payment_verified_by is null and id = %s;
             
             """
-            self.cursor.execute(update_query, (session.get('user_id'),data.get('accountNote',None),data['id'],))
-            self.conn.commit() 
+            cursor.execute(update_query, (session.get('user_id'),data.get('accountNote',None),data['id'],))
+            conn.commit() 
             return {"success": True}
             
         except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
 
-    def get_dasebored_data(self,user_id):
+    @with_db_connection
+    def get_dasebored_data(self,user_id, conn=None, cursor=None):
         query = f"""
             
            SELECT 
@@ -362,21 +360,21 @@ class AccountModel:
             
         """
 
-        self.cursor.execute(query,)
-        result = self.cursor.fetchone()
-        self.conn.close()
-
+        cursor.execute(query,)
+        result = cursor.fetchone()
+        
         return result
 
-    def cancel_order(self,data):
+    @with_db_connection
+    def cancel_order(self,data, conn=None, cursor=None):
         try:
             
             lot_id_querry = """
 
             SELECT live_order_track.id as lot_id,live_order_track.invoice_id from live_order_track WHERE live_order_track.invoice_id = (SELECT invoices.id from invoices WHERE invoice_number = %s);
             """
-            self.cursor.execute(lot_id_querry, (data.get('invoiceNumber'),))
-            result = self.cursor.fetchone()
+            cursor.execute(lot_id_querry, (data.get('invoiceNumber'),))
+            result = cursor.fetchone()
             
             if result.get('lot_id') is None or result.get('lot_id') == "":
                 return {"success": False, "message": f"Somthing went wrong to cancel order"}
@@ -391,8 +389,8 @@ class AccountModel:
             SET cancel_order_status = 1
             WHERE id = %s;
             """
-            self.cursor.execute(update_query, (result.get('lot_id'),))
-            self.conn.commit()  # commit on connection, not cursor
+            cursor.execute(update_query, (result.get('lot_id'),))
+            conn.commit()  # commit on connection, not cursor
             
             update_query = """
 
@@ -400,8 +398,8 @@ class AccountModel:
             SET cancel_order_status = 1
             WHERE id = %s;
             """
-            self.cursor.execute(update_query, ((result.get('invoice_id'),)))
-            self.conn.commit()  # commit on connection, not cursor
+            cursor.execute(update_query, ((result.get('invoice_id'),)))
+            conn.commit()  # commit on connection, not cursor
             
 
             insert_query = """
@@ -411,18 +409,14 @@ class AccountModel:
                 ) VALUES (%s, %s, %s,%s)
             """
 
-            self.cursor.execute(insert_query, (result.get('invoice_id'),session.get('user_id'),data.get('reason'),result.get('lot_id'),))
-            self.conn.commit()  # commit on connection, not cursor
+            cursor.execute(insert_query, (result.get('invoice_id'),session.get('user_id'),data.get('reason'),result.get('lot_id'),))
+            conn.commit()  # commit on connection, not cursor
             
             return {"success": True, "message": f"Order successfully Cancel"}
             
         except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
-    def close(self):
-        self.cursor.close()
-        self.conn.close() # type: ignore
     
 @account_bp.route('/account/orders-payment-list', methods=['GET'])
 @login_required('Account')
@@ -437,8 +431,6 @@ def orders_payment_list():
         
         my_pay = AccountModel()
         orders = my_pay.fetch_orders_payments()
-        
-        my_pay.close()
 
         if not orders:
             return jsonify([]), 200
@@ -449,8 +441,6 @@ def orders_payment_list():
         print(f"Error fetching orders: {e}")
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
-    finally:
-        my_pay.close()
 
 @account_bp.route('/builty/ready-to-go')
 @login_required('Builty')
@@ -475,7 +465,6 @@ def payment_recived():
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
 
-        pay_obj.close()
         return jsonify({"success": False, "error": f"Somthing went wrong!"}),500
     
     except Exception as e:
@@ -496,7 +485,6 @@ def payment_verify():
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
 
-        pay_obj.close()
         return jsonify({"success": False, "error": f"Somthing went wrong!"}),500
     
     except Exception as e:
@@ -517,7 +505,6 @@ def cancel_order():
         if response.get('success'):
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
         
-        for_cancel_order.close()
         return {"success": False, "message": f"Somthing went wrong!"},500
 
     except Exception as e:
@@ -534,6 +521,3 @@ def builty_dasebored():
     except Exception as e:
         print(f"Error fetching orders: {e}")
         return jsonify({'error': 'Failed to fetch orders'}), 500
-
-    finally:
-        my_pack.close()  

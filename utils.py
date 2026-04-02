@@ -1,4 +1,4 @@
-import mysql.connector
+from mysql.connector import pooling
 import os
 from functools import wraps
 from flask import json,redirect, url_for, session
@@ -9,6 +9,7 @@ from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
 from base64 import b64decode
 from functools import wraps
+import mysql.connector
 # Load environment variables
 load_dotenv()
 
@@ -25,13 +26,48 @@ DB_CONFIG = {
     'port': os.getenv('DB_PORT','3306')
 }
 
+# 🔥 Connection Pool
+
+db_pool = pooling.MySQLConnectionPool(
+    pool_name="mypool",
+    pool_size=15,
+    pool_reset_session=True,
+    **DB_CONFIG
+)
+
 def get_db_connection():
-    try:
-        connection = mysql.connector.connect(**DB_CONFIG)
-        return connection
-    except mysql.connector.Error as err:
-        print(f"Database connection error: {err}")
-        return None
+    return db_pool.get_connection()
+
+# ===================== AUTO DB DECORATOR =====================
+
+def with_db_connection(func):
+    """Automatically handle DB connection lifecycle"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        conn = None
+        cursor = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            kwargs['conn'] = conn
+            kwargs['cursor'] = cursor
+
+            result = func(*args, **kwargs)
+            return result
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            return {"success": False, "db_error": str(e)}
+
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    return wrapper
 
 def login_required(required_roles=None):
     def decorator(f):
@@ -95,31 +131,28 @@ def decrypt_password(encrypted_password):
     # Unpad and return the original password
     return unpad(decrypted_padded, AES.block_size).decode('utf-8')
 
-def get_invoice_id(invoice_number=None):
-    connection = get_db_connection()
-    if not connection:
+@with_db_connection
+def get_invoice_id(invoice_number=None,conn=None, cursor=None):
+
+    if not conn:
         return {'status': False, 'invoice_id': None}
     try:
-        cursor = connection.cursor()
         cursor.execute("SELECT id FROM invoices WHERE invoice_number = %s", (invoice_number,))
         invoice_id = cursor.fetchone()
         if invoice_id:
             return {'status': True, 'invoice_id': invoice_id[0]}
         else:
             return {'status': False, 'invoice_id': None}
-    finally:
-        cursor.close()
-        connection.close()
+    except Exception as e:
+        return {'status': False, 'invoice_id': None , 'error': str(e)}
 
-def invoice_detailes(invoice_number=None):
+@with_db_connection
+def invoice_detailes(invoice_number=None,conn=None, cursor=None):
 
-    connection = get_db_connection()
-    if not connection:
+    if not conn:
         return {'status': False, 'data': None}
 
     try:
-        cursor = connection.cursor(dictionary=True)
-        
         querry_1 = """
         
                     SELECT 
@@ -278,10 +311,8 @@ def invoice_detailes(invoice_number=None):
             return {'status': True, 'data': data,'items':items,'images':images,'charges':charges}
         else:
             return {'status': False, 'data': None}
-    
-    finally:
-        cursor.close()
-        connection.close()
+    except Exception as e:
+        return {'status': False, 'data': None , 'error': str(e)}
         
 def delete_user_log(data):
     try:
