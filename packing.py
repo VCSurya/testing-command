@@ -191,6 +191,38 @@ class PackagingModel:
     
                         inv.id,                    
                         inv.invoice_number,
+                        DATE_FORMAT(lot.sales_date_time, '%d/%m/%Y %h:%i %p') AS sales_date_time
+
+                    FROM invoices inv
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                    WHERE 
+
+                    lot.packing_proceed_for_transport = 0
+                    AND lot.cancel_order_status = 0
+                    AND lot.sales_proceed_for_packing = 1
+                    AND inv.completed = 0
+                    AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
+                    AND lot.payment_confirm_status = 1
+                    AND lot.pack_lock = 0
+                    ORDER BY lot.sales_date_time DESC;                
+                    
+                """
+
+        
+        self.cursor.execute(query)
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+        
+        return all_order_data
+
+    def fetch_packing_order_details(self, invoice_number):
+        query = """
+                    SELECT
+    
+                        inv.id,                    
+                        inv.invoice_number,
                         inv.customer_id,
                         inv.grand_total,
                         inv.payment_mode,
@@ -263,12 +295,13 @@ class PackagingModel:
                     AND (inv.delivery_mode = "transport" OR inv.delivery_mode = "post")
                     AND lot.payment_confirm_status = 1
                     AND lot.pack_lock = 0
+                    AND inv.invoice_number = %s
                     ORDER BY inv.created_at DESC;                
                     
                 """
 
         
-        self.cursor.execute(query)
+        self.cursor.execute(query, (invoice_number,))
         all_order_data = self.cursor.fetchall()
         
         if not all_order_data:
@@ -282,7 +315,7 @@ class PackagingModel:
             charges = self.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        return merged_orders
+        return merged_orders[0]
 
     def fetch_my_packing_orders(self):
         query = f"""
@@ -547,6 +580,34 @@ def packaging_my_pack_list():
         
         my_pack = PackagingModel()
         orders = my_pack.fetch_packing_orders()
+        
+        my_pack.close()
+
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()
+
+@packaging_bp.route('/packing/invoice-detailes/<invoice_number>', methods=['GET'])
+@login_required('Packaging')
+def packaging_my_pack_orders_details(invoice_number):
+    """
+    Fetch the details of a specific invoice.
+    """    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        my_pack = PackagingModel()
+        orders = my_pack.fetch_packing_order_details(invoice_number)
         
         my_pack.close()
 

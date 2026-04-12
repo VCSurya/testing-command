@@ -1586,7 +1586,8 @@
                 </div>
             </div>
             <h2 class="text-2xl font-bold text-slate-800 mb-2">Process Failed</h2>
-            <p class="text-slate-600 mb-8 leading-relaxed" id="errorMsg">We encountered an error while starting the shipment process.
+            <p class="text-slate-600 mb-8 leading-relaxed" id="errorMsg">We encountered an error while starting the
+                shipment process.
             </p>
             <button onclick="closePopups()"
                 class="w-full bg-rose-500 text-white font-semibold py-3 rounded-xl hover:bg-rose-600 transition-colors">Try
@@ -1712,7 +1713,7 @@
         // Cancel Order Modal State
         let cancelOrderInvoiceNumber = null;
         let cancelOrderTargetLi = null;
-        function openDeleteModal(invoiceNumber,invoiceMainId, btn) {
+        function openDeleteModal(invoiceNumber, invoiceMainId, btn) {
             deleteInvoiceNumber = invoiceNumber;
             deleteTargetButton = btn;
             deleteTargetLi = btn.closest('.invoice-item');
@@ -1758,7 +1759,7 @@
 
                     await fetchInvoices();
                     await filterAndRenderInvoices();
-                    
+
                     modalInner.classList.add('opacity-0');
                     updateModalContent(successStyles);
                     modalInner.classList.remove('opacity-0');
@@ -1890,7 +1891,7 @@
             });
         }
 
-        function showStatus(type,msg) {
+        function showStatus(type, msg) {
             const successOverlay = document.getElementById('successOverlay');
             const failedOverlay = document.getElementById('failedOverlay');
             const failedCard = document.getElementById('failedCard');
@@ -1964,11 +1965,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ invoiceNumber })
                 });
-                
+
                 const data = await response.json();
 
                 if (!response.ok) {
-                    showStatus('failed',data.error);
+                    showStatus('failed', data.error);
                     return;
                 }
 
@@ -1987,7 +1988,7 @@
                 }, 2500);
 
             } catch (err) {
-                showStatus('failed',err);
+                showStatus('failed', err);
                 console.error("Error:", err);
             }
         }
@@ -1996,9 +1997,260 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
+        const invoiceCache = {};
+
+        function buildInvoiceDetails(invoiceObj, invoiceNumber) {
+
+            const products = Array.isArray(invoiceObj.products) ? invoiceObj.products : [];
+            const charges = Array.isArray(invoiceObj.charges) ? invoiceObj.charges : [];
+
+            return `
+            
+                    <div class="invoice-details">
+                        <div id="invoice_date_2" ><strong> Date:</strong> 
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.created_at}</span>
+                        </div>
+                        <div title=${invoiceObj.address}>
+                            
+                            <strong>Customer:</strong> ${invoiceObj.customer}, ${invoiceObj.mobile} 
+                             ${invoiceObj.gst_included == 1 ? `
+                                <div class="gst-label">
+                                    <i class="fas fa-receipt"></i>
+                                    <span>GST</span>
+                                </div>
+                                ` : ''}
+                        </div>
+                        
+                       ${invoiceObj.paid_amount === invoiceObj.grand_total
+                    ? `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
+                                </div>
+                                <div>
+                                <strong>Payment Mode:</strong>
+                                <span>
+                                    ${invoiceObj.payment_mode
+                        ? invoiceObj.payment_mode
+                            .replace(/_/g, ' ')                 // replace underscores
+                            .toLowerCase()                      // make all lowercase
+                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                        : ''
+                    }
+                                </span>
+                                </div>
+                            `
+                    : invoiceObj.paid_amount > 0
+                        ? `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
+                                </div>
+                                <div>
+                                <strong>Payment Mode:</strong>
+                                <span>
+                                    ${invoiceObj.payment_mode
+                            ? invoiceObj.payment_mode
+                                .replace(/_/g, ' ')
+                                .toLowerCase()
+                                .replace(/\b\w/g, c => c.toUpperCase())
+                            : ''
+                        }
+                                </span>
+                                </div>
+                            `
+                        : `
+                                <div>
+                                <strong>Payment Status:</strong>
+                                <span style="color: var(--error-red); font-weight: 600;">Not Paid</span>
+                                </div>
+                            `
+                }
+
+
+                        ${invoiceObj.delivery_mode === 'transport' ? `
+                    
+                           <!-- Static HTML Content -->
+                            <div class="transport-row">
+                                <div class="info-group brand-group">
+                                    <span class="label">Transport Name</span>
+                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
+                                </div>
+                                
+                                <div class="info-group">
+                                    <span class="label">City</span>
+                                    <span class="value">${invoiceObj.transport_city}</span>
+                                </div>
+
+                                <div class="info-group">
+                                    <span class="label">Pincode</span>
+                                    <span class="value">${invoiceObj.transport_pincode}</span>
+                                </div>
+
+                                <div class="info-group">
+                                    <span class="label">Delivery</span>
+                                    <span class="value">${invoiceObj.transport_days} - Days</span>
+                                </div>
+                            </div>
+
+                        ` : `
+                            <div title="${invoiceObj.delivery_mode}">
+                                    <strong>Delivery Mode:</strong>
+                                    ${invoiceObj.delivery_mode
+                    ? invoiceObj.delivery_mode
+                        .replace(/_/g, ' ')                // replace underscores with spaces
+                        .toLowerCase()                     // make everything lowercase first
+                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                    : ''}
+                            </div>
+                        `}
+
+
+                        <table style="margin-top:10px;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            ${invoiceObj.products.map((p, index) => {
+                        const name = p && typeof p.name === 'string' ? p.name : '';
+                        const qty = p && typeof p.qty === 'number' ? p.qty : 0;
+
+                        const base_price = p && typeof p.price === 'number' ? p.price : 0;
+                        const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : 0;
+                        const total_price = base_price + tax_price;
+
+                        // fallback: if stock not available, assume enough stock
+                        const stock = (p && typeof p.stock === 'number' && !isNaN(p.stock)) ? p.stock : qty;
+
+                        // condition for low stock
+                        const isLowStock = stock < qty;
+
+                        return `
+                                        <tr class="${isLowStock ? 'bg-red-100' : ''}">
+                                            <td>
+                                                ${index + 1}. ${name}
+                                                ${isLowStock
+                                ? `<span class="ml-2 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700">
+                                                        ${stock}-In Stock
+                                                    </span>`
+                                : ''
+                            }
+                                            </td>
+                                            <td>${qty}</td>
+                                            <td>₹${total_price}</td>
+                                            <td>₹${(total_price * qty).toLocaleString()}</td>
+                                        </tr>
+                                `;
+                    }).join('')}
+
+                            ${invoiceObj.charges.map(p => {
+                        return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
+                    }).join('')}
+                        
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
+                            
+                            ${invoiceObj.paid_amount === invoiceObj.grand_total
+                    ? `
+                                <div class="amounts-container3">
+                                    <div style="color: var(--success-green);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
+                                </div>
+                            `
+                    : invoiceObj.paid_amount > 0
+                        ? `
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
+                                    <div style="color: var(--warning);">
+                                        <strong>Paid:</strong>
+                                        ₹${invoiceObj.paid_amount.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
+                                    <div style="color: var(--warning);">
+                                        <strong>Left to Pay:</strong>
+                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div class="amounts-container3">
+                                    <div style="color: var(--warning);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
+                                </div>
+                            `
+                        : `
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
+                                    <div style="color: var(--error-red);">
+                                        <strong>Paid:</strong>
+                                        ₹${invoiceObj.paid_amount.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
+                                    <div style="color: var(--error-red);">
+                                        <strong>Left to Pay:</strong>
+                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
+                                    </div>
+                                </div>
+
+                                <div class="amounts-container3">
+                                    <div style="color: var(--error-red);">
+                                        <strong>Grand Total:</strong>
+                                        ₹${invoiceObj.grand_total.toLocaleString()}
+                                    </div>
+                                </div>
+                            `
+                }
+
+                        </div>
+
+                        <div class="note-container">
+                            
+                            ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
+                                <div class="note sales-note">
+                                
+                                <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
+                                </div>
+                            ` : ''}
+                            
+                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
+                                <div class="note payment-note">
+                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
+                                </div>
+                            ` : ''}
+
+                        </div
+
+                        <div class="next-to-pack-container">
+                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceNumber}')">
+                                ${invoiceObj.delivery_mode === 'transport' || invoiceObj.delivery_mode === 'post' ?
+                    'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>' :
+                    'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>'
+                } 
+                            </button>
+                        </div>
+                    </div>
+
+                `;
+
+
+        }
+
         async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
+
             if (!Array.isArray(invoices) || invoices.length === 0) {
                 list.innerHTML = `
                 
@@ -2036,304 +2288,85 @@
                 </li>`;
                 return;
             }
-            invoices.forEach((inv, idx) => {
-                // Ensure products is always an array
-                const products = Array.isArray(inv.products) ? inv.products : [];
-                const charges = Array.isArray(inv.charges) ? inv.charges : [];
-                // Map backend fields to frontend expected fields
-                const invoiceObj = {
-                    main_id : inv.id,
-                    number: inv.invoice_number,
-                    date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.mobile,
-                    customer_address: inv.address,
-                    delivery_mode: inv.delivery_mode,
-                    gst_included: inv.gst_included,
-                    transport_company_name: inv.transport_company_name,
-                    products: products,
-                    charges: charges,
-                    trackingStatus: (typeof inv.trackingStatus !== 'undefined') ? inv.trackingStatus : 0, // TODO: Map from backend
-                    grand_total: inv.grand_total,
-                    amount_paid: inv.paid_amount,
-                    left_to_paid: inv.left_to_paid,
-                    payment_mode: inv.payment_mode,
-                    payment_note: inv.payment_note,
-                    sales_note: inv.sales_note,
-                    trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id,
-                    transport_name: inv.transport_name,
-                    transport_city: inv.transport_city,
-                    transport_days: inv.transport_days,
-                    transport_pincode: inv.transport_pincode
-                };
+
+            invoices.forEach(inv => {
+
                 const li = document.createElement('li');
                 li.className = 'invoice-item';
+
                 li.innerHTML = `
-                    <div class="invoice-header">
-                        <span>❑ ${invoiceObj.main_id}</span>
+                    <div class="invoice-header" data-id="${inv.invoice_number}">
+                        
+                        <span>❑ ${inv.id}</span>
                         <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.date}</span>
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${inv.date_time}</span>
 
                             <div class="invoice-actions">
 
                                 <button class="glass-btn" title="Edit Bill" onclick="
                                     event.stopPropagation();
-                                    window.location.href = '${window.location.origin}/sales/edit-invoice/${invoiceObj.number}';
+                                    window.location.href = '${window.location.origin}/sales/edit-invoice/${inv.invoice_number}';
                                 ">
                                     <i class="bi bi-pencil-square" style="font-size:1.1em;"></i>
                                 </button>
 
 
-                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
+                                <button class="glass-btn danger" title="Delete Invoice" onclick="event.stopPropagation(); openDeleteModal('${inv.invoice_number}','${inv.id}', this)">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                                
                             </div>
                         </div>
-                    </div>
-                    <div class="invoice-details">
-                        <div id="invoice_date_2" ><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
-                        </div>
-                        <div title=${invoiceObj.customer_address}>
-                            
-                            <strong>Customer:</strong> ${invoiceObj.customer}
-                             ${invoiceObj.gst_included == 1 ? `
-                                <div class="gst-label">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>GST</span>
-                                </div>
-                                ` : ''}
-                        </div>
-                        
-                       ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--success-green); font-weight: 600;">Paid</span>
-                                </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                            ? invoiceObj.payment_mode
-                                .replace(/_/g, ' ')                 // replace underscores
-                                .toLowerCase()                      // make all lowercase
-                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                            : ''
-                        }
-                                </span>
-                                </div>
-                            `
-                        : invoiceObj.amount_paid > 0
-                            ? `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
-                                </div>
-                                <div>
-                                <strong>Payment Mode:</strong>
-                                <span>
-                                    ${invoiceObj.payment_mode
-                                ? invoiceObj.payment_mode
-                                    .replace(/_/g, ' ')
-                                    .toLowerCase()
-                                    .replace(/\b\w/g, c => c.toUpperCase())
-                                : ''
-                            }
-                                </span>
-                                </div>
-                            `
-                            : `
-                                <div>
-                                <strong>Payment Status:</strong>
-                                <span style="color: var(--error-red); font-weight: 600;">Not Paid</span>
-                                </div>
-                            `
-                    }
-
-
-                        ${invoiceObj.delivery_mode === 'transport' ? `
                     
-                           <!-- Static HTML Content -->
-                            <div class="transport-row">
-                                <div class="info-group brand-group">
-                                    <span class="label">Transport Name</span>
-                                    <span class="value brand-name">${invoiceObj.transport_name}</span>
-                                </div>
-                                
-                                <div class="info-group">
-                                    <span class="label">City</span>
-                                    <span class="value">${invoiceObj.transport_city}</span>
-                                </div>
-
-                                <div class="info-group">
-                                    <span class="label">Pincode</span>
-                                    <span class="value">${invoiceObj.transport_pincode}</span>
-                                </div>
-
-                                <div class="info-group">
-                                    <span class="label">Delivery</span>
-                                    <span class="value">${invoiceObj.transport_days} - Days</span>
-                                </div>
-                            </div>
-
-                        ` : `
-                            <div title="${invoiceObj.delivery_mode}">
-                                    <strong>Delivery Mode:</strong>
-                                    ${invoiceObj.delivery_mode
-                        ? invoiceObj.delivery_mode
-                            .replace(/_/g, ' ')                // replace underscores with spaces
-                            .toLowerCase()                     // make everything lowercase first
-                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                        : ''}
-                            </div>
-                        `}
-
-
-                        <table style="margin-top:10px;">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            ${invoiceObj.products.map((p, index) => {
-                                const name = p && typeof p.name === 'string' ? p.name : '';
-                                const qty = p && typeof p.qty === 'number' ? p.qty : 0;
-
-                                const base_price = p && typeof p.price === 'number' ? p.price : 0;
-                                const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : 0;
-                                const total_price = base_price + tax_price;
-
-                                // fallback: if stock not available, assume enough stock
-                                const stock = (p && typeof p.stock === 'number' && !isNaN(p.stock)) ? p.stock : qty;
-
-                                // condition for low stock
-                                const isLowStock = stock < qty;
-
-                                return `
-                                        <tr class="${isLowStock ? 'bg-red-100' : ''}">
-                                            <td>
-                                                ${index + 1}. ${name}
-                                                ${isLowStock 
-                                                    ? `<span class="ml-2 text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-200 text-red-700">
-                                                        ${stock}-In Stock
-                                                    </span>` 
-                                                    : ''
-                                                }
-                                            </td>
-                                            <td>${qty}</td>
-                                            <td>₹${total_price}</td>
-                                            <td>₹${(total_price * qty).toLocaleString()}</td>
-                                        </tr>
-                                `;
-                                }).join('')}
-
-                            ${invoiceObj.charges.map(p => {
-                                return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
-                            }).join('')}
-                        
-                            </tbody>
-                        </table>
-                        
-                        <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
-                            
-                            ${invoiceObj.amount_paid === invoiceObj.grand_total
-                        ? `
-                                <div class="amounts-container3">
-                                    <div style="color: var(--success-green);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                        : invoiceObj.amount_paid > 0
-                            ? `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--warning);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--warning);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--warning);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                            : `
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
-                                    <div style="color: var(--error-red);">
-                                        <strong>Paid:</strong>
-                                        ₹${invoiceObj.amount_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
-                                    <div style="color: var(--error-red);">
-                                        <strong>Left to Pay:</strong>
-                                        ₹${invoiceObj.left_to_paid.toLocaleString()}
-                                    </div>
-                                </div>
-
-                                <div class="amounts-container3">
-                                    <div style="color: var(--error-red);">
-                                        <strong>Grand Total:</strong>
-                                        ₹${invoiceObj.grand_total.toLocaleString()}
-                                    </div>
-                                </div>
-                            `
-                    }
-
-                        </div>
-
-                        <div class="note-container">
-                            
-                            ${invoiceObj.sales_note && invoiceObj.sales_note.trim() !== '' ? `
-                                <div class="note sales-note">
-                                
-                                <p><span> Sales Note: </span> ${invoiceObj.sales_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-                            
-                            ${invoiceObj.payment_note && invoiceObj.payment_note.trim() !== '' ? `
-                                <div class="note payment-note">
-                                <p> <span>Payment Note: </span> ${invoiceObj.payment_note.toLocaleString()}</p>
-                                </div>
-                            ` : ''}
-
-                        </div
-
-                        <div class="next-to-pack-container">
-                            <button class="next-to-pack-btn" onclick="confirmAndStart('${invoiceObj.number}')">
-                                ${invoiceObj.delivery_mode === 'transport' || invoiceObj.delivery_mode === 'post' ?
-                        'Start Shipment <i class="fa-solid fa-truck-fast" style="color: lightyellow;"></i>' :
-                        'Confirm Order <i class="fa-solid fa-circle-check" style="color: lightgreen;"></i>'
-                    } 
-                            </button>
-                        </div>
                     </div>
 
+                    <div class="invoice-details">
+                        <div class="loading">Loading...</div>
+                    </div>
                 `;
-                li.querySelector('.invoice-header').addEventListener('click', function () {
-                    document.querySelectorAll('.invoice-item').forEach(item => {
-                        if (item !== li) item.classList.remove('active');
-                    });
+
+                const header = li.querySelector('.invoice-header');
+
+                header.addEventListener('click', async function () {
+
+                    document.querySelectorAll('.invoice-item')
+                        .forEach(item => {
+                            if (item !== li) item.classList.remove('active');
+                        });
+
                     li.classList.toggle('active');
+
+                    const invoiceNumber = this.dataset.id;
+
+                    const detailContainer = li.querySelector('.invoice-details');
+
+                    // already loaded
+                    if (invoiceCache[invoiceNumber]) {
+                        detailContainer.innerHTML = invoiceCache[invoiceNumber];
+                        return;
+                    }
+
+                    // show loader
+                    detailContainer.innerHTML = "Loading...";
+
+                    try {
+
+                        const res = await fetch(`/sales/ready-to-go-invoice-details/${invoiceNumber}`);
+                        const data = await res.json();
+
+                        const html = buildInvoiceDetails(data, invoiceNumber);
+
+                        invoiceCache[invoiceNumber] = html;
+
+                        detailContainer.innerHTML = html;
+
+                    } catch (err) {
+                        console.error('Error fetching invoice details:', err);
+                        detailContainer.innerHTML = "Failed to load invoice";
+                    }
+
                 });
+
                 list.appendChild(li);
             });
         }

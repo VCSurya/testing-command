@@ -136,6 +136,68 @@ class AccountModel:
                 0 AS transaction,
                 inv.id, 
                 inv.invoice_number, 
+                DATE_FORMAT(lot.sales_date_time, '%d/%m/%Y %h:%i %p') AS sales_date_time
+
+                FROM invoices inv 
+                
+                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
+
+                where lot.verify_by_manager = 0 
+                AND lot.cancel_order_status = 0 
+                AND lot.sales_proceed_for_packing = 1 
+                AND payment_confirm_status = 0
+                AND inv.completed = 0 
+                ORDER BY inv.created_at DESC;
+        """
+        
+        self.cursor.execute(query)
+        all_order_data = self.cursor.fetchall()
+
+
+        transacton_query = f"""
+
+            SELECT 
+            id, 
+            payment_received_at
+            
+            FROM `payment_transations`
+            WHERE 
+            active = 1
+            AND payment_verified_by IS NULL
+            AND payment_received_by IS NOT NULL
+            ORDER BY payment_received_at DESC;  
+
+        """
+
+        self.cursor.execute(transacton_query,)
+        results = self.cursor.fetchall()
+        
+        formatted_results = []
+
+        for item in results:
+            received_at = item.get("payment_received_at")
+
+            formatted_item = {
+                'transaction': 1,
+                "id": item['id'],
+                "sales_date_time": f"{received_at.strftime("%d/%m/%Y")} {received_at.strftime("%I:%M %p")}" if received_at else None,
+                "invoice_number": "",
+            }
+
+            formatted_results.append(formatted_item)
+
+        
+        if not all_order_data:
+            all_order_data = []
+
+        return all_order_data + formatted_results
+
+    def fetch_orders_payment_details(self, invoiceNumber):
+        query = """
+               SELECT 
+                0 AS transaction,
+                inv.id, 
+                inv.invoice_number, 
                 inv.customer_id, 
                 inv.grand_total, 
                 inv.payment_mode, 
@@ -211,10 +273,11 @@ class AccountModel:
                 AND lot.sales_proceed_for_packing = 1 
                 AND payment_confirm_status = 0
                 AND inv.completed = 0 
+                AND inv.id = %s
                 ORDER BY inv.created_at DESC;
         """
         
-        self.cursor.execute(query)
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
 
         # Merge products into orders
@@ -224,7 +287,11 @@ class AccountModel:
             charges = self.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        transacton_query = f"""
+        return merged_orders[0]
+
+    def fetch_payment_transaction_details(self,transactionNumber):
+        
+        transacton_query = """
 
             SELECT 
             pt.id, 
@@ -243,11 +310,12 @@ class AccountModel:
             pt.active = 1
             AND pt.payment_verified_by IS NULL
             AND pt.payment_received_by IS NOT NULL
+            AND pt.id = %s
             ORDER BY pt.payment_received_at DESC;  
 
         """
 
-        self.cursor.execute(transacton_query,)
+        self.cursor.execute(transacton_query, (transactionNumber,))
         results = self.cursor.fetchall()
         
         formatted_results = []
@@ -270,14 +338,11 @@ class AccountModel:
 
             formatted_results.append(formatted_item)
 
-        
-        if not all_order_data:
-            all_order_data = []
-
         if not formatted_results:
             formatted_results = []
 
-        return merged_orders + formatted_results
+        return formatted_results[0]
+
 
     def payment_recived(self,data):
         try:
@@ -451,6 +516,64 @@ def orders_payment_list():
 
     finally:
         my_pay.close()
+
+
+@account_bp.route('/account/invoice_details/<invoiceNumber>', methods=['GET'])
+@login_required('Account')
+def invoice_details(invoiceNumber):
+    """
+    Fetch the details of a specific invoice.
+    """    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        my_pay = AccountModel()
+        orders = my_pay.fetch_orders_payment_details(invoiceNumber)
+        
+        my_pay.close()
+
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pay.close()
+
+@account_bp.route('/account/invoice_details_by_transaction/<transactionNumber>', methods=['GET'])
+@login_required('Account')
+def invoice_details_by_transaction(transactionNumber):
+    """
+    Fetch the details of a specific invoice.
+    """    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        my_pay = AccountModel()
+        orders = my_pay.fetch_payment_transaction_details(transactionNumber)
+        
+        my_pay.close()
+
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pay.close()
+
 
 @account_bp.route('/builty/ready-to-go')
 @login_required('Builty')

@@ -202,6 +202,37 @@ class TransportModel:
                     SELECT
                         inv.id,
                         inv.invoice_number,
+                        DATE_FORMAT(lot.packing_date_time, '%d/%m/%Y %h:%i %p') AS packing_date_time
+                          
+                    FROM invoices inv
+
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                        AND lot.cancel_order_status = 0
+                        AND lot.sales_proceed_for_packing = 1
+                        AND lot.packing_proceed_for_transport = 1
+                    
+                    WHERE lot.transport_proceed_for_builty = 0
+                        AND inv.completed = 0
+                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
+                        AND lot.transport_lock = 0
+
+                    ORDER BY inv.created_at DESC;
+       
+                """
+        
+        self.cursor.execute(query)
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+
+        return all_order_data
+    
+    def fetch_transport_order_details(self,invoiceNumber):
+        query = """
+                    SELECT
+                        inv.id,
+                        inv.invoice_number,
                         inv.customer_id,
                         inv.grand_total,
                         inv.payment_mode,
@@ -278,13 +309,13 @@ class TransportModel:
                         AND inv.completed = 0
                         AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
                         AND lot.transport_lock = 0
-
+                        AND inv.invoice_number = %s
                     ORDER BY inv.created_at DESC;
        
                 """
 
         
-        self.cursor.execute(query)
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
         
         if not all_order_data:
@@ -298,7 +329,7 @@ class TransportModel:
             charges = self.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        return merged_orders
+        return merged_orders[0]
 
     def fetch_draft_transport_orders(self):
         query = f"""
@@ -534,7 +565,30 @@ def transport_my_pack_list():
         return jsonify(orders)
 
     except Exception as e:
-        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()
+
+@transport_bp.route('/transport/transport-order-details/<invoiceNumber>', methods=['GET'])
+@login_required('Transport')
+def transport_my_pack_order_details(invoiceNumber): 
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        my_pack = TransportModel()
+        orders = my_pack.fetch_transport_order_details(invoiceNumber)
+        
+        my_pack.close()
+
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
     finally:

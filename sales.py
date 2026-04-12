@@ -1584,6 +1584,33 @@ class MyOrders:
 
                 inv.id,
                 inv.invoice_number,
+                DATE_FORMAT(inv.created_at, '%d/%m/%Y %h:%i %p') AS date_time
+
+            FROM invoices inv
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            
+            WHERE inv.invoice_created_by_user_id = %s
+            AND lot.cancel_order_status = 0
+            AND lot.sales_proceed_for_packing = 0
+            AND inv.completed = 0   
+            ORDER BY inv.created_at DESC; 
+ 
+        """
+
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+
+        if not all_order_data:
+            return []
+
+        return all_order_data
+    
+    def fetch_ready_to_go_order_detailes(self, invoiceNumber):
+        query = f"""
+            SELECT 
+
+                inv.id,
+                inv.invoice_number,
                 inv.grand_total,
                 inv.payment_mode,
                 inv.paid_amount,
@@ -1624,7 +1651,7 @@ class MyOrders:
             LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
             LEFT JOIN transport ON inv.transport_id = transport.id
 
-            WHERE inv.invoice_created_by_user_id = %s
+            WHERE inv.invoice_number = %s
             AND lot.cancel_order_status = 0
             AND lot.sales_proceed_for_packing = 0
             AND inv.completed = 0   
@@ -1632,7 +1659,7 @@ class MyOrders:
  
         """
 
-        self.cursor.execute(query, (user_id,))
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
 
         if not all_order_data:
@@ -1645,7 +1672,7 @@ class MyOrders:
             charges = self.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        return merged_orders
+        return merged_orders[0]    
 
     def delete_invoice(self, invoice_id):
         try:
@@ -1918,6 +1945,7 @@ def sales_my_orders_list():
 
 
 @sales_bp.route('/sales/invoice-detailes/<invoiceNumber>', methods=['GET'])
+@login_required(['Sales','Manager'])
 def sales_order(invoiceNumber):
     """
     Fetch the list of orders for the logged-in sales user.
@@ -2005,6 +2033,40 @@ def sales_my_ready_to_go_orders_list():
     finally:
         cursor.close()
         conn.close()
+
+@sales_bp.route('/sales/ready-to-go-invoice-details/<invoiceNumber>', methods=['GET'])
+@login_required('Sales')
+def ready_to_go_invoice_details(invoiceNumber):
+    """
+    Fetch the list of orders for the logged-in sales user.
+    """
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = MyOrders()
+        orders = my_orders.fetch_ready_to_go_order_detailes(invoiceNumber)
+        my_orders.close()
+        if not orders:
+            return jsonify([]), 200
+
+        return jsonify(orders)
+
+    except Exception as e:
+        import traceback
+        print(traceback.print_exc())
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 # -------------------------------------------------------------- Canceled Orders -----------------------------------------------------------------------------------------------
@@ -2115,6 +2177,40 @@ class Canceled_Orders:
     def find_all_canceled_orders(self, user_id):
         query = """
             SELECT 
+
+                inv.id,
+                inv.invoice_number,
+                DATE_FORMAT(lot.sales_date_time, '%d/%m/%Y %h:%i %p') AS sales_date_time
+
+                
+            FROM invoices inv
+            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+            LEFT JOIN cancelled_orders c ON inv.id = c.invoice_id
+            WHERE inv.invoice_created_by_user_id = %s
+            AND c.confirm_by_saler = 0
+            AND lot.cancel_order_status = 1
+            AND (
+                lot.sales_proceed_for_packing = 0 
+                OR lot.packing_proceed_for_transport = 0 
+                OR lot.transport_proceed_for_builty = 0 
+                OR lot.builty_received = 0 
+                OR lot.payment_confirm_status = 0 
+                OR lot.verify_by_manager = 0
+            )
+            ORDER BY c.cancelled_at DESC
+
+        """
+        self.cursor.execute(query, (user_id,))
+        all_order_data = self.cursor.fetchall()
+
+        if not all_order_data:
+            return []
+
+        return all_order_data
+
+    def find_all_canceled_order_details(self, invoiceNumber):
+        query = """
+            SELECT 
                 -- invoices columns as is
                 inv.id,
                 inv.invoice_number,
@@ -2204,7 +2300,7 @@ class Canceled_Orders:
             LEFT JOIN cancelled_orders c ON inv.id = c.invoice_id
             LEFT JOIN users u ON c.cancelled_by = u.id
             LEFT JOIN transport t ON inv.transport_id = t.id
-            WHERE inv.invoice_created_by_user_id = %s
+            WHERE inv.invoice_number = %s
             AND c.confirm_by_saler = 0
             AND lot.cancel_order_status = 1
             AND (
@@ -2218,7 +2314,7 @@ class Canceled_Orders:
             ORDER BY c.cancelled_at DESC
 
         """
-        self.cursor.execute(query, (user_id,))
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
 
         if not all_order_data:
@@ -2232,7 +2328,8 @@ class Canceled_Orders:
             charges = obj.get_additional_charges(invoice_id['id']) 
             invoice_id['charges'] = charges
 
-        return merged_orders
+        return merged_orders[0]
+
 
     def confirm_canceled_order(self, id):
 
@@ -2319,6 +2416,30 @@ def sales_cancled_orders_list():
             return jsonify({'error': 'User not logged in'}), 401
         my_orders = Canceled_Orders()
         orders = my_orders.find_all_canceled_orders(user_id)
+        my_orders.close()
+
+        if not orders:
+            return jsonify([]), 200
+
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_orders.close()
+
+@sales_bp.route('/sales/canceld-orders-details/<invoiceNumber>', methods=['GET'])
+@login_required('Sales')
+def sales_cancled_order_details(invoiceNumber):
+
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        my_orders = Canceled_Orders()
+        orders = my_orders.find_all_canceled_order_details(invoiceNumber)
         my_orders.close()
 
         if not orders:
@@ -2907,6 +3028,43 @@ class BuiltyModel:
                     SELECT
                         inv.id,
                         inv.invoice_number,
+                        DATE_FORMAT(lot.transport_date_time, '%d/%m/%Y %h:%i %p') AS transport_date_time
+                        
+                    FROM invoices inv
+
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
+                        AND lot.cancel_order_status = 0
+                        AND lot.sales_proceed_for_packing = 1
+                        AND lot.packing_proceed_for_transport = 1
+                        AND lot.transport_proceed_for_builty = 1
+                        AND lot.builty_received = 0
+
+                    LEFT JOIN users up ON lot.packing_proceed_by = up.id
+                    LEFT JOIN users ut ON lot.transport_proceed_by = ut.id
+                    LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
+                    LEFT JOIN products p ON ii.product_id = p.id
+                    LEFT JOIN transport ON inv.transport_id = transport.id
+
+                    WHERE lot.builty_received = 0
+                        AND inv.completed = 0
+                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post') 
+                        AND inv.invoice_created_by_user_id = {session.get('user_id')}
+                    ORDER BY inv.created_at DESC;
+                """
+
+        self.cursor.execute(query)
+        all_order_data = self.cursor.fetchall()
+        
+        if not all_order_data:
+            return []
+
+        return all_order_data
+
+    def fetch_builty_order_detailes(self,invoiceNumber):
+        query = f"""
+                    SELECT
+                        inv.id,
+                        inv.invoice_number,
                         inv.customer_id,
                         inv.grand_total,
                         inv.payment_mode,
@@ -2998,11 +3156,10 @@ class BuiltyModel:
         if not all_order_data:
             return []
 
-    
         # Merge products into orders
         merged_orders = self.merge_orders_products(all_order_data)
 
-        return merged_orders
+        return merged_orders[0]
 
     def cancel_order(self,data):
         try:
@@ -3087,6 +3244,35 @@ def builty_my_pack_list():
 
     finally:
         my_pack.close()
+
+@sales_bp.route('/builty/builty-order-details/<invoiceNumber>', methods=['GET'])
+@login_required('Sales')
+def builty_my_pack_order_detailes(invoiceNumber):
+    """
+    Fetch the list of orders for the logged-in transport user.
+    """    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        my_pack = BuiltyModel()
+        orders = my_pack.fetch_builty_order_detailes(invoiceNumber)
+        
+        my_pack.close()
+
+        if not orders:
+            return jsonify([]), 200
+        
+        return jsonify(orders)
+
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return jsonify({'error': 'Failed to fetch orders'}), 500
+
+    finally:
+        my_pack.close()
+
 
 @sales_bp.route('/builty/cancel_order', methods=['POST'])
 @login_required('Sales')

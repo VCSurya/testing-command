@@ -1617,7 +1617,7 @@
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
                         <div title=${invoiceObj.customer_address}>
-                            <strong>Customer:</strong> ${invoiceObj.customer}
+                            <strong>Customer:</strong> ${invoiceObj.customer}, ${invoiceObj.mobile}
                              ${invoiceObj.gst_included == 1 ? `
                                 <div class="gst-label">
                                     <i class="fas fa-receipt"></i>
@@ -1629,37 +1629,37 @@
                     
                     
                     ${invoiceObj.paid_amount === invoiceObj.grand_total
-                            ? `
+                    ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--success-green); font-weight: 600;">Paid</span>
                                 </div>
                             `
-                            : invoiceObj.paid_amount > 0
-                                ? `
+                    : invoiceObj.paid_amount > 0
+                        ? `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--warning); font-weight: 600;">Half Payment</span>
                                 </div>
                             `
-                                : `
+                        : `
                                 <div>
                                 <strong>Payment Status:</strong>
                                 <span style="color: var(--danger); font-weight: 600;">Not Paid</span>
                                 </div>
                             `
-                        }
+                }
                     
                         
                     ${invoiceObj.delivery_mode === 'transport' ? `
                         <div title="${invoiceObj.delivery_mode}">
                                 <strong>Delivery Mode:</strong>
                                 ${invoiceObj.delivery_mode
-                            ? invoiceObj.delivery_mode
-                                .replace(/_/g, ' ')                // replace underscores with spaces
-                                .toLowerCase()                     // make everything lowercase first
-                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                            : ''}
+                        ? invoiceObj.delivery_mode
+                            .replace(/_/g, ' ')                // replace underscores with spaces
+                            .toLowerCase()                     // make everything lowercase first
+                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                        : ''}
                         </div>
                         <!-- Static HTML Content -->
                         <div class="transport-row">
@@ -1688,11 +1688,11 @@
                         <div title="${invoiceObj.delivery_mode}">
                                 <strong>Delivery Mode:</strong>
                                 ${invoiceObj.delivery_mode
-                        ? invoiceObj.delivery_mode
-                            .replace(/_/g, ' ')                // replace underscores with spaces
-                            .toLowerCase()                     // make everything lowercase first
-                            .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
-                        : ''}
+                    ? invoiceObj.delivery_mode
+                        .replace(/_/g, ' ')                // replace underscores with spaces
+                        .toLowerCase()                     // make everything lowercase first
+                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize first letter of each word
+                    : ''}
                         </div>
                     `}
 
@@ -1712,26 +1712,26 @@
                                     <div class="label-group">
                                         <div class="label">
                                             ${i === 0 && invoiceObj.trackingStatus === 0
-                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                                : step}
+                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                            : step}
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}
                                         </div>
                                         <label style="font-size:1.2em;display:block;margin-top:0px;color:gray;">
                                         
                                         ${i === 1 && invoiceObj.trackingStatus > 1 ?
-                                ` ● ${invoiceObj.payu_name}
+                            ` ● ${invoiceObj.payu_name}
                                         `
-                                : i === 2 && invoiceObj.trackingStatus > 2 ?
-                                    ` ● ${invoiceObj.pu_name} 
+                            : i === 2 && invoiceObj.trackingStatus > 2 ?
+                                ` ● ${invoiceObj.pu_name} 
                                         `
-                                    : i === 3 && invoiceObj.trackingStatus > 3 ?
-                                        ` ● ${invoiceObj.tu_name} 
+                                : i === 3 && invoiceObj.trackingStatus > 3 ?
+                                    ` ● ${invoiceObj.tu_name} 
                                         `
-                                        : i === 4 && invoiceObj.trackingStatus > 4 ?
-                                            ` ● ${invoiceObj.bu_name}
+                                    : i === 4 && invoiceObj.trackingStatus > 4 ?
+                                        ` ● ${invoiceObj.bu_name}
                                         `
-                                            : ``}
+                                        : ``}
                                         
                                         </label>
                                        
@@ -1750,16 +1750,16 @@
                                     <div class="tracking-steps">
 
                                     ${['Sell', 'Payment', 'Order Complete', 'Transport', 'Builty', 'Verified']
-                        .map((step, i) => ({ step, i })) // map with index
-                        .filter(s => !['Transport', 'Builty'].includes(s.step)) // ❌ remove Transport & Builty
-                        .map(({ step, i }) => `
+                    .map((step, i) => ({ step, i })) // map with index
+                    .filter(s => !['Transport', 'Builty'].includes(s.step)) // ❌ remove Transport & Builty
+                    .map(({ step, i }) => `
                                         <div class="tracking-step${i <= invoiceObj.trackingStatus ? ' active' : ''}${i < invoiceObj.trackingStatus ? ' done' : ''}">
                                             <div class="circle">${i < invoiceObj.trackingStatus ? '✓' : i + 1}</div>
                                             <div class="label-group">
                                                 <div class="label">
                                                     ${i === 0 && invoiceObj.trackingStatus === 0
-                                ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
-                                : step}
+                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                            : step}
                                                 </div>
                                                 <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
                                             </div>
@@ -1783,27 +1783,27 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${invoiceObj.products.map((p,index) => {
-                                    const name = p && typeof p.name === 'string' ? p.name : '';
-                                    const qty = p && typeof p.qty === 'number' ? p.qty : '';
+                                ${invoiceObj.products.map((p, index) => {
+                                const name = p && typeof p.name === 'string' ? p.name : '';
+                                const qty = p && typeof p.qty === 'number' ? p.qty : '';
 
-                                    const base_price = p && typeof p.price === 'number' ? p.price : '';
-                                    const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
-                                    const total_price = base_price + tax_price;
+                                const base_price = p && typeof p.price === 'number' ? p.price : '';
+                                const tax_price = p && typeof p.tax_amount === 'number' ? p.tax_amount : '';
+                                const total_price = base_price + tax_price;
 
-                                    return `<tr><td>${index+1}. ${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
-                                }).join('')}
+                                return `<tr><td>${index + 1}. ${name}</td><td>${qty}</td><td>₹${total_price}</td><td>₹${(total_price * qty).toLocaleString()}</td></tr>`;
+                            }).join('')}
 
                                 ${invoiceObj.charges.map(p => {
-                                    return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
-                                }).join('')}
+                                return `<tr><td>❏ ${p.charge_name}</td><td></td><td></td><td>₹${Math.round(p.amount)}</td></tr>`;
+                            }).join('')}
                             </tbody>
                         </table>
                         
                         <div style="margin-top:10px; font-size:1.05em; display: flex;justify-content: flex-end; gap: 15px;" >
                         
                         ${invoiceObj.paid_amount === invoiceObj.grand_total
-                            ? `
+                    ? `
                                 <div class="amounts-container3">
                                     <div style="color: var(--success-green);">
                                         <strong>Grand Total:</strong>
@@ -1811,18 +1811,18 @@
                                     </div>
                                 </div>
                             `
-                            : invoiceObj.paid_amount > 0
-                                ? `
+                    : invoiceObj.paid_amount > 0
+                        ? `
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container1">
                                     <div style="color: var(--warning);">
                                         <strong>Paid:</strong>
                                         ₹${invoiceObj.paid_amount.toLocaleString()} (${invoiceObj.payment_mode
-                                    ? invoiceObj.payment_mode
-                                        .replace(/_/g, ' ')                 // replace underscores
-                                        .toLowerCase()                      // make all lowercase
-                                        .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
-                                    : ''
-                                })
+                            ? invoiceObj.payment_mode
+                                .replace(/_/g, ' ')                 // replace underscores
+                                .toLowerCase()                      // make all lowercase
+                                .replace(/\b\w/g, c => c.toUpperCase()) // capitalize each word
+                            : ''
+                        })
                                     </div>
                                 </div>
 
@@ -1840,7 +1840,7 @@
                                     </div>
                                 </div>
                             `
-                                : `
+                        : `
 
                                 <div style="border-right:2px solid #adadad;padding-right:15px" class="amounts-container2">
                                     <div style="color: var(--danger);">
@@ -1856,7 +1856,7 @@
                                     </div>
                                 </div>
                             `
-                        }
+                }
 
 
                         </div>
@@ -1885,6 +1885,20 @@
         async function renderInvoices(invoices) {
             const list = document.getElementById('invoiceList');
             list.innerHTML = '';
+
+            if (!Array.isArray(invoices) || invoices.length === 0) {
+                list.innerHTML = `
+                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>`;
+
+                return;
+            }
 
             invoices.forEach(inv => {
 
@@ -1971,7 +1985,7 @@
                 list.appendChild(li);
             });
         }
-        
+
         async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
             const trackingStatusFilter = document.getElementById('trackingStatusFilter');

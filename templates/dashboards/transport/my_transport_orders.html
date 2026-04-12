@@ -1301,10 +1301,6 @@
                         <div class="col-md-6 offset-md-3 d-flex gap-2 align-items-center">
                             <input type="text" id="invoiceSearchInput" class="form-control"
                                 placeholder="Search by Invoice ID...">
-                            <select id="trackingStatusFilter" class="form-select" style="max-width:20%;">
-                                <option value="all" selected>All</option>
-                                <!-- <option value="5">Delivered</option> -->
-                            </select>
                         </div>
                     </div>
                     <div class="invoice-container">
@@ -1719,99 +1715,25 @@
 
         // Render invoices from dynamic backend data
         let allInvoices = [];
-        async function renderInvoices(invoices) {
-            const list = document.getElementById('invoiceList');
-            list.innerHTML = '';
-            if (!Array.isArray(invoices) || invoices.length === 0) {
-                list.innerHTML =
-                    `<li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" style="margin:0 auto 12px;">
-                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
-                </li>`;
-                return;
-            }
-            invoices.forEach((inv, idx) => {
-                // Ensure products is always an array
-                const products = Array.isArray(inv.products) ? inv.products : [];
-                const charges = Array.isArray(inv.charges) ? inv.charges : [];
+        const invoiceCache = {};
 
-                // Map backend fields to frontend expected fields
-                const invoiceObj = {
-                    number: inv.invoice_number,
-                    main_id: inv.id,
-                    date: inv.created_at,
-                    customer: inv.customer + ', ' + inv.mobile,
-                    customer_address: inv.address,
-                    delivery_mode: inv.delivery_mode,
-                    gst_included: inv.gst_included,
-                    transport_company_name: inv.transport_company_name,
-                    products: products,
-                    charges: charges,
-                    payment_status: inv.payment_confirm_status === 1 || inv.status === 'Paid' ? 'Paid' : 'Pending',
-                    trackingStatus: (typeof inv.trackingStatus !== 'undefined') ? inv.trackingStatus : 0, // TODO: Map from backend
-                    grand_total: inv.grand_total,
-                    amount_paid: inv.paid_amount,
-                    left_to_paid: inv.left_to_paid,
-                    payment_mode: inv.payment_mode,
-                    payment_note: inv.payment_note,
-                    sales_note: inv.sales_note,
-                    trackingDates: inv.trackingDates,
-                    live_order_track_id: inv.live_order_track_id,
-                    sales_by: inv.username,
-                    pack_note: inv.packing_note,
-                    pack_by: inv.pack_by,
-                    sale_date: inv.sales_date_time,
-                    pack_date: inv.packing_date_time,
-                    transport_name: inv.transport_name,
-                    transport_city: inv.transport_city,
-                    transport_days: inv.transport_days,
-                    transport_pincode: inv.transport_pincode
-                };
-                const li = document.createElement('li');
-                li.className = 'invoice-item';
-                li.innerHTML = `
-                    <div class="invoice-header">
-                        <span>❑ ${invoiceObj.main_id}</span>
-                        <div class="invoice-id-row">
-                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${invoiceObj.pack_date}</span>
+        function buildInvoiceDetails(invoiceObj) {
 
-                            <div class="invoice-actions">
+            const products = Array.isArray(invoiceObj.products) ? invoiceObj.products : [];
+            const charges = Array.isArray(invoiceObj.charges) ? invoiceObj.charges : [];
 
-                                <button class="glass-btn" title="Download PDF" onclick="
-                                    event.stopPropagation();
-                                    window.open('${window.location.origin}/sales/download_invoice_pdf/${invoiceObj.number}', '_blank');
-                                ">
-                                    <!-- PDF File Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
-                                    </svg>
-                                </button>
-
-                                
-                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${invoiceObj.number}','${invoiceObj.main_id}', this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>   
-
-                            </div>
-                        </div>
-                    </div>
+            return `
                     <div class="invoice-details">
                         <div id="invoice_date_2" ><strong> Date:</strong> 
-                            <span style="font-size:0.9em;color:#000;">${invoiceObj.pack_date}</span>
+                            <span style="font-size:0.9em;color:#000;">${invoiceObj.packing_date_time}</span>
                         </div>
-                        <div title=${invoiceObj.customer_address}>
-                            <strong>Customer:</strong> ${invoiceObj.customer}
+                        <div title=${invoiceObj.address}>
+                            <strong>Customer:</strong> ${invoiceObj.customer}, ${invoiceObj.mobile} 
                         </div>
                                 
-                        <div title=${invoiceObj.sales_by}><strong>Salesman:</strong> ${invoiceObj.sale_date} (${invoiceObj.sales_by})</div>
+                        <div title=${invoiceObj.username}><strong>Salesman:</strong> ${invoiceObj.sales_date_time} (${invoiceObj.username})</div>
 
-                        <div title=${invoiceObj.pack_by}><strong>Packaging:</strong> ${invoiceObj.pack_date} (${invoiceObj.pack_by})</div>
+                        <div title=${invoiceObj.pack_by}><strong>Packaging:</strong> ${invoiceObj.packing_date_time} (${invoiceObj.pack_by})</div>
                         ${invoiceObj.delivery_mode === 'transport' ? `
                     
                            <!-- Static HTML Content -->
@@ -1873,9 +1795,9 @@
                                 </div>
                             ` : ''}
                              
-                            ${invoiceObj.pack_note && invoiceObj.pack_note.trim() !== '' ? `
+                            ${invoiceObj.packing_note && invoiceObj.packing_note.trim() !== '' ? `
                                 <div class="note pack-note">
-                                <p> <span>Packing Note: </span> ${invoiceObj.pack_note.toLocaleString()}</p>
+                                <p> <span>Packing Note: </span> ${invoiceObj.packing_note.toLocaleString()}</p>
                                 </div>
                             ` : ''}
 
@@ -1886,22 +1808,118 @@
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.number}','${invoiceObj.main_id}')">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.invoice_number}','${invoiceObj.id}')">
                                 Transport Handover Done 
                             </button>
                         </div>
                     </div>
 
                 `;
-                li.querySelector('.invoice-header').addEventListener('click', function () {
-                    document.querySelectorAll('.invoice-item').forEach(item => {
-                        if (item !== li) item.classList.remove('active');
-                    });
+
+            
+        }
+
+        async function renderInvoices(invoices) {
+            const list = document.getElementById('invoiceList');
+            list.innerHTML = '';
+
+            if (!Array.isArray(invoices) || invoices.length === 0) {
+                list.innerHTML = `
+                <li style="text-align:center; color:#6b7280; padding:0em 0; list-style:none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" style="margin:0 auto 12px;">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div style="font-size:16px; font-weight:500;">No invoices yet</div>
+                </li>`;
+
+                return;
+            }
+
+            invoices.forEach(inv => {
+
+                const li = document.createElement('li');
+                li.className = 'invoice-item';
+
+                li.innerHTML = `
+                    <div class="invoice-header" data-id="${inv.invoice_number}">
+                        <span>❑ ${inv.id}</span>
+                        <div class="invoice-id-row">
+                        <span style="font-size:0.9em;color:#666;" id="invoice_date_1">${inv.packing_date_time}</span>
+
+                            <div class="invoice-actions">
+
+                                <button class="glass-btn" title="Download PDF" onclick="
+                                        event.stopPropagation();
+                                        window.open('${window.location.origin}/sales/download_invoice_pdf/${inv.invoice_number}', '_blank');
+                                    ">
+                                    <!-- PDF File Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zm1 7V3.5L20.5 9H15zM7 13h2v5H7v-5zm3 0h1.5a2.5 2.5 0 1 1 0 5H10v-5zm1.5 3.5a1 1 0 0 0 0-2H11v2h0.5zM16 13h2v1h-1v1h1v1h-2v-5z"/>
+                                    </svg>
+                                </button>
+
+                                <button class="glass-btn danger" title="Cancel Order" onclick="event.stopPropagation(); openCancelOrderModal('${inv.invoice_number}','${inv.id}', this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>   
+                                    
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="invoice-details">
+                        <div class="loading">Loading...</div>
+                    </div>
+                `;
+
+                const header = li.querySelector('.invoice-header');
+
+                header.addEventListener('click', async function () {
+
+                    document.querySelectorAll('.invoice-item')
+                        .forEach(item => {
+                            if (item !== li) item.classList.remove('active');
+                        });
+
                     li.classList.toggle('active');
+
+                    const invoiceNumber = this.dataset.id;
+
+                    const detailContainer = li.querySelector('.invoice-details');
+
+                    // already loaded
+                    if (invoiceCache[invoiceNumber]) {
+                        detailContainer.innerHTML = invoiceCache[invoiceNumber];
+                        return;
+                    }
+
+                    // show loader
+                    detailContainer.innerHTML = "Loading...";
+
+                    try {
+
+                        const res = await fetch(`/transport/transport-order-details/${invoiceNumber}`);
+                        const data = await res.json();
+
+                        const html = buildInvoiceDetails(data);
+
+                        invoiceCache[invoiceNumber] = html;
+
+                        detailContainer.innerHTML = html;
+
+                    } catch (err) {
+                        detailContainer.innerHTML = "Failed to load invoice";
+                    }
+
                 });
+
                 list.appendChild(li);
             });
         }
+
 
         async function filterAndRenderInvoices() {
             const searchInput = document.getElementById('invoiceSearchInput');
