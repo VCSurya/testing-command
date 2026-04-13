@@ -3061,7 +3061,7 @@ class BuiltyModel:
         return all_order_data
 
     def fetch_builty_order_detailes(self,invoiceNumber):
-        query = f"""
+        query = """
                     SELECT
                         inv.id,
                         inv.invoice_number,
@@ -3146,11 +3146,12 @@ class BuiltyModel:
                     WHERE lot.builty_received = 0
                         AND inv.completed = 0
                         AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post') 
-                        AND inv.invoice_created_by_user_id = {session.get('user_id')}
+                        AND inv.invoice_number = %s
+                        
                     ORDER BY inv.created_at DESC;
                 """
 
-        self.cursor.execute(query)
+        self.cursor.execute(query, (invoiceNumber,))
         all_order_data = self.cursor.fetchall()
         
         if not all_order_data:
