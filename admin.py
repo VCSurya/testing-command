@@ -1,5 +1,5 @@
-from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session,current_app
-from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
+from flask import Blueprint, render_template, jsonify, request, session,current_app
+from utils import get_db_connection, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -23,482 +23,56 @@ class AdminModel:
     
     def get_dashboard_data(self):
         
-        query = """
-
-            SELECT 
-
-                -- Case totals
-
-                SUM(total_amount) AS today_paid_amount,
-            
-                -- Transaction counts
-
-                SUM(Cash_) AS Total_cash_transaction,
-
-                SUM(Online_) AS Total_online_transaction,
-
-                SUM(Card_) AS Total_card_transaction,
-            
-                -- Payment mode amounts
-
-                SUM(cash_amount) AS Total_cash_amount,
-
-                SUM(online_amount) AS Total_online_amount,
-
-                SUM(card_amount) AS Total_card_amount,
-            
-                -- Today's full revenue
-
-                (SELECT SUM(inv.grand_total)
-
-                FROM invoices inv
-
-                JOIN live_order_track lot ON lot.invoice_id = inv.id
-
-                WHERE DATE(inv.created_at) = CURRENT_DATE()
-
-                AND lot.sales_proceed_for_packing = 1
-
-                AND lot.cancel_order_status = 0
-
-                AND inv.cancel_order_status = 0
-
-                ) AS Today_revenue,
-                
-                -- Today Sales
-            
-            	(SELECT COUNT(inv.id)
-
-                FROM invoices inv
-
-                JOIN live_order_track lot ON lot.invoice_id = inv.id
-
-                WHERE DATE(inv.created_at) = CURRENT_DATE()
-
-                AND lot.sales_proceed_for_packing = 1
-
-                AND lot.cancel_order_status = 0
-
-                AND inv.cancel_order_status = 0
-
-                ) AS Today_sales,
-            
-                -- Today Not-Paid Money
-
-                (SELECT SUM(inv.left_to_paid)
-
-                FROM invoices inv
-
-                JOIN live_order_track lot ON lot.invoice_id = inv.id
-
-                WHERE DATE(inv.created_at) = CURRENT_DATE()
-
-                AND lot.sales_proceed_for_packing = 1
-
-                AND lot.cancel_order_status = 0
-
-                AND inv.cancel_order_status = 0
-
-                AND lot.left_to_paid_mode = 'not_paid'
-
-                ) AS Today_not_paid_money
-            
-            FROM (
-
-                -- Case 2
-
-                SELECT 
-
-                    SUM(invoices.left_to_paid) AS total_amount,
-            
-                    -- transaction count
-
-                    SUM(live_order_track.left_to_paid_mode = 'cash') AS Cash_,
-
-                    SUM(live_order_track.left_to_paid_mode = 'online') AS Online_,
-
-                    SUM(live_order_track.left_to_paid_mode = 'card') AS Card_,
-            
-                    -- amount per mode
-
-                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'cash' THEN invoices.left_to_paid ELSE 0 END) AS cash_amount,
-
-                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'online' THEN invoices.left_to_paid ELSE 0 END) AS online_amount,
-
-                    SUM(CASE WHEN live_order_track.left_to_paid_mode = 'card' THEN invoices.left_to_paid ELSE 0 END) AS card_amount
-            
-                FROM invoices
-
-                JOIN live_order_track ON live_order_track.invoice_id = invoices.id
-
-                WHERE DATE(invoices.created_at) = CURRENT_DATE()
-
-                AND live_order_track.sales_proceed_for_packing = 1
-
-                AND live_order_track.cancel_order_status = 0
-
-                AND invoices.cancel_order_status = 0
-
-                AND live_order_track.left_to_paid_mode != 'not_paid'
-
-                AND live_order_track.payment_confirm_status = 1
-
-                AND invoices.left_to_paid > 0
-
-                AND DATE(live_order_track.payment_date_time) = CURRENT_DATE()
-            
-                UNION ALL
-            
-                -- Case 1
-
-                SELECT 
-
-                    SUM(invoices.paid_amount) AS total_amount,
-
-                    SUM(invoices.payment_mode = 'cash') AS Cash_,
-
-                    SUM(invoices.payment_mode = 'online') AS Online_,
-
-                    SUM(invoices.payment_mode = 'card') AS Card_,
-            
-                    SUM(CASE WHEN invoices.payment_mode = 'cash' THEN invoices.paid_amount ELSE 0 END) AS cash_amount,
-
-                    SUM(CASE WHEN invoices.payment_mode = 'online' THEN invoices.paid_amount ELSE 0 END) AS online_amount,
-
-                    SUM(CASE WHEN invoices.payment_mode = 'card' THEN invoices.paid_amount ELSE 0 END) AS card_amount
-            
-                FROM invoices
-
-                JOIN live_order_track ON live_order_track.invoice_id = invoices.id
-
-                WHERE DATE(invoices.created_at) = CURRENT_DATE()
-
-                AND live_order_track.sales_proceed_for_packing = 1
-
-                AND live_order_track.payment_confirm_status = 1
-
-                AND live_order_track.cancel_order_status = 0
-
-                AND invoices.cancel_order_status = 0
-
-
-                UNION ALL
-
-                -- Case 3 : Verified Payment Transactions (Today)
-
-                SELECT
-                    SUM(pt.amount) AS total_amount,
-
-                    -- transaction count
-                    SUM(pt.payment_method = 'cash') AS Cash_,
-                    SUM(pt.payment_method = 'online') AS Online_,
-                    SUM(pt.payment_method = 'card') AS Card_,
-
-                    -- amount per mode
-                    SUM(CASE WHEN pt.payment_method = 'cash' THEN pt.amount ELSE 0 END) AS cash_amount,
-                    SUM(CASE WHEN pt.payment_method = 'online' THEN pt.amount ELSE 0 END) AS online_amount,
-                    SUM(CASE WHEN pt.payment_method = 'card' THEN pt.amount ELSE 0 END) AS card_amount
-
-                FROM payment_transations pt
-
-                WHERE pt.payment_received_by IS NOT NULL
-                AND pt.payment_verified_by IS NOT NULL
-                AND pt.payment_received_at >= CURDATE()
-                AND pt.payment_received_at < CURDATE() + INTERVAL 1 DAY
-
-            ) AS combined;
-        
-        """
-
-        self.cursor.execute(query)
+        self.cursor.execute("CALL admin_dashboard_data()")
         result = self.cursor.fetchone()
-        
+
         return result
 
     def get_today_performers_data(self):
-        
-        query = """
-            WITH role_stats AS (
-
-                -- 1. Sales
-                SELECT 
-                    'Sales' AS role_name,
-                    u.username,
-                    COUNT(*) AS total
-                FROM invoices i
-                JOIN live_order_track lot ON lot.invoice_id = i.id
-                JOIN users u ON u.id = i.invoice_created_by_user_id
-                WHERE lot.sales_proceed_for_packing = 1
-                AND lot.cancel_order_status = 0
-                AND i.cancel_order_status = 0
-                AND lot.sales_date_time >= CURRENT_DATE()
-                AND lot.sales_date_time < CURRENT_DATE() + INTERVAL 1 DAY
-                AND u.role = 'Sales'
-                GROUP BY u.username
-
-                UNION ALL
-
-                -- 2. Packaging
-                SELECT 
-                    'Packaging' AS role_name,
-                    u.username,
-                    COUNT(*) AS total
-                FROM live_order_track lot
-                JOIN users u ON u.id = lot.packing_proceed_by
-                WHERE lot.sales_proceed_for_packing = 1
-                AND lot.packing_proceed_for_transport = 1
-                AND lot.cancel_order_status = 0
-                AND lot.packing_date_time >= CURRENT_DATE()
-                AND lot.packing_date_time < CURRENT_DATE() + INTERVAL 1 DAY
-                AND u.role = 'Packaging'
-                GROUP BY u.username
-
-                UNION ALL
-
-                -- 3. Transport
-                SELECT 
-                    'Transport' AS role_name,
-                    u.username,
-                    COUNT(*) AS total
-                FROM live_order_track lot
-                JOIN users u ON u.id = lot.transport_proceed_by
-                WHERE lot.sales_proceed_for_packing = 1
-                AND lot.packing_proceed_for_transport = 1
-                AND lot.transport_proceed_for_builty = 1
-                AND lot.cancel_order_status = 0
-                AND lot.transport_date_time >= CURRENT_DATE()
-                AND lot.transport_date_time < CURRENT_DATE() + INTERVAL 1 DAY
-                AND u.role = 'Transport'
-                GROUP BY u.username
-
-                UNION ALL
-
-                -- 4. Builty
-                SELECT 
-                    'Builty' AS role_name,
-                    u.username,
-                    COUNT(*) AS total
-                FROM live_order_track lot
-                JOIN users u ON u.id = lot.builty_proceed_by
-                WHERE lot.sales_proceed_for_packing = 1
-                AND lot.packing_proceed_for_transport = 1
-                AND lot.builty_received = 1
-                AND lot.cancel_order_status = 0
-                AND lot.builty_date_time >= CURRENT_DATE()
-                AND lot.builty_date_time < CURRENT_DATE() + INTERVAL 1 DAY
-                AND u.role = 'Builty'
-                GROUP BY u.username
-
-                UNION ALL
-
-                -- 5. Account
-                SELECT 
-                    role_name,
-                    username,
-                    SUM(total) AS total
-                FROM (
-                    -- Payment transactions verification
-                    SELECT 
-                        u.role AS role_name,
-                        u.username,
-                        COUNT(*) AS total
-                    FROM payment_transations pt
-                    JOIN users u ON u.id = pt.payment_verified_by
-                    WHERE pt.payment_verified_by IS NOT NULL
-                    AND u.role = 'Account'
-                    AND pt.payment_verified_at >= CURRENT_DATE()
-                    AND pt.payment_verified_at < CURRENT_DATE() + INTERVAL 1 DAY
-                    GROUP BY u.username, u.role
-
-                    UNION ALL
-
-                    -- Order payment confirmation
-                    SELECT 
-                        u.role AS role_name,
-                        u.username,
-                        COUNT(*) AS total
-                    FROM live_order_track lot
-                    JOIN users u ON u.id = lot.payment_verify_by
-                    WHERE lot.sales_proceed_for_packing = 1
-                    AND lot.payment_confirm_status = 1
-                    AND lot.cancel_order_status = 0
-                    AND u.role = 'Account'
-                    AND lot.payment_date_time >= CURRENT_DATE()
-                    AND lot.payment_date_time < CURRENT_DATE() + INTERVAL 1 DAY
-                    GROUP BY u.username, u.role
-                ) combined
-                GROUP BY role_name, username
-            )
-
-            SELECT role_name, username, total
-            FROM (
-                SELECT 
-                    role_name,
-                    username,
-                    total,
-                    RANK() OVER (PARTITION BY role_name ORDER BY total DESC) AS rnk
-                FROM role_stats
-            ) ranked
-            WHERE rnk = 1;
-
-        """
-              
-        self.cursor.execute(query,)
+                      
+        self.cursor.execute("CALL today_performance()")
         data = self.cursor.fetchall()
-
         result = defaultdict(list)
-    
+
         for item in data:
             result[item["role_name"]].append({
                 "username": item["username"],
                 "total": item["total"]
             })
+        
         return dict(result)
 
     def get_all_orders_data(self):
-        query = f"""
-                    SELECT 
-                            invoices.invoice_number,
-                            invoices.created_at,
-                            invoices.id,
+        self.cursor.callproc('get_all_orders_data')
 
-                            CASE
-                                -- Cancelled stage (only when both cancel flags = 1)
-                                WHEN invoices.cancel_order_status = 1
-                                    AND live_order_track.cancel_order_status = 1
-                                THEN cancelled_orders.cancelled_at
+        results = []
+        for result in self.cursor.stored_results():
+            results.append(result.fetchall())
 
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.sales_proceed_for_packing = 1
-                                    AND live_order_track.payment_confirm_status = 0
-                                THEN invoices.created_at
+        stage_data = results[0]
+        unpaid_orders = results[1]
 
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.payment_confirm_status = 1
-                                    AND live_order_track.packing_proceed_for_transport = 0
-                                THEN live_order_track.payment_date_time
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.packing_proceed_for_transport = 1
-                                    AND live_order_track.transport_proceed_for_builty = 0
-                                THEN live_order_track.packing_date_time
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.transport_proceed_for_builty = 1
-                                    AND live_order_track.builty_received = 0
-                                THEN live_order_track.transport_date_time
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.builty_received = 1
-                                    AND live_order_track.verify_by_manager = 0
-                                THEN live_order_track.builty_date_time
-
-                                WHEN invoices.completed = 1
-                                    AND live_order_track.verify_by_manager = 1
-                                THEN live_order_track.verify_manager_date_time
-                            END AS stage_date_time,
-
-                            CASE
-                                WHEN invoices.cancel_order_status = 1
-                                    AND live_order_track.cancel_order_status = 1
-                                THEN 'Cancelled'
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.sales_proceed_for_packing = 1
-                                    AND live_order_track.payment_confirm_status = 0
-                                THEN 'Payment'
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.payment_confirm_status = 1
-                                    AND live_order_track.packing_proceed_for_transport = 0
-                                THEN 'Packing'
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.packing_proceed_for_transport = 1
-                                    AND live_order_track.transport_proceed_for_builty = 0
-                                THEN 'Transport'
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.transport_proceed_for_builty = 1
-                                    AND live_order_track.builty_received = 0
-                                THEN 'Builty'
-
-                                WHEN invoices.completed = 0
-                                    AND live_order_track.builty_received = 1
-                                    AND live_order_track.verify_by_manager = 0
-                                THEN 'Verification'
-
-                                WHEN invoices.completed = 1
-                                    AND live_order_track.verify_by_manager = 1
-                                THEN 'Completed'
-                            END AS pending_stage
-
-                        FROM invoices
-                        JOIN live_order_track 
-                            ON live_order_track.invoice_id = invoices.id
-
-                        LEFT JOIN cancelled_orders
-                            ON cancelled_orders.invoice_id = invoices.id
-
-                        WHERE 
-                            (
-                                -- show cancelled orders
-                                invoices.cancel_order_status = 1
-                                AND live_order_track.cancel_order_status = 1
-                            )
-                            OR
-                            (
-                                -- show non-cancelled orders
-                                invoices.cancel_order_status = 0
-                                AND live_order_track.cancel_order_status = 0
-                                AND live_order_track.sales_proceed_for_packing = 1
-                            )
-
-                        ORDER BY stage_date_time ASC;
-        """
-        self.cursor.execute(query)
-        data = self.cursor.fetchall()
+        from collections import defaultdict
         result = defaultdict(list)
-        for item in data:
+
+        # Process stage data
+        for item in stage_data:
             result[item["pending_stage"]].append({
-                "id":item["id"],
+                "id": item["id"],
                 "invoice_number": item["invoice_number"],
                 "created_at": item["created_at"].strftime("%d/%m/%Y %I:%M %p"),
-                "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p") if item["stage_date_time"] else "" 
+                "stage_date_time": item["stage_date_time"].strftime("%d/%m/%Y %I:%M %p") if item["stage_date_time"] else ""
             })
 
-
-        self.cursor.execute("""
-            SELECT 
-                inv.invoice_number, 
-                inv.created_at, 
-                inv.id
-       
-                FROM invoices inv 
-
-                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
-
-                where lot.verify_by_manager = 1 
-                AND lot.cancel_order_status = 0 
-                AND lot.sales_proceed_for_packing = 1 
-                AND lot.packing_proceed_for_transport = 1 
-                AND lot.transport_proceed_for_builty = 1 
-                AND lot.builty_received = 1 
-                AND lot.payment_confirm_status = 1 
-                AND inv.completed = 1
-                AND lot.left_to_paid_mode = 'not_paid'
-                AND inv.left_to_paid > 0
-                ORDER BY inv.created_at DESC;
-        """)
-        unpaid_orders = self.cursor.fetchall()
+        # Process unpaid
         for i in unpaid_orders:
             i['created_at'] = i['created_at'].strftime("%d/%m/%Y %I:%M %p")
-    
-        if len(unpaid_orders) > 0:
+
+        if unpaid_orders:
             result['Unpaid'] = unpaid_orders
 
         return dict(result)
-
+       
     def close(self):
         self.cursor.close()
         self.conn.close() # type: ignore
@@ -547,266 +121,6 @@ def today_performers():
         cursor.close()
         conn.close()
 
-def merge_orders_products(data):
-
-        merged = {}
-
-        for item in data:
-
-            # change created_at date formate 
-            item['created_at'] = item['created_at'].strftime("%d/%m/%Y %I:%M %p") 
-            item['sales_date_time'] = item['sales_date_time'].strftime("%d/%m/%Y %I:%M %p")
-            item['packing_date_time'] = item['packing_date_time'].strftime("%d/%m/%Y %I:%M %p")
-            item['payment_date_time'] = item['payment_date_time'].strftime("%d/%m/%Y %I:%M %p")
-            # passed tracking status with date            
-            trackingStatus = 0
-            trackingDates = []
-
-            if item['sales_proceed_for_packing']:
-
-                if item['sales_date_time']:
-                    trackingDates.append(item['sales_date_time'])
-                else:
-                    trackingDates.append('')
-                trackingStatus = 1                
-            
-                if item['packing_proceed_for_transport']:
-                    
-                    if item['packing_proceed_for_transport']:
-                        trackingDates.append(item['packing_date_time'])
-                    else:
-                        trackingDates.append('')
-                    trackingStatus = 2                
-                
-                    if item['transport_proceed_for_builty']:
-                        
-                        if item['transport_proceed_for_builty']:
-                            trackingDates.append(item['transport_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                        else:
-                            trackingDates.append('')
-                        trackingStatus = 3
-            
-                        if item['builty_received']:
-
-                            if item['builty_received']:
-                                trackingDates.append(item['builty_date_time'].strftime("%d/%m/%Y %I:%M %p"))
-                            else:
-                                trackingDates.append('')
-                            trackingStatus = 4
-            
-                            if item['payment_confirm_status']:
-                                
-                                if item['payment_confirm_status']:
-                                    trackingDates.append(item['payment_date_time'])
-                                else:
-                                    trackingDates.append('')
-                                trackingStatus = 5
-
-
-            item['trackingStatus'] = trackingStatus
-            item['trackingDates'] = trackingDates
-
-
-            # merge products
-            order_id = item["id"]
-            product_info = {
-                "name": item["name"],
-                "qty": item["quantity"],
-                "price": float(item["price"]),
-                "tax_amount": float(item["gst_tax_amount"]),
-                "total": float(item["total_amount"]),
-            }
-
-            if order_id not in merged:
-                # Create a new entry if the id doesn't exist yet
-                merged[order_id] = {
-                    **{k: v for k, v in item.items() if k not in ["name", "quantity", "price", "gst_tax_amount", "total_amount", "invoices_items_id", "product_id", "products_id"]},
-                    "products": [product_info],
-                }
-            else:
-                # If it already exists, just append the product info
-                merged[order_id]["products"].append(product_info)
-
-        return list(merged.values())
-
-@admin_bp.route("/admin/uploads/packaging/<filename>")
-@login_required('Admin')
-def uploaded_image(filename):
-    return send_from_directory("uploads/packaging", filename)
-
-@admin_bp.route('/admin/my-orders-list', methods=['GET'])
-@login_required('Admin')
-def verify_order_list():
-    try:
-        query = f"""
-               SELECT 
-                inv.id, 
-                inv.invoice_number, 
-                inv.customer_id, 
-                inv.grand_total, 
-                inv.payment_mode, 
-                inv.paid_amount, 
-                inv.left_to_paid, 
-                inv.transport_company_name,
-                inv.invoice_created_by_user_id, 
-                inv.payment_note as payment_note_1, 
-                inv.gst_included, 
-                inv.created_at, 
-                inv.delivery_mode, 
-                b.id AS buddy_id, 
-                b.name AS customer, 
-                b.address, 
-                b.state, 
-                b.pincode, 
-                b.mobile, 
-
-                u.id AS users_id, 
-                u.username, 
-
-                up.id AS pu_id, 
-                up.username AS pu_name, 
-
-                ut.id AS tu_id, 
-                ut.username AS tu_name, 
-
-                ub.id AS bu_id, 
-                ub.username AS bu_name, 
-
-                upay.id AS payu_id, 
-                upay.username AS payu_name,
-
-                ii.id AS invoices_items_id, 
-
-                ii.product_id, 
-                ii.quantity, 
-                ii.price, 
-                ii.gst_tax_amount, 
-                ii.total_amount, 
-                ii.created_at, 
-
-                p.id AS products_id, 
-                p.name, 
-
-                lot.id AS live_order_track_id,
-                lot.sales_proceed_for_packing,
-                lot.sales_date_time,
-                lot.packing_proceed_for_transport,
-                lot.packing_date_time,
-                lot.packing_proceed_by,
-                lot.transport_proceed_for_builty,
-                lot.transport_date_time,
-                lot.transport_proceed_by,
-                lot.builty_proceed_by,
-                lot.builty_received,
-                lot.builty_date_time,
-                lot.payment_confirm_status,
-                lot.cancel_order_status,
-                lot.verify_by_manager,
-                lot.payment_date_time,
-                lot.left_to_paid_mode,
-                lot.payment_note as payment_note_2 
-
-                FROM invoices inv 
-
-                LEFT JOIN buddy b ON inv.customer_id = b.id 
-                LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id 
-                LEFT JOIN products p ON ii.product_id = p.id 
-                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
-
-                LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
-                LEFT JOIN users up ON lot.packing_proceed_by = up.id 
-                LEFT JOIN users ut ON lot.transport_proceed_by = ut.id 
-                LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
-                LEFT JOIN users upay ON lot.payment_verify_by = upay.id 
-
-                where lot.verify_by_manager = 0 
-                AND lot.cancel_order_status = 0 
-                AND lot.sales_proceed_for_packing = 1 
-                AND lot.packing_proceed_for_transport = 1 
-                AND lot.transport_proceed_for_builty = 1 
-                AND lot.builty_received = 1 
-                AND lot.payment_confirm_status = 1 
-                AND inv.completed = 0
-                AND lot.left_to_paid_mode != 'not_paid'
-                ORDER BY inv.created_at DESC;
-        """
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
-
-        cursor = conn.cursor(dictionary=True)
-        try:
-            cursor.execute(query)
-            events = cursor.fetchall()
-        finally:
-            cursor.close()
-            conn.close()
-
-        if events:
-            merged_orders = merge_orders_products(events)
-            return jsonify(merged_orders)
-        
-        return jsonify({'success': False, 'message': 'No events found'}),500
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}),500
-
-@admin_bp.route('/admin/order-verify',methods=['POST'])
-@login_required('Admin')
-def confirm_verification():
-    try:
-        
-        data = request.json
-        
-        if data is None or 'InvoiceNumber' not in data or not data.get('InvoiceNumber'):
-            return jsonify({'success': False, 'message': 'Invalid input data'}),400
-
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'message': 'Database connection error'})
-
-        if not session.get('user_id'):
-            return jsonify({'success': False, 'message': 'User Not Found!'})
-
-
-        _query = f"""
-        SELECT id FROM `live_order_track` WHERE invoice_id = (SELECT id FROM `invoices` WHERE invoice_number = '{data.get('InvoiceNumber')}');
-        """
-        cursor_ = conn.cursor(dictionary=True)
-        
-        cursor_.execute(_query)
-        live_order_track = cursor_.fetchone()   
-        if not live_order_track:
-            return jsonify({'success': False, 'message': 'Live Order Track Not Found!'}),500
-        
-        live_order_track_id = live_order_track.get('id')
-
-        query = """
-        UPDATE live_order_track
-        set verify_by_manager = 1, verify_by_manager_id = %s ,verify_manager_date_time = NOW()
-        WHERE id = %s
-        """
-
-        query_ = """
-        UPDATE invoices
-        set completed = 1
-        WHERE id = (SELECT invoice_id FROM live_order_track WHERE id = %s);
-        """
-
-        cursor = conn.cursor(dictionary=True)
-        
-        try:
-            cursor.execute(query,(session.get('user_id'),live_order_track_id))
-            cursor.execute(query_,(live_order_track_id,))
-            conn.commit()
-        finally:
-            cursor.close()
-            conn.close()
-
-        return {"success": True, "message": f"Done"}
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}),500
 
 # User Management Routes
 @admin_bp.route('/admin/users')
@@ -860,20 +174,30 @@ def add_user():
 
     try:
         # Check if username already exists
-        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-        existing_user = cursor.fetchone()
-        if existing_user:
-            return jsonify({'success': False, 'message': f'{username}: Username already exists'})
+        cursor.execute(
+            "SELECT 1 FROM users WHERE username = %s LIMIT 1",
+            (username,)
+        )
+        user_exists = cursor.fetchone() is not None
 
+        if user_exists:
+            return jsonify({
+                'success': False,
+                'message': f'Username "{username}" already exists'
+            }), 409
+        
         # Insert new user
         cursor.execute("""
             INSERT INTO users (name, username, password, role, created_by, updated_by, active ,created_at ,updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, 1,%s, %s)
         """, (name, username, encrypted_password, role, created_by, created_by, formatted_time, formatted_time))
+        
         conn.commit()
         return jsonify({'success': True, 'message': 'User added successfully'})
+    
     except mysql.connector.Error as err:
         return jsonify({'success': False, 'message': str(err)})
+    
     finally:
         cursor.close()
         conn.close()
@@ -923,6 +247,7 @@ def update_user(user_id):
         return jsonify({'success': False, 'message': 'Database connection error'})
     
     cursor = conn.cursor()
+    
     try:
         # Get current timestamp for updated_at
         formatted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -938,8 +263,10 @@ def update_user(user_id):
         """, (name, username,role, updated_by, formatted_time, password,user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'User updated successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
+    
     finally:
         cursor.close()
         conn.close()
@@ -1012,66 +339,21 @@ def delete_user():
     cursor = conn.cursor(dictionary=True)
     try:
         
-        cursor.execute("""
+            cursor.callproc('delete_user_procedure', [
+                data.get('deleteUserName'),
+                int(data.get('selectedUserId') or 0)
+            ])
 
-                SELECT id FROM users
-                WHERE username = %s AND active = 1
-            
-        """, (data.get('deleteUserName'),))
-
-        user_exists = cursor.fetchone() 
-
-        if user_exists is None: 
-            return jsonify({'success': False, 'message': 'User not found.'})
-
-
-        if data.get('selectedUserId') == "":
-            cursor.execute("""
-                UPDATE users
-                SET active = 0
-                WHERE id = %s
-            """, (user_exists.get('id'),))
             conn.commit()
-            current_app.deactivate_user(user_exists.get('id'))
-            return jsonify({'success': True, 'message': 'User deleted successfully'})
-        else:
 
             cursor.execute("""
 
                     SELECT id FROM users
-                    WHERE id = %s AND active = 1 AND role = 'Sales'
+                    WHERE username = %s
                 
-            """, (data.get('selectedUserId'),))
+            """, (data.get('deleteUserName'),))
 
-            select_user_exists = cursor.fetchone()
-
-            if not select_user_exists: 
-                return jsonify({'success': False, 'message': 'Selected User not found.'})
-
-            cursor.execute("""
-                UPDATE invoices
-                LEFT JOIN cancelled_orders 
-                    ON cancelled_orders.invoice_id = invoices.id
-                SET invoices.invoice_created_by_user_id = %s
-                WHERE completed = 0
-                AND invoice_created_by_user_id = %s
-                AND NOT (
-                        cancel_order_status = 1
-                    AND confirm_by_saler = 1
-                );
-            """, (select_user_exists.get('id'),user_exists.get('id')))
-
-            cursor.execute("""
-                UPDATE users
-                SET active = 0
-                WHERE id = %s
-            """, (user_exists.get('id'),))
-
-            data['updated_by'] = session.get('username')
-            data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            delete_user_log(data)
-    
-            conn.commit()
+            user_exists = cursor.fetchone()
             current_app.deactivate_user(user_exists.get('id'))
             return jsonify({'success': True, 'message': 'User deleted successfully'})
     
@@ -1085,7 +367,6 @@ def delete_user():
 
 
 # Market Events Management Routes
-
 @admin_bp.route('/admin/events')
 @login_required('Admin')
 def manager_events_page():
