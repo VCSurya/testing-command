@@ -195,7 +195,7 @@ def add_user():
         conn.commit()
         return jsonify({'success': True, 'message': 'User added successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
     finally:
@@ -290,7 +290,7 @@ def deactive_users():
         conn.commit()
         current_app.deactivate_all_user()
         return jsonify({'success': True, 'message': "All User's deactivat successfully"})
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     finally:
         cursor.close()
@@ -316,7 +316,7 @@ def restor_user(user_id):
         """, (user_id,))
         conn.commit()
         return jsonify({'success': True, 'message': 'User restore successfully'})
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     finally:
         cursor.close()
@@ -346,6 +346,10 @@ def delete_user():
 
             conn.commit()
 
+            data['updated_at'] = formatted_time
+            
+            delete_user_log(data)
+
             cursor.execute("""
 
                     SELECT id FROM users
@@ -357,7 +361,7 @@ def delete_user():
             current_app.deactivate_user(user_exists.get('id'))
             return jsonify({'success': True, 'message': 'User deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
     finally:
@@ -544,12 +548,11 @@ def add_new_customer():
         cursor = conn.cursor(dictionary=True)
 
         # Check if mobile exists
-        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
-        existing_user = cursor.fetchone()
+        cursor.execute("SELECT 1 FROM buddy WHERE mobile = %s LIMIT 1", (mobile,))
         
-        if existing_user:
+        if cursor.fetchone():
             return jsonify({'success': False, 'message': f'{mobile}: Customer already exists'})
-                
+                        
         # Insert into database
         cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile, city, company, created_by) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)",
                                           (name, address, state, pincode, mobile, city, company, session.get('user_id')))
@@ -609,8 +612,7 @@ def update_customer(user_id):
         """, (name, address, state, pincode, mobile, company_name, city, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Customer detailes updated successfully'})
-    except mysql.connector.Error as err:
-        print(err)
+    except Exception as err:
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     finally:
         cursor.close()
@@ -633,7 +635,7 @@ def delete_customer(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Customer deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
     finally:
@@ -714,8 +716,10 @@ def add_product():
         conn.commit()
 
         return jsonify({'success': True, 'message': 'Product added successfully'})
-    except mysql.connector.Error as err:
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
+    
     finally:
         cursor.close()
         conn.close()
@@ -751,9 +755,8 @@ def update_product(user_id):
         """, (name, selling_price, purchase_price, updated_by, user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'Product details updated successfully'})
-    except mysql.connector.Error as err:
-        print(err)
-        return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
     finally:
         cursor.close()
         conn.close()
@@ -775,7 +778,7 @@ def delete_products(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Product deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
     finally:
@@ -864,8 +867,10 @@ def add_transport():
         """, (name, pincode, city, charges, days, created_by, created_by))
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport added successfully'})
-    except mysql.connector.Error as err:
+    
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
+    
     finally:
         cursor.close()
         conn.close()
@@ -924,7 +929,7 @@ def update_transport(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport details updated successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': "Something went wrong, please try again later"})
     
     finally:
@@ -949,7 +954,7 @@ def delete_transport(user_id):
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport deleted successfully'})
     
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
     finally:
@@ -977,7 +982,7 @@ def restor_transport(user_id):
         """, (user_id,))
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport restore successfully'})
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     finally:
         cursor.close()
