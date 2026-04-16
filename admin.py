@@ -128,28 +128,6 @@ def today_performers():
 def manager_users():
     return render_template('dashboards/admin/users.html')
 
-
-@admin_bp.route('/admin/users/data')
-@login_required('Admin')
-def get_users_data():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([])
-
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("""
-        SELECT id, name, username, role, created_by, updated_by,active
-        FROM users WHERE boss = 0""")
-
-        users = cursor.fetchall()
-        return jsonify(users)
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
 @admin_bp.route('/admin/users/add', methods=['POST'])
 @login_required('Admin')
 def add_user():
@@ -236,7 +214,6 @@ def update_user(user_id):
     data = request.json
     name = data.get('name')
     username = data.get('username')
-    role = data.get('role')
     password = data.get('password')
     updated_by = session.get('username')  # Get current user's username from session
     
@@ -258,9 +235,9 @@ def update_user(user_id):
             return jsonify({'success': False, 'message': 'Sommething went wrong'})
         cursor.execute("""
             UPDATE users
-            SET name = %s, username = %s, role = %s, updated_by = %s, updated_at = %s,password = %s
+            SET name = %s, username = %s, updated_by = %s, updated_at = %s,password = %s
             WHERE id = %s AND boss = 0 AND active = 1
-        """, (name, username,role, updated_by, formatted_time, password,user_id))
+        """, (name, username,updated_by, formatted_time, password,user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'User updated successfully'})
     
@@ -702,7 +679,7 @@ def add_product():
 
     try:
         # Check if username already exists
-        cursor.execute("SELECT * FROM products WHERE name = %s and active = 1", (name,))
+        cursor.execute("SELECT 1 FROM products WHERE name = %s and active = 1 LIMIT 1", (name,))
         existing_user = cursor.fetchone()
         
         if existing_user:
