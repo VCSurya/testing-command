@@ -1,22 +1,9 @@
-from unicodedata import name
-
-from flask import Blueprint, app, render_template, jsonify, request, session, send_file
-from utils import get_db_connection, login_required, get_invoice_id
+from flask import Blueprint, render_template, jsonify, request, session, send_file
+from utils import get_db_connection, login_required, get_invoice_id,cancel_order
 import mysql.connector
 from datetime import datetime
 import pytz
 import json
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.units import inch
-from io import BytesIO
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import random
 import string
 from decimal import Decimal
@@ -40,7 +27,7 @@ def sales_dashboard():
 @sales_bp.route('/sales/sell')
 @login_required('Sales')
 def sales():
-    return render_template('dashboards/sales/sell.html', active_page='sell')
+    return render_template('dashboards/sales/sell.html')
 
 
 @sales_bp.route('/sales/my-orders')
@@ -68,60 +55,10 @@ class Dasebored:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
 
-    def get_dasebored_data(self,user_id):
-        query = f"""
-       
-        SELECT 
-            COUNT(CASE 
-                WHEN lot.sales_proceed_for_packing = 1 
-                AND i.completed = 0 
-                AND i.cancel_order_status = 0 
-                THEN 1 END) AS running_order_count,
-
-            COUNT(CASE 
-                WHEN co.confirm_by_saler = 0 
-                THEN 1 END) AS pending_cancelled_orders,
-
-            COUNT(CASE 
-                WHEN i.cancel_order_status = 0 
-                AND i.created_at >= CURRENT_DATE() 
-                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
-                THEN 1 END) AS today_order_count,
-
-            SUM(CASE 
-                WHEN i.cancel_order_status = 0 
-                AND i.created_at >= CURRENT_DATE() 
-                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
-                THEN i.grand_total ELSE 0 END) AS today_order_sum,
-
-            COUNT(CASE 
-                WHEN lot.sales_proceed_for_packing = 0 
-                AND i.completed = 0 
-                AND i.cancel_order_status = 0
-                AND i.created_at >= CURRENT_DATE() 
-                AND i.created_at < CURRENT_DATE() + INTERVAL 1 DAY
-                THEN 1 END) AS today_draft_order_count,
-
-            COUNT(CASE 
-                WHEN lot.sales_proceed_for_packing = 1 
-                AND lot.cancel_order_status = 0 
-                AND i.cancel_order_status = 0 
-                AND lot.packing_proceed_for_transport = 1 
-                AND lot.payment_confirm_status = 1
-                AND lot.transport_proceed_for_builty = 1
-                AND lot.builty_received = 0
-                THEN 1 END) AS total_draft_builty_order
-
-        FROM invoices i
-        LEFT JOIN live_order_track lot ON lot.invoice_id = i.id
-        LEFT JOIN cancelled_orders co ON co.invoice_id = i.id
-
-        WHERE i.invoice_created_by_user_id = {user_id};
-
-        """ 
-
+    def get_dasebored_data(self):
+        
         try:    
-            self.cursor.execute(query,)
+            self.cursor.execute(f"CALL get_sales_dashboard({session.get('user_id')})")
             result = self.cursor.fetchone()
             return jsonify({"success":True,"data":result})
             
@@ -139,7 +76,7 @@ class Dasebored:
 @login_required('Sales')
 def sales_summary():
     obj = Dasebored()
-    return obj.get_dasebored_data(session.get('user_id'))
+    return obj.get_dasebored_data()
 
 
 
@@ -1690,46 +1627,6 @@ class MyOrders:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Error deleting invoice {invoice_id}: {e}"}
 
-    def cancel_order(self, invoice_id, data):
-        try:
-            update_query = """
-
-            UPDATE live_order_track
-            SET cancel_order_status = 1
-            WHERE invoice_id = %s;
-            """
-            self.cursor.execute(update_query, (invoice_id,))
-
-            update_query = """
-
-            UPDATE invoices
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (invoice_id,))
-            
-            lot_id_querry = """
-            SELECT id from live_order_track WHERE invoice_id = %s;
-            """
-            self.cursor.execute(lot_id_querry, (invoice_id,))
-            lot_id = self.cursor.fetchone()
-                
-            insert_query = """
-                
-                INSERT INTO cancelled_orders (
-                    invoice_id,cancelled_by, reason,live_order_track_id 
-                ) VALUES (%s, %s, %s,%s)
-            """
-
-            self.cursor.execute(insert_query, (invoice_id, session.get('user_id'), data.get('reason'), lot_id.get('id'),))
-            
-            self.conn.commit()  # commit on connection, not cursor
-
-            return {"success": True, "message": f"Order successfully Cancel"}
-
-        except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False, "message": f"Somthing went wrong to cancel order"}
                 
     def start_shipment(self, invoiceNumber):
         try:
@@ -1839,7 +1736,7 @@ class MyOrders:
 
 @sales_bp.route('/sales/cancel_order', methods=['POST'])
 @login_required('Sales')
-def cancel_order():
+def sales_cancel_order():
     try:
         data = request.get_json()
         invoiceNumber = data.get('invoiceNumber')
@@ -1847,24 +1744,14 @@ def cancel_order():
         if not invoiceNumber:
             return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
 
-        result = get_invoice_id(invoiceNumber)
-        invoice_id = None
-        if result['status']:
-            invoice_id = result['invoice_id']
-        else:
-            return jsonify({'error': 'Invoice not found'}), 404
+        response = cancel_order(
+            invoiceNumber, data.get('reason')
+        )
 
-        if invoice_id is None:
-            return jsonify({"success": False, "message": "Order not found"}), 404
-
-        for_cancel_order = MyOrders()
-        response = for_cancel_order.cancel_order(
-            invoice_id, data)
-
-        if response.get('success'):
+        if response.get('success') == 1:
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
 
-        return {"success": False, "message": f"Somthing went wrong to cancel order"}, 500
+        return {"success": False, "message": response.get('message')}, 500
 
     except Exception as e:
         return jsonify({"success": False, "message": "Internal server error"}), 500

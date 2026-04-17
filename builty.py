@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request, session
-from utils import get_db_connection, login_required, get_invoice_id
+from utils import get_db_connection, login_required, get_invoice_id, cancel_order
 from datetime import datetime
 import pytz
 
@@ -252,42 +252,6 @@ class BuiltyModel:
 
         return merged_orders
 
-    def cancel_order(self,data):
-        try:
-            update_query = """
-
-            UPDATE live_order_track
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            update_query = """
-
-            UPDATE invoices
-            SET cancel_order_status = 1
-            WHERE invoices.id = (SELECT invoice_id from live_order_track WHERE id = %s );
-            """
-            self.cursor.execute(update_query, (data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-
-            insert_query = """
-                
-                INSERT INTO cancelled_orders (
-                    invoice_id,cancelled_by, reason,live_order_track_id 
-                ) VALUES (%s, %s, %s,%s)
-            """
-
-            self.cursor.execute(insert_query, (data.get('invoice_id'),session.get('user_id'),data.get('reason'),data.get('track_order_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            return {"success": True, "message": f"Order successfully Cancel"}
-            
-        except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
     def builty_recived(self,invoice_id,data):
         try:
@@ -354,24 +318,25 @@ def builty_dasebored():
 
 @builty_bp.route('/builty/cancel_order', methods=['POST'])
 @login_required('Builty')
-def cancel_order():
+def builty_cancel_order():
     try:
         data = request.get_json()
-        track_order_id = data.get('track_order_id') #reason
-        if not track_order_id or not str(track_order_id).isdigit() or not data.get('invoice_id'):
-            return jsonify({"success": False, "message": "Invalid Order!"}), 400
+        invoiceNumber = data.get('invoiceNumber')
 
-        for_cancel_order = BuiltyModel()
-        response = for_cancel_order.cancel_order(data)
+        if not invoiceNumber:
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
 
-        if response.get('success'):
+        response = cancel_order(
+            invoiceNumber, data.get('reason')
+        )
+
+        if response.get('success') == 1:
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-        
-        for_cancel_order.close()
-        return {"success": False, "message": f"Somthing went wrong!"},500
+
+        return {"success": False, "message": response.get('message')}, 500
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 @builty_bp.route('/builty/ready-to-go')
 @login_required('Builty')

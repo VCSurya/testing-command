@@ -3,7 +3,7 @@ from utils import get_db_connection, login_required, encrypt_password,decrypt_pa
 import mysql.connector
 from datetime import datetime
 import pytz
-from utils import get_invoice_id
+from utils import cancel_order
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -433,57 +433,6 @@ class AccountModel:
 
         return result
 
-    def cancel_order(self,data):
-        try:
-            
-            lot_id_querry = """
-
-            SELECT live_order_track.id as lot_id,live_order_track.invoice_id from live_order_track WHERE live_order_track.invoice_id = (SELECT invoices.id from invoices WHERE invoice_number = %s);
-            """
-            self.cursor.execute(lot_id_querry, (data.get('invoiceNumber'),))
-            result = self.cursor.fetchone()
-            
-            if result.get('lot_id') is None or result.get('lot_id') == "":
-                return {"success": False, "message": f"Somthing went wrong to cancel order"}
-            
-            if result.get('invoice_id') is None or result.get('invoice_id') == "":
-                return {"success": False, "message": f"Somthing went wrong to cancel order"}
-            
-
-            update_query = """
-
-            UPDATE live_order_track
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (result.get('lot_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            update_query = """
-
-            UPDATE invoices
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, ((result.get('invoice_id'),)))
-            self.conn.commit()  # commit on connection, not cursor
-            
-
-            insert_query = """
-                
-                INSERT INTO cancelled_orders (
-                    invoice_id,cancelled_by, reason,live_order_track_id 
-                ) VALUES (%s, %s, %s,%s)
-            """
-
-            self.cursor.execute(insert_query, (result.get('invoice_id'),session.get('user_id'),data.get('reason'),result.get('lot_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            return {"success": True, "message": f"Order successfully Cancel"}
-            
-        except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
     def close(self):
         self.cursor.close()
@@ -627,24 +576,25 @@ def payment_verify():
 
 @account_bp.route('/account/cancel_order', methods=['POST'])
 @login_required('Account')
-def cancel_order():
+def account_cancel_order():
     try:
         data = request.get_json()
-        invoiceNumber = data.get('invoiceNumber') #reason
-        if not invoiceNumber or not data.get('invoiceNumber'):
-            return jsonify({"success": False, "message": "Invalid Order!"}), 400
-        
-        for_cancel_order = AccountModel()
-        response = for_cancel_order.cancel_order(data)
+        invoiceNumber = data.get('invoiceNumber')
 
-        if response.get('success'):
+        if not invoiceNumber:
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
+
+        response = cancel_order(
+            invoiceNumber, data.get('reason')
+        )
+
+        if response.get('success') == 1:
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-        
-        for_cancel_order.close()
-        return {"success": False, "message": f"Somthing went wrong!"},500
+
+        return {"success": False, "message": response.get('message')}, 500
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 @account_bp.route('/account/account-dasebored-orders', methods=['GET'])
 @login_required('Account')

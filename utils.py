@@ -149,3 +149,30 @@ def delete_user_log(data):
             json.dump(logs, f, indent=4)
     except Exception as e:
         print(f"Error in delete_user_log: {e}")
+
+def cancel_order(invoice_number,reason):
+
+    connection = get_db_connection()
+    if not connection:
+        return {'status': False, 'message': "Database connection failed"}
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.callproc(
+            'cancel_order_by_invoice_number',
+            (invoice_number, session.get('user_id'), reason)
+        )
+
+        response = None
+        for result in cursor.stored_results():
+            response = result.fetchone()
+
+        return response
+
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    
+    finally:
+        cursor.close()
+        connection.close()

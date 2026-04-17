@@ -1,6 +1,6 @@
 from flask import Blueprint, make_response, render_template, jsonify, request, session
 from sympy import im
-from utils import get_db_connection, login_required, get_invoice_id
+from utils import get_db_connection, login_required, get_invoice_id,cancel_order
 import mysql.connector
 from datetime import datetime
 import pytz
@@ -35,56 +35,8 @@ class PackagingModel:
         self.cursor = self.conn.cursor(dictionary=True)
     
     def get_dasebored_data(self,user_id):
-        query = f"""
-            
-            SELECT 
-                -- Total Draft Packing Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 0 
-                        AND payment_confirm_status = 1
-                        AND pack_lock = 0 
-                    THEN 1 END) AS total_locked_draft_packing_order,
-
-                -- Total Draft Packing Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 0 
-                        AND payment_confirm_status = 1 
-                        AND pack_lock = 0
-                    THEN 1 END) AS total_my_draft_packing_order,
-
-                -- Replaced Canceled orders from cancelled_orders table
-                COALESCE(co.total_canceled_orders, 0) AS total_canceled_orders,
-                COALESCE(co.pending_canceled_orders, 0) AS pending_canceled_orders,
-                COALESCE(co.confirmed_canceled_orders, 0) AS confirmed_canceled_orders,
-
-                -- Total Today Order Packed By User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 1 
-                        AND packing_proceed_by = {user_id}
-                        AND DATE(packing_date_time) = CURRENT_DATE 
-                    THEN 1 END) AS total_today_order_packed_by_user
-
-            FROM live_order_track
-
-            LEFT JOIN (
-                SELECT
-                    cancelled_by,
-                    COUNT(*) AS total_canceled_orders,
-                    COUNT(CASE WHEN confirm_by_saler = 0 THEN 1 END) AS pending_canceled_orders,
-                    COUNT(CASE WHEN confirm_by_saler = 1 THEN 1 END) AS confirmed_canceled_orders
-                FROM cancelled_orders
-                WHERE cancelled_by = {user_id}
-                GROUP BY cancelled_by
-            ) co ON co.cancelled_by = {user_id};
-
-        """
-
         
-        self.cursor.execute(query,)
+        self.cursor.execute(f"CALL packing_dashbored_data({user_id})")
         result = self.cursor.fetchone()
         self.conn.close()
 
@@ -416,45 +368,6 @@ class PackagingModel:
 
         return merged_orders
 
-    def cancel_order(self,invoice_id,data):
-        try:
-            update_query = """
-
-            UPDATE live_order_track
-            SET cancel_order_status = 1
-            WHERE invoice_id = %s;
-            """
-            self.cursor.execute(update_query, (invoice_id,))
-
-            update_query = """
-
-            UPDATE invoices
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (invoice_id,))
-
-            lot_id_querry = """
-            SELECT id from live_order_track WHERE invoice_id = %s;
-            """
-            self.cursor.execute(lot_id_querry, (invoice_id,))
-            lot_id = self.cursor.fetchone()    
-
-            insert_query = """
-                
-                INSERT INTO cancelled_orders (
-                    invoice_id,cancelled_by, reason,live_order_track_id 
-                ) VALUES (%s, %s, %s,%s)
-            """
-
-            self.cursor.execute(insert_query, (invoice_id, session.get('user_id'), data.get('reason'), lot_id.get('id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            return {"success": True, "message": f"Order successfully Cancel"}
-            
-        except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
     def strat_Dispatch(self,data):
         try:
@@ -625,7 +538,7 @@ def packaging_my_pack_orders_details(invoice_number):
 
 @packaging_bp.route('/packing/cancel_order', methods=['POST'])
 @login_required('Packaging')
-def cancel_order():
+def packing_cancel_order():
     try:
         data = request.get_json()
         invoiceNumber = data.get('invoiceNumber')
@@ -633,28 +546,17 @@ def cancel_order():
         if not invoiceNumber:
             return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
 
-        result = get_invoice_id(invoiceNumber)
+        response = cancel_order(
+            invoiceNumber, data.get('reason')
+        )
 
-        invoice_id = None
-        if result['status']:
-            invoice_id = result['invoice_id']
-        else:
-            return jsonify({'error': 'Invoice not found'}), 404
-
-        if invoice_id is None:
-            return jsonify({"success": False, "message": "Order not found"}), 404
-
-        for_cancel_order = PackagingModel()
-        response = for_cancel_order.cancel_order(invoice_id,data)
-
-        if response.get('success'):
+        if response.get('success') == 1:
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-        
-        for_cancel_order.close()
-        return {"success": False, "message": f"Somthing went wrong!"},500
+
+        return {"success": False, "message": response.get('message')}, 500
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 @packaging_bp.route('/ready-to-go-for-transport')
 @login_required('Packaging')

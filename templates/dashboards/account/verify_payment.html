@@ -1681,7 +1681,6 @@
             const accountNote = document.getElementById('account_note').value.trim();
             const invoice_id = document.getElementById('invoiceNumberDisplay').textContent.trim().replace('#', '');
             // let paymentMethod = document.getElementById('paymentMethod').value;
-            document.getElementById('ProceedInvoiceNumber').textContent = invoice_id;
 
             paymentMethod = "not_paid";
 
@@ -1718,6 +1717,7 @@
                     isProcessingState = false; // Transaction finished
                     processing.classList.add('hidden');
                     success.classList.remove('hidden');
+                    document.getElementById('ProceedInvoiceNumber').textContent = '#' + invoice_id;
                     createConfetti(); // Trigger the celebration!
                     startCountdown(5); // Start the 5-second countdown to close
 

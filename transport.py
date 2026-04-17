@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request, send_from_directory, session
 from packing import UPLOAD_FOLDER
-from utils import get_db_connection, login_required, get_invoice_id
+from utils import get_db_connection, login_required, get_invoice_id, cancel_order
 from datetime import datetime
 import pytz
 
@@ -24,82 +24,10 @@ class TransportModel:
         self.cursor = self.conn.cursor(dictionary=True)
     
     def get_dasebored_data(self,user_id):
-        query = f"""
-            
-            SELECT 
-                -- Total Draft Transport Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-               		AND cancel_order_status = 0 
-               		AND packing_proceed_for_transport = 1 
-               		AND payment_confirm_status = 1
-      		   		AND transport_proceed_for_builty = 0
-                    AND transport_lock = 0      		
-          		THEN 1 END) AS total_locked_draft_transport_order,
-                
-                -- Total Draft Transport Order
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-               		AND cancel_order_status = 0 
-               		AND packing_proceed_for_transport = 1 
-               		AND payment_confirm_status = 1
-      		   		AND transport_proceed_for_builty = 0	
-                    AND transport_lock = 0 	
-          		THEN 1 END) AS total_my_draft_transport_order,
-                  
-                -- Total Proceed Transport Order From User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 1
-      					AND transport_proceed_for_builty = 1
-                        AND transport_proceed_by = {user_id}
-                THEN 1 END) AS total_proceed_transport_order_from_user,
 
-
-                -- Replaced Canceled orders from cancelled_orders table
-                COALESCE(co.total_canceled_orders, 0) AS total_canceled_orders,
-                COALESCE(co.pending_canceled_orders, 0) AS pending_canceled_orders,
-                COALESCE(co.confirmed_canceled_orders, 0) AS confirmed_canceled_orders,
-
-                -- Total Order Which Is Transport But Builty Not Recived 
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-                        AND packing_proceed_for_transport = 1 
-                        AND transport_proceed_for_builty = 1 
-      				    AND builty_received = 0 
-      					AND transport_proceed_by = {user_id}
-                THEN 1 END) AS total_transport_but_builty_not_recived,
-
-                -- Total Today Order Transport By User
-                COUNT(CASE WHEN sales_proceed_for_packing = 1 
-                        AND payment_confirm_status = 1 
-                        AND cancel_order_status = 0 
-      					AND sales_proceed_for_packing = 1
-                        AND packing_proceed_for_transport = 1 
-      					AND transport_proceed_for_builty = 1
-      					AND transport_proceed_by = {user_id}
-                        AND DATE(transport_date_time) = CURRENT_DATE 
-                THEN 1 END) AS total_today_order_transport_by_user
-
-            FROM live_order_track
-
-            LEFT JOIN (
-                SELECT
-                    cancelled_by,
-                    COUNT(*) AS total_canceled_orders,
-                    COUNT(CASE WHEN confirm_by_saler = 0 THEN 1 END) AS pending_canceled_orders,
-                    COUNT(CASE WHEN confirm_by_saler = 1 THEN 1 END) AS confirmed_canceled_orders
-                FROM cancelled_orders
-                WHERE cancelled_by = {user_id}
-                GROUP BY cancelled_by
-            ) co ON co.cancelled_by = {user_id};
-
-        """
-
-        self.cursor.execute(query,)
+        self.cursor.execute(f"CALL get_transport_order_summary({user_id})")
         result = self.cursor.fetchone()
         self.conn.close()
-
         return result
     
     def get_additional_charges(self,invoice_id):
@@ -434,52 +362,6 @@ class TransportModel:
         return merged_orders
 
 
-
-    def cancel_order(self,data):
-        try:
-            update_query = """
-
-            UPDATE live_order_track
-            SET cancel_order_status = 1
-            WHERE invoice_id = %s;
-            """
-            self.cursor.execute(update_query, (data.get('invoice_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            update_query = """
-
-            UPDATE invoices
-            SET cancel_order_status = 1
-            WHERE id = %s;
-            """
-            self.cursor.execute(update_query, (data.get('invoice_id'),))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            track_order_id_query = """
-            SELECT id FROM live_order_track
-            WHERE invoice_id = %s;
-            """
-            
-            self.cursor.execute(track_order_id_query,(data.get('invoice_id'),))
-            track_order_id = self.cursor.fetchone()['id']
-            print(track_order_id)
-            
-            insert_query = """
-                
-                INSERT INTO cancelled_orders (
-                    invoice_id,cancelled_by, reason,live_order_track_id 
-                ) VALUES (%s, %s, %s,%s)
-            """
-
-            self.cursor.execute(insert_query, (data.get('invoice_id'),session.get('user_id'),data.get('reason'),track_order_id,))
-            self.conn.commit()  # commit on connection, not cursor
-            
-            return {"success": True, "message": f"Order successfully Cancel"}
-            
-        except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False, "message": f"Somthing went wrong to cancel order"}
-
     def done_transportaion(self,data):
         try:
             update_query = """
@@ -509,20 +391,6 @@ class TransportModel:
         except Exception as e:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False,"msg":e}
-
-    def get_images(self, invoice_id):
-        try:
-            query = """
-                SELECT image_url
-                FROM packing_images
-                WHERE invoice_id = %s
-            """
-            self.cursor.execute(query, (invoice_id,))
-            rows = self.cursor.fetchall()
-            return {"success": True, "images": rows}
-
-        except Exception as e:
-            return {"success": False, "message": f"From Server Side: {e}"}
     
     def close(self):
         self.cursor.close()
@@ -624,29 +492,25 @@ def transport_draf_list():
 
 @transport_bp.route('/transport/cancel_order', methods=['POST'])
 @login_required('Transport')
-def cancel_order():
+def transport_cancel_order():
     try:
         data = request.get_json()
-        invoiceNumber = data.get('invoiceNumber') #reason
+        invoiceNumber = data.get('invoiceNumber')
 
         if not invoiceNumber:
-            return jsonify({"success": False, "message": "Invalid Order!"}), 400
+            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
 
-        result = get_invoice_id(invoiceNumber)
-        if result['status']:
-            data['invoice_id'] = result['invoice_id']
+        response = cancel_order(
+            invoiceNumber, data.get('reason')
+        )
 
-        for_cancel_order = TransportModel()
-        response = for_cancel_order.cancel_order(data)
-
-        if response.get('success'):
+        if response.get('success') == 1:
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-        
-        for_cancel_order.close()
-        return {"success": False, "message": f"Somthing went wrong!"},500
+
+        return {"success": False, "message": response.get('message')}, 500
 
     except Exception as e:
-        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 @transport_bp.route('/transport/ready-to-go-for-transport')
 @login_required('Transport')
@@ -711,24 +575,3 @@ def lock_transportaion():
     except Exception as e:
         return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
-@transport_bp.route("/transport/uploads/packaging/<filename>")
-@login_required('Transport')
-def uploaded_image(filename):
-    print(filename)
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
-@transport_bp.route('/transport/images_page/<string:invoice_number>', methods=['GET'])
-@login_required('Transport')
-def show_images_page(invoice_number):
-    transport_model = TransportModel()
-
-    result = get_invoice_id(invoice_number)
-    invoice_id = None
-    
-    if result['status']:
-        invoice_id = result['invoice_id']
-    else:
-        return jsonify({'error': 'Invoice not found'}), 404
-
-    images = transport_model.get_images(invoice_id)
-    return render_template('dashboards/transport/images_page.html', images=images, invoice_id=invoice_number)
