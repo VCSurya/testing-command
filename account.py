@@ -3,7 +3,7 @@ from utils import get_db_connection, login_required, encrypt_password,decrypt_pa
 import mysql.connector
 from datetime import datetime
 import pytz
-from utils import cancel_order
+from utils import get_invoice_id
 
 ist = pytz.timezone('Asia/Kolkata')
 now_ist = datetime.now(ist)
@@ -135,13 +135,13 @@ class AccountModel:
                SELECT 
                 0 AS transaction,
                 inv.id, 
-                inv.invoice_number, 
-                DATE_FORMAT(lot.sales_date_time, '%d/%m/%Y %h:%i %p') AS sales_date_time
-
+                inv.invoice_number,
+                DATE_FORMAT(
+                        CONVERT_TZ(lot.sales_date_time, '+00:00', '+05:30'),
+                        '%d/%m/%Y %h:%i %p'
+                    ) AS sales_date_time
                 FROM invoices inv 
-                
                 LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
-
                 where lot.verify_by_manager = 0 
                 AND lot.cancel_order_status = 0 
                 AND lot.sales_proceed_for_packing = 1 
@@ -158,8 +158,11 @@ class AccountModel:
 
             SELECT 
             id, 
-            payment_received_at
-            
+            DATE_FORMAT(
+                        CONVERT_TZ(payment_received_at, '+00:00', '+05:30'),
+                        '%d/%m/%Y %h:%i %p'
+                    ) AS sales_date_time
+
             FROM `payment_transations`
             WHERE 
             active = 1
@@ -171,123 +174,55 @@ class AccountModel:
 
         self.cursor.execute(transacton_query,)
         results = self.cursor.fetchall()
-        
-        formatted_results = []
 
         for item in results:
-            received_at = item.get("payment_received_at")
+            item["transaction"] = 1
+            item["invoice_number"] = ""
 
-            formatted_item = {
-                'transaction': 1,
-                "id": item['id'],
-                "sales_date_time": f"{received_at.strftime("%d/%m/%Y")} {received_at.strftime("%I:%M %p")}" if received_at else None,
-                "invoice_number": "",
-            }
-
-            formatted_results.append(formatted_item)
-
-        
-        if not all_order_data:
-            all_order_data = []
-
-        return all_order_data + formatted_results
+        return all_order_data + results 
 
     def fetch_orders_payment_details(self, invoiceNumber):
         query = """
-               SELECT 
-                0 AS transaction,
-                inv.id, 
-                inv.invoice_number, 
-                inv.customer_id, 
-                inv.grand_total, 
-                inv.payment_mode, 
-                inv.paid_amount, 
-                inv.left_to_paid,
-                inv.invoice_created_by_user_id, 
-                inv.payment_note, 
-                inv.gst_included, 
-                inv.created_at, 
-                inv.delivery_mode, 
-                b.id AS buddy_id, 
-                b.name AS customer, 
-                b.address, 
-                b.state, 
-                b.pincode, 
-                b.mobile, 
+                SELECT 
+                    0 AS transaction,
+                    inv.id, 
+                    inv.invoice_number, 
+                    inv.customer_id, 
+                    inv.grand_total, 
+                    inv.payment_mode, 
+                    inv.paid_amount, 
+                    inv.left_to_paid,
+                    inv.payment_note, 
+                    inv.gst_included, 
+                    inv.delivery_mode, 
+                    b.name AS customer, 
+                    b.mobile,  
+                    u.username, 
+                    DATE_FORMAT(
+                        CONVERT_TZ(lot.sales_date_time, '+00:00', '+05:30'),
+                        '%d/%m/%Y %h:%i %p'
+                    ) AS sales_date_time
 
-                u.id AS users_id, 
-                u.username, 
+                    FROM invoices inv 
 
-                up.id AS pu_id, 
-                up.username AS pu_name, 
+                    LEFT JOIN buddy b ON inv.customer_id = b.id 
+                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
 
-                ut.id AS tu_id, 
-                ut.username AS tu_name, 
-
-                ub.id AS bu_id, 
-                ub.username AS bu_name, 
-
-                ii.id AS invoices_items_id, 
-
-                ii.product_id, 
-                ii.quantity, 
-                ii.price, 
-                ii.gst_tax_amount, 
-                ii.total_amount, 
-                ii.created_at, 
-
-                p.id AS products_id, 
-                p.name, 
-
-                lot.id AS live_order_track_id,
-                lot.sales_proceed_for_packing,
-                lot.sales_date_time,
-                lot.packing_proceed_for_transport,
-                lot.packing_date_time,
-                lot.packing_proceed_by,
-                lot.transport_proceed_for_builty,
-                lot.transport_date_time,
-                lot.transport_proceed_by,
-                lot.builty_proceed_by,
-                lot.builty_received,
-                lot.builty_date_time,
-                lot.payment_confirm_status,
-                lot.cancel_order_status,
-                lot.verify_by_manager,
-                lot.payment_date_time
-
-                FROM invoices inv 
-
-                LEFT JOIN buddy b ON inv.customer_id = b.id 
-                LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id 
-                LEFT JOIN products p ON ii.product_id = p.id 
-                LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id 
-
-                LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
-                LEFT JOIN users up ON lot.packing_proceed_by = up.id 
-                LEFT JOIN users ut ON lot.transport_proceed_by = ut.id 
-                LEFT JOIN users ub ON lot.builty_proceed_by = ub.id 
-
-                where lot.verify_by_manager = 0 
-                AND lot.cancel_order_status = 0 
-                AND lot.sales_proceed_for_packing = 1 
-                AND payment_confirm_status = 0
-                AND inv.completed = 0 
-                AND inv.id = %s
+                    LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id 
+                    
+                    where lot.verify_by_manager = 0 
+                    AND lot.cancel_order_status = 0 
+                    AND lot.sales_proceed_for_packing = 1 
+                    AND payment_confirm_status = 0
+                    AND inv.completed = 0 
+                    AND inv.id = %s
                 ORDER BY inv.created_at DESC;
         """
         
         self.cursor.execute(query, (invoiceNumber,))
-        all_order_data = self.cursor.fetchall()
-
-        # Merge products into orders
-        merged_orders = self.merge_orders_products(all_order_data)
-
-        for invoice_id in merged_orders:
-            charges = self.get_additional_charges(invoice_id['id']) 
-            invoice_id['charges'] = charges
-
-        return merged_orders[0]
+        order_data = self.cursor.fetchone()
+        print(f"Order Data: {order_data}")  # Debug print
+        return order_data
 
     def fetch_payment_transaction_details(self,transactionNumber):
         
@@ -375,64 +310,66 @@ class AccountModel:
             return {"success": False,"msg":e}
 
     def get_dasebored_data(self,user_id):
-        query = f"""
-            
-           SELECT 
-                -- Total Draft Payment Order (Both Tables)
-                (
-                    COUNT(CASE 
-                        WHEN sales_proceed_for_packing = 1 
-                            AND cancel_order_status = 0 
-                            AND payment_confirm_status = 0
-                    THEN 1 END)
-                    +
-                    (SELECT COUNT(*) 
-                    FROM payment_transations pt
-                    WHERE pt.payment_verified_by IS NULL
-                    AND pt.active = 1)
-                ) AS total_draft_payment_order,
 
-                -- Total Proceed Payment Order From User (Both Tables)
-                (
-                    COUNT(CASE 
-                        WHEN sales_proceed_for_packing = 1 
-                            AND payment_confirm_status = 1 
-                            AND cancel_order_status = 0 
-                            AND payment_verify_by = {user_id}
-                    THEN 1 END)
-                    +
-                    (SELECT COUNT(*) 
-                    FROM payment_transations pt
-                    WHERE pt.payment_verified_by = {user_id}
-                    AND pt.active = 1)
-                ) AS total_proceed_payment_order_from_user,
+        query = "CALL get_payment_order_stats(%s)"
+        self.cursor.execute(query, (user_id,))
 
-                -- Total Today Payment Order By User (Both Tables)
-                (
-                    COUNT(CASE 
-                        WHEN sales_proceed_for_packing = 1 
-                            AND payment_confirm_status = 1 
-                            AND payment_verify_by = {user_id}
-                            AND DATE(payment_date_time) = CURRENT_DATE
-                    THEN 1 END)
-                    +
-                    (SELECT COUNT(*) 
-                    FROM payment_transations pt
-                    WHERE pt.payment_verified_by = {user_id}
-                    AND pt.active = 1
-                    AND DATE(payment_verified_at) = CURRENT_DATE)
-                ) AS total_today_payment_order_by_user
-
-            FROM live_order_track;
-            
-        """
-
-        self.cursor.execute(query,)
         result = self.cursor.fetchone()
         self.conn.close()
 
         return result
 
+    def cancel_order(self,data):
+        try:
+            
+            lot_id_querry = """
+
+            SELECT live_order_track.id as lot_id,live_order_track.invoice_id from live_order_track WHERE live_order_track.invoice_id = (SELECT invoices.id from invoices WHERE invoice_number = %s);
+            """
+            self.cursor.execute(lot_id_querry, (data.get('invoiceNumber'),))
+            result = self.cursor.fetchone()
+            
+            if result.get('lot_id') is None or result.get('lot_id') == "":
+                return {"success": False, "message": f"Somthing went wrong to cancel order"}
+            
+            if result.get('invoice_id') is None or result.get('invoice_id') == "":
+                return {"success": False, "message": f"Somthing went wrong to cancel order"}
+            
+
+            update_query = """
+
+            UPDATE live_order_track
+            SET cancel_order_status = 1
+            WHERE id = %s;
+            """
+            self.cursor.execute(update_query, (result.get('lot_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+            update_query = """
+
+            UPDATE invoices
+            SET cancel_order_status = 1
+            WHERE id = %s;
+            """
+            self.cursor.execute(update_query, ((result.get('invoice_id'),)))
+            self.conn.commit()  # commit on connection, not cursor
+            
+
+            insert_query = """
+                
+                INSERT INTO cancelled_orders (
+                    invoice_id,cancelled_by, reason,live_order_track_id 
+                ) VALUES (%s, %s, %s,%s)
+            """
+
+            self.cursor.execute(insert_query, (result.get('invoice_id'),session.get('user_id'),data.get('reason'),result.get('lot_id'),))
+            self.conn.commit()  # commit on connection, not cursor
+            
+            return {"success": True, "message": f"Order successfully Cancel"}
+            
+        except Exception as e:
+            self.conn.rollback()  # rollback on connection, not cursor
+            return {"success": False, "message": f"Somthing went wrong to cancel order"}
 
     def close(self):
         self.cursor.close()
@@ -576,25 +513,24 @@ def payment_verify():
 
 @account_bp.route('/account/cancel_order', methods=['POST'])
 @login_required('Account')
-def account_cancel_order():
+def cancel_order():
     try:
         data = request.get_json()
-        invoiceNumber = data.get('invoiceNumber')
+        invoiceNumber = data.get('invoiceNumber') #reason
+        if not invoiceNumber or not data.get('invoiceNumber'):
+            return jsonify({"success": False, "message": "Invalid Order!"}), 400
+        
+        for_cancel_order = AccountModel()
+        response = for_cancel_order.cancel_order(data)
 
-        if not invoiceNumber:
-            return jsonify({"success": False, "message": "Invalid Invoice Number"}), 400
-
-        response = cancel_order(
-            invoiceNumber, data.get('reason')
-        )
-
-        if response.get('success') == 1:
+        if response.get('success'):
             return jsonify({"success": True, "message": "Order Cancelled Successfully"}), 200
-
-        return {"success": False, "message": response.get('message')}, 500
+        
+        for_cancel_order.close()
+        return {"success": False, "message": f"Somthing went wrong!"},500
 
     except Exception as e:
-        return jsonify({"success": False, "message": "Internal server error"}), 500
+        return jsonify({"success": False, "message": f"From Server Side: {e}"}), 500
 
 @account_bp.route('/account/account-dasebored-orders', methods=['GET'])
 @login_required('Account')
