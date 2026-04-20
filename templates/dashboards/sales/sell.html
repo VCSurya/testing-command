@@ -3941,7 +3941,7 @@
                 const formData = new FormData(document.getElementById('billingForm'));
                 formData.append('products', JSON.stringify(selectedProducts));
                 formData.append('charges', JSON.stringify(addCharges));
-                formData.append('customerId', customerId);
+                formData.append('customer_id', customerId);
 
                 // Show the modal with loading animation
                 const loadingDots = document.getElementById('printLoadingDots');

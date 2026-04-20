@@ -1,10 +1,7 @@
-from flask import Blueprint, redirect, url_for, render_template, jsonify, request, send_from_directory, session,current_app
-from utils import get_db_connection, get_invoice_id, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
-import mysql.connector
+from flask import Blueprint, json,render_template, jsonify, request, send_from_directory, session,current_app
+from utils import get_db_connection, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
 from datetime import datetime
 import pytz
-from collections import defaultdict
-from decimal import Decimal
 from admin import AdminModel
 
 ist = pytz.timezone('Asia/Kolkata')
@@ -22,19 +19,6 @@ class ManagerModel:
             raise Exception("Database connection failed")
         self.cursor = self.conn.cursor(dictionary=True)
     
-    def get_additional_charges(self,invoice_id):
-        
-        query = '''
-            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
-        '''
-
-        self.cursor.execute(query, (invoice_id,))
-        additional_charges = self.cursor.fetchall()
-
-        if not additional_charges:
-            return []
-
-        return additional_charges
 
     def get_dashboard_data(self,user_id):
 
@@ -151,8 +135,12 @@ def verify_order_list():
 
             SELECT 
                 invoices.id, 
-                invoices.invoice_number, 
-                DATE_FORMAT(lot.sales_date_time, '%d %b %Y, %h:%i %p') AS sales_date_time
+                invoices.invoice_number,
+                DATE_FORMAT(
+                        CONVERT_TZ(lot.sales_date_time, '+00:00', '+05:30'),
+                        '%d/%m/%Y %h:%i %p'
+                    ) AS sales_date_time
+
             FROM invoices
             LEFT JOIN live_order_track lot 
                 ON invoices.id = lot.invoice_id 
@@ -344,9 +332,10 @@ def add_user():
 
         # Insert new user
         cursor.execute("""
-            INSERT INTO users (name, username, password, role, created_by, updated_by, active ,created_at ,updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, 1,%s, %s)
-        """, (name, username, encrypted_password, role, created_by, created_by, formatted_time, formatted_time))
+            INSERT INTO users 
+            (name, username, password, role, created_by, updated_by, active, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, 1, NOW(), NOW())
+        """, (name, username, encrypted_password, role, created_by, created_by))
         conn.commit()
         return jsonify({'success': True, 'message': 'User added successfully'})
     except Exception as err:
@@ -400,8 +389,6 @@ def update_user(user_id):
     
     cursor = conn.cursor()
     try:
-        # Get current timestamp for updated_at
-        formatted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         password = encrypt_password(password) if password else None
 
         # Update user in database
@@ -409,9 +396,9 @@ def update_user(user_id):
             return jsonify({'success': False, 'message': 'Sommething went wrong'})
         cursor.execute("""
             UPDATE users
-            SET name = %s, username = %s, updated_by = %s, updated_at = %s,password = %s
+            SET name = %s, username = %s, updated_by = %s, updated_at = NOW(),password = %s
             WHERE id = %s AND boss = 0 AND active = 1
-        """, (name, username,updated_by, formatted_time, password,user_id))
+        """, (name, username,updated_by, password,user_id))
         conn.commit()
         return jsonify({'success': True, 'message': 'User updated successfully'})
     except Exception as err:
@@ -1097,6 +1084,48 @@ def delete_transport(user_id):
     except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@manager_bp.route('/manager/invoice-details/<invoiceNumber>', methods=['GET'])
+@login_required(['Manager'])
+def manager_invoice_details(invoiceNumber):
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
+        cursor.callproc('get_manager_invoice_details', (invoiceNumber,))
+            
+        result = None
+        for res in cursor.stored_results():
+            result = res.fetchone()
+
+        if not result:
+            return None
+
+        for field in ["trackingDates", "products", "charges"]:
+            if result.get(field):
+                try:
+                    result[field] = json.loads(result[field])
+                except Exception:
+                    result[field] = []
+            else:
+                result[field] = []
+
+        return result
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()

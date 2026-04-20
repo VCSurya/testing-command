@@ -1710,7 +1710,7 @@
                             <span style="font-size:0.9em;color:#ffffff;">${invoiceObj.created_at}</span>
                         </div>
                         <div title=${invoiceObj.address}>
-                            <strong>Customer:</strong> ${invoiceObj.customer}
+                            <strong>Customer:</strong> ${invoiceObj.customer}, ${invoiceObj.mobile}
                              ${invoiceObj.gst_included == 1 ? `
                                 <div class="gst-label">
                                     <i class="fas fa-receipt"></i>
@@ -2059,7 +2059,7 @@
 
                     try {
 
-                        const res = await fetch(`/sales/invoice-detailes/${invoiceNumber}`);
+                        const res = await fetch(`/manager/invoice-details/${invoiceNumber}`);
                         const data = await res.json();
 
                         const html = buildInvoiceDetails(data,invoiceNumber);

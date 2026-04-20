@@ -80,192 +80,128 @@ def sales_summary():
 
 
 
-# Class ralated sales routes
-class Sales:
+# services/sales_service.py
 
-    def data_base_connection_check(self):
-        # Establish database connection using the utility function
-        self.conn = get_db_connection()
-        if self.conn:
-            self.cursor = self.conn.cursor()
-            return True
-        else:
-            return False
+from decimal import Decimal
 
-    def generate_unique_invoice_number(self, cursor):
-        """Generate a unique alphanumeric invoice number."""
-        while True:
-            invoice_number = ''.join(random.choices(
-                string.ascii_uppercase + string.digits, k=10))
-            cursor.execute(
-                "SELECT COUNT(*) FROM invoices WHERE invoice_number = %s", (invoice_number,))
-            (count,) = cursor.fetchone()
-            if count == 0:
-                return invoice_number
+class SalesService:
 
-    def insert_live_order_track(self, invoice_id):
-        """
-        Insert a saved invoice into the database live order track table.
-        """
-        if not self.data_base_connection_check():
-            return {'error': 'Database Error!'}
-
-        cursor = self.conn.cursor()
+    def create_invoice(self, data):
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True, buffered=True)
 
         try:
-            # Prepare the SQL query to insert the invoice data
-            insert_query = """
-                INSERT INTO live_order_track (invoice_id)
-                VALUES (%s)
-            """
+            conn.start_transaction()
 
-            # Extract values from the invoice_data dictionary
-            values = (
-                invoice_id,
+            # ---- VALIDATION ----
+            self._validate(data)
+
+            # ---- CUSTOMER CHECK ----
+            cursor.execute(
+                "SELECT id FROM buddy WHERE mobile = %s",
+                (data['customer_id'],)
             )
+            customer = cursor.fetchone()
 
-            # Execute the query
-            cursor.execute(insert_query, values)
-            self.conn.commit()
+            if not customer:
+                return {"success": False, "error": "Customer not found"}
 
-            return {'success': True}
+            # ---- STOCK CHECK (BULK) ----
+            
 
-        except mysql.connector.Error as e:
-            self.conn.rollback()
-            return {'error': str(e)}
+            if not data['products']:
+                raise ValueError("Products missing")
+
+            if not isinstance(data['products'], list):
+                raise ValueError("Invalid products format")
+
+            product_ids = [int(p['id']) for p in data['products']]
+
+            format_strings = ','.join(['%s'] * len(product_ids))
+            cursor.execute(f"""
+                SELECT id, quantity FROM products 
+                WHERE id IN ({format_strings})
+            """, tuple(product_ids))
+
+            stock_map = {str(row['id']): row['quantity'] for row in cursor.fetchall()}
+
+            for p in data['products']:
+                if stock_map.get(p['id'], 0) < int(p['quantity']):
+                    return {"success": False, "error": "Out of stock"}
+
+            print(data)
+
+            # ---- CALL STORED PROCEDURE ----
+            cursor.callproc("sp_create_invoice", [
+                data['billno'],
+                customer['id'],
+                data['grand_total'],
+                data['paid_amount'],
+                data['payment_mode'],
+                data.get('transport_id'),
+                data.get('sales_note'),
+                data.get('user_id'),
+            ])
+
+            invoice_id = None
+            for result in cursor.stored_results():
+                invoice_id = result.fetchone()['invoice_id']
+
+            # ---- BULK INSERT ITEMS ----
+            items = []
+            for p in data['products']:
+                items.append((
+                    invoice_id,
+                    p['id'],
+                    int(p['quantity']),
+                    Decimal(p['price']),
+                    Decimal(p['total']),
+                    Decimal(p['tax'])
+                ))
+
+            cursor.executemany("""
+                INSERT INTO invoice_items 
+                (invoice_id, product_id, quantity, price, total_amount, gst_tax_amount)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, items)
+
+            # ---- BULK INSERT CHARGES ----
+            charges = [
+                (invoice_id, c['name'], Decimal(c['amount']))
+                for c in data['charges']
+            ]
+
+            cursor.executemany("""
+                INSERT INTO additional_charges 
+                (invoice_id, charge_name, amount)
+                VALUES (%s,%s,%s)
+            """, charges)
+
+            conn.commit()
+
+            return {
+                "success": True,
+                "invoice_id": invoice_id
+            }
+
+        except Exception as e:
+            conn.rollback()
+            import traceback
+            print(traceback.print_exc())
+            return {"success": False, "error": str(e)}
 
         finally:
             cursor.close()
+            conn.close()
 
-    def add_invoice_detail(self, invoice_data):
+    def _validate(self, data):
+        if not data.get('products'):
+            raise ValueError("Products missing")
 
-        if not self.conn:
-            return {"success": False,'error': "Database connection is not available."}
+        if Decimal(data['grand_total']) < 0:
+            raise ValueError("Invalid total")
 
-        try:
-            cursor = self.conn.cursor()
 
-            # Step 1: Generate unique invoice number
-            invoice_number = self.generate_unique_invoice_number(cursor)
-
-            # Step 2: Prepare invoice data
-            gst_included = 1 if invoice_data.get('gst_included') == 'on' else 0
-            left_to_paid = invoice_data['grand_total'] - \
-                invoice_data['paid_amount']
-
-            insert_invoice_query = """
-                INSERT INTO invoices (
-                    id,customer_id, delivery_mode, grand_total, gst_included,
-                    invoice_created_by_user_id, left_to_paid, paid_amount,
-                    payment_mode, payment_note, sales_note, transport_id,
-                    invoice_number, event_id ,completed,created_at
-                ) VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,NOW())
-            """
-
-            invoice_values = (
-                int(invoice_data['billno']),
-                int(invoice_data['customer_id']),
-                invoice_data['delivery_mode'],
-                float(invoice_data['grand_total']),
-                gst_included,
-                int(invoice_data['invoice_created_by_user_id']),
-                left_to_paid,
-                float(invoice_data['paid_amount']),
-                invoice_data['payment_mode'],
-                invoice_data['payment_note'],
-                invoice_data['sales_note'],
-                invoice_data['transport_id'] if invoice_data['transport_id'] else None,
-                invoice_number,
-                invoice_data['event_id'] if invoice_data.get(
-                    'event_id') else None,
-                # Default to 0 if not provided
-                invoice_data.get('completed', 0)
-            )
-
-            cursor.execute(insert_invoice_query, invoice_values)
-            invoice_id = cursor.lastrowid
-
-            # Step 3: Insert invoice_items and update the stock
-            insert_item_query = """
-                INSERT INTO invoice_items (
-                    invoice_id, product_id, quantity, price, total_amount,
-                    gst_tax_amount, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """
-
-            for product in invoice_data['products']:
-                product_id = int(product[0])
-                # You may want to extract actual quantity from product[2] if needed
-                quantity = int(product[1])
-                price = float(product[2])
-                gst_tax_amount = float(product[3])
-                total_amount = float(product[4])
-
-                item_values = (
-                    invoice_id,
-                    product_id,
-                    quantity,
-                    price,
-                    total_amount,
-                    gst_tax_amount
-                )
-
-                cursor.execute(insert_item_query, item_values)
-
-            # Step 4: Insert charges
-            insert_charges_query = """
-                INSERT INTO additional_charges (
-                    invoice_id, charge_name, amount, created_at
-                ) VALUES (%s, %s, %s, NOW())
-            """
-
-            for charge in invoice_data['charges']:
-               
-                charge_name = charge['name']
-                charge_amount = int(charge['amount'])
-                
-                item_values = (
-                    invoice_id,
-                    charge_name,
-                    charge_amount
-                )
-
-                cursor.execute(insert_charges_query, item_values)
-
-            self.conn.commit()
-            return {"success": True,"invoice_id": invoice_id, "invoice_number": invoice_number}
-
-        except Exception as e:
-            self.conn.rollback()
-            import traceback
-            print(traceback.print_exc())
-            return {"success": False,'error': str(e)}
-
-    def check_stock(self,products):
-        
-        if not self.data_base_connection_check():
-            return {"success": False,'error': 'Database Error!'}
-        cursor = self.conn.cursor(dictionary=True)
-        
-        try:
-            for product in products:
-                cursor.execute(F"SELECT id FROM `products` WHERE quantity >= {product[1]} and id = {product[0]};")
-                exist_stock = cursor.fetchone()
-                if not exist_stock:
-                    return {
-                        "success": False,
-                        "error": "Some products in your cart are out of stock. Please add all items again."
-                    }
-
-            return {"success":True}
-
-        except Exception as e:
-            return {"success": False,'error': str(e)}
-
-    def close_connection(self):
-        # Close the database connection if it exists
-        if self.conn:
-            self.conn.close()
 
 @sales_bp.route('/sales/input-transport/<string:input>/<string:id_mode>', methods=['GET'])
 @login_required('Sales')
@@ -542,171 +478,20 @@ def add_new_product():
 
 
 @sales_bp.route('/sales/save_invoice', methods=['POST'])
-def save_invoice_into_database():
-    """ Save invoice data to database """
+def save_invoice():
     try:
+        # data = request.get_json()
+        data = request.form.to_dict()
+        sales_service = SalesService()
+        data['invoice_created_by_user_id'] = session.get('user_id')
+        data['products'] = json.loads(data['products'])
+        data['charges'] = json.loads(data['charges'])
 
-        # Get form data
-        billno = request.form.get('billno')
-        customer_id = request.form.get('customerId')
-        delivery_mode = request.form.get('delivery_mode')
-        transport_id = request.form.get('transport_id')
-        payment_mode = request.form.get('payment_mode')
-        # payment_type = request.form.get('payment_type')
-        paid_amount = float(request.form.get('paid_amount', 0))
-        grand_total = float(request.form.get('grand_total', 0))
-        sales_note = request.form.get('sales_note', '')
-        IncludeGST = request.form.get('IncludeGST', 'off')
-        event_id = request.form.get('event_id', None)
-
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False,'error': 'Database connection failed'}), 200
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute(f"SELECT id FROM `invoices` WHERE id = {billno};")
-        exist_billno = cursor.fetchone()
-
-        if exist_billno:
-            return jsonify({'success': False,'error': 'Bill number already exists.'}),200
-
-        sales = Sales()
-
-        if payment_mode == "not_paid":
-            paid_amount = 0
-
-        # Get products from form data
-        products = request.form.get('products')
-        charges = json.loads(request.form.get('charges'))
-
-        if products or customer_id:
-            products = json.loads(products)
-        else:
-            return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
-
-        if grand_total < 0:
-            return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
-
-        # Get customer details to validate
-        if not customer_id or customer_id == "": 
-            return jsonify({'success': False,'error': 'Invalid mobile number'}), 200
-
-        cursor.execute(f"SELECT id FROM buddy WHERE mobile = CAST({customer_id} AS INT)")
-        customer = cursor.fetchone()
-
-        if not customer:
-            return jsonify({'success': False,'error': 'Customer not found'}), 200
-
-        # Need transport_id 
-        if delivery_mode == 'transport':
-            if not transport_id:
-                return jsonify({'success': False,'error': 'Some data is Missing in the bill'}), 200
-
-            try:
-                cursor.execute("UPDATE buddy SET transport_id = %s WHERE id = %s", (transport_id, customer['id']))
-                conn.commit()
-            except Exception as e:
-                conn.rollback()
-        else:
-            transport_id = None
-
-        conn.close()
-        # Process products for database
-        tax_rate = 0
-        if IncludeGST == 'on':
-            tax_rate = 18
-
-        product_data_for_sql_table = []
-
-        for product in products:
-            # Validate quantity
-            qty_raw = product.get('quantity')
-
-            try:
-                qty = int(qty_raw)
-                if qty <= 0:
-                    return jsonify({'success': False,'error': 'Invalid Quantity!'}), 200
-
-            except (ValueError, TypeError):
-                return jsonify({'success': False,'error': "Invalid Quantity!"}), 200
-
-            rate = float(product['finalPrice'])
-
-            # Calculate the original amount (before GST)
-            original_amount = rate / (1 + tax_rate / 100)
-
-            # Calculate the GST amount
-            gst_amount = rate - original_amount
-            tax_amount = float(f"{gst_amount:.2f}")
-            total_amount = float(product['total'])
-
-            product_data_for_sql_table.append([
-                product['id'],
-                f"{qty}",
-                f"{original_amount:.2f}",
-                f"{tax_amount:.2f}",
-                f"{total_amount:.0f}"
-            ])
-
-
-        stock = sales.check_stock(product_data_for_sql_table) 
-
-        if not stock['success']:
-            return jsonify(stock), 200
-            
-        # Prepare bill data for database
-        bill_data = {
-            'billno':billno,
-            'customer_id': customer['id'],
-            'delivery_mode': delivery_mode,
-            'grand_total': grand_total,
-            'payment_mode': payment_mode,
-            'paid_amount': paid_amount,
-            'transport_id': transport_id,
-            'sales_note': sales_note,
-            'invoice_created_by_user_id': session.get('user_id'),
-            'payment_note': request.form.get('payment_note', ''),
-            'gst_included': IncludeGST,
-            'products': product_data_for_sql_table,
-            'charges':charges,
-            'event_id': event_id,
-            'completed': 0,
-        }
-
-        # Save to database
-        if sales.data_base_connection_check():
-            result = sales.add_invoice_detail(bill_data)
-            if result.get("success"):
-
-                if bill_data['completed'] == 0:
-                    # Insert into live order track
-                    response = sales.insert_live_order_track(
-                        result['invoice_id'])
-
-                    if not response['success']:
-                        sales.close_connection()
-                        return jsonify({'success': False,'error': response['error']}), 200
-
-            else:
-                return jsonify({'success': False,'error': result}), 200
-
-            sales.close_connection()
-
-            # Return success with invoice ID
-            return jsonify({
-                'success': True,
-                'invoice_number': result['invoice_number'],
-                'invoice_id' : result['invoice_id']
-            }), 200
-        else:
-            return jsonify({'success': False,'error': 'Database Error!'}), 200
+        result = sales_service.create_invoice(data)
+        return jsonify(result), 200 if result['success'] else 400
 
     except Exception as e:
-        print(f"Error saving invoice: {e}")
-        import traceback
-        print(traceback.print_exc())
-        return jsonify({'success': False,'error': str(e)}), 200
-
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @sales_bp.route('/sales/download_invoice_pdf/<string:invoice_id>', methods=['GET'])
 @sales_bp.route('/sales/share_invoice_pdf/<string:invoice_id>', methods=['POST'])

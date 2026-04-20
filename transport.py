@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, send_from_directory, session
+from flask import Blueprint, json, render_template, jsonify, request, send_from_directory, session
 from packing import UPLOAD_FOLDER
 from utils import get_db_connection, login_required, get_invoice_id, cancel_order
 from datetime import datetime
@@ -156,109 +156,6 @@ class TransportModel:
 
         return all_order_data
     
-    def fetch_transport_order_details(self,invoiceNumber):
-        query = """
-                    SELECT
-                        inv.id,
-                        inv.invoice_number,
-                        inv.customer_id,
-                        inv.grand_total,
-                        inv.payment_mode,
-                        inv.paid_amount,
-                        inv.left_to_paid,
-                        inv.sales_note,
-                        inv.invoice_created_by_user_id,
-                        inv.payment_note,
-                        inv.gst_included,
-                        inv.created_at,
-                        inv.delivery_mode,
-
-                        b.id AS buddy_id,
-                        b.name AS customer,
-                        b.address,
-                        b.state,
-                        b.pincode,
-                        b.mobile,
-
-                        u.id AS users_id,
-                        u.username,
-
-                        up.username AS pack_by,
-
-                        ii.id AS invoices_items_id,
-                        ii.product_id,
-                        ii.quantity,
-                        ii.price,
-                        ii.gst_tax_amount,
-                        ii.total_amount,
-                        ii.created_at,
-
-                        p.id AS products_id,
-                        p.name,
-
-                        lot.id AS live_order_track_id,
-                        lot.sales_proceed_for_packing,
-                        lot.sales_date_time,
-                        lot.packing_proceed_for_transport,
-                        lot.packing_date_time,
-                        lot.packing_proceed_by,
-                        lot.transport_proceed_for_builty,
-                        lot.transport_date_time,
-                        lot.transport_proceed_by,
-                        lot.builty_proceed_by,
-                        lot.builty_received,
-                        lot.builty_date_time,
-                        lot.payment_confirm_status,
-                        lot.cancel_order_status,
-                        lot.verify_by_manager,
-                        lot.verify_by_manager_id,
-                        lot.verify_manager_date_time,
-                        lot.packing_note,
-
-                        transport.pincode AS transport_pincode,
-                        transport.name AS transport_name,
-                        transport.city AS transport_city,
-                        transport.days AS transport_days
-
-                    FROM invoices inv
-
-                    LEFT JOIN buddy b ON inv.customer_id = b.id
-                    LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-                    LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
-                        AND lot.cancel_order_status = 0
-                        AND lot.sales_proceed_for_packing = 1
-                        AND lot.packing_proceed_for_transport = 1
-                    LEFT JOIN users up ON lot.packing_proceed_by = up.id
-                    LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-                    LEFT JOIN products p ON ii.product_id = p.id
-                    LEFT JOIN transport ON inv.transport_id = transport.id
-
-                    WHERE lot.transport_proceed_for_builty = 0
-                        AND inv.completed = 0
-                        AND (inv.delivery_mode = 'transport' OR inv.delivery_mode = 'post')
-                        AND lot.transport_lock = 0
-                        AND inv.invoice_number = %s
-                    ORDER BY inv.created_at DESC;
-       
-                """
-
-        
-        self.cursor.execute(query, (invoiceNumber,))
-        all_order_data = self.cursor.fetchall()
-        
-        if not all_order_data:
-            return []
-
-    
-        # Merge products into orders
-        merged_orders = self.merge_orders_products(all_order_data)
-
-        for invoice_id in merged_orders:
-            charges = self.get_additional_charges(invoice_id['id']) 
-            invoice_id['charges'] = charges
-
-        return merged_orders[0]
-
     def fetch_draft_transport_orders(self):
         query = f"""
                     SELECT
@@ -353,13 +250,9 @@ class TransportModel:
 
     
         # Merge products into orders
-        merged_orders = self.merge_orders_products(all_order_data)
+        # !!!!! Make the store procedure for this query and call here !!!!!   
 
-        for invoice_id in merged_orders:
-            charges = self.get_additional_charges(invoice_id['id']) 
-            invoice_id['charges'] = charges
-
-        return merged_orders
+        return None
 
 
     def done_transportaion(self,data):
@@ -440,27 +333,44 @@ def transport_my_pack_list():
 
 @transport_bp.route('/transport/transport-order-details/<invoiceNumber>', methods=['GET'])
 @login_required('Transport')
-def transport_my_pack_order_details(invoiceNumber): 
+def transport_invoice_details(invoiceNumber):
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
     try:
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
         
-        my_pack = TransportModel()
-        orders = my_pack.fetch_transport_order_details(invoiceNumber)
-        
-        my_pack.close()
+        cursor.callproc('get_packing_invoice_details', (invoiceNumber,))
+            
+        result = None
+        for res in cursor.stored_results():
+            result = res.fetchone()
 
-        if not orders:
-            return jsonify([]), 200
-        
-        return jsonify(orders)
+        if not result:
+            return None
+
+        for field in ["products", "charges"]:
+            if result.get(field):
+                try:
+                    result[field] = json.loads(result[field])
+                except Exception:
+                    result[field] = []
+            else:
+                result[field] = []
+
+        return result
 
     except Exception as e:
-        return jsonify({'error': 'Failed to fetch orders'}), 500
+        return jsonify({'error': str(e)}), 500
 
     finally:
-        my_pack.close()
+        cursor.close()
+        conn.close()
 
 @transport_bp.route('/transport/draft-orders-list', methods=['GET'])
 @login_required('Transport')

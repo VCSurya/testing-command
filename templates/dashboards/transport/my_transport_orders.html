@@ -1717,7 +1717,7 @@
         let allInvoices = [];
         const invoiceCache = {};
 
-        function buildInvoiceDetails(invoiceObj) {
+        function buildInvoiceDetails(invoiceObj, invoiceNumber) {
 
             const products = Array.isArray(invoiceObj.products) ? invoiceObj.products : [];
             const charges = Array.isArray(invoiceObj.charges) ? invoiceObj.charges : [];
@@ -1808,7 +1808,7 @@
                                 
 
                         <div class="next-to-transport-container">
-                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceObj.invoice_number}','${invoiceObj.id}')">
+                            <button class="next-to-transport-btn" onclick="confirmAndStart('${invoiceNumber}','${invoiceObj.id}')">
                                 Transport Handover Done 
                             </button>
                         </div>
@@ -1904,7 +1904,7 @@
                         const res = await fetch(`/transport/transport-order-details/${invoiceNumber}`);
                         const data = await res.json();
 
-                        const html = buildInvoiceDetails(data);
+                        const html = buildInvoiceDetails(data,invoiceNumber);
 
                         invoiceCache[invoiceNumber] = html;
 
