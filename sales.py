@@ -84,122 +84,82 @@ def sales_summary():
 
 from decimal import Decimal
 
-class SalesService:
+class Sales:
+    
+    def save_invoice(self, bill_data):
+        products_json = json.dumps(bill_data["products"])
+        charges_json  = json.dumps(bill_data["charges"])
 
-    def create_invoice(self, data):
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True, buffered=True)
+        args = [
+            int(bill_data["billno"]),
+            int(bill_data["customer_id"]),
+            bill_data["delivery_mode"],
+            float(bill_data["grand_total"]),
+            1 if bill_data.get("gst_included") == "on" else 0,
+            int(bill_data["invoice_created_by_user_id"]),
+            float(bill_data["paid_amount"]),
+            bill_data["payment_mode"],
+            bill_data.get("payment_note", ""),
+            bill_data.get("sales_note", ""),
+            bill_data.get("transport_id"),
+            bill_data.get("event_id"),
+            int(bill_data.get("completed", 0)),
+            products_json,
+            charges_json,
+            0,    # OUT p_invoice_id    → index 15
+            "",   # OUT p_invoice_number → index 16
+            "",   # OUT p_error          → index 17
+        ]
 
         try:
-            conn.start_transaction()
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
 
-            # ---- VALIDATION ----
-            self._validate(data)
+                # Call the stored procedure
+                cursor.callproc("save_invoice_atomic", args)
 
-            # ---- CUSTOMER CHECK ----
-            cursor.execute(
-                "SELECT id FROM buddy WHERE mobile = %s",
-                (data['customer_id'],)
-            )
-            customer = cursor.fetchone()
+                # Consume any result sets first (required before SELECT works)
+                for _ in cursor.stored_results():
+                    pass
 
-            if not customer:
-                return {"success": False, "error": "Customer not found"}
+                # Read OUT params via the auto-generated session variables
+                # mysql-connector names them: @_<procname>_<0-based-index>
+                cursor.execute("""
+                    SELECT
+                        @_save_invoice_atomic_15,
+                        @_save_invoice_atomic_16,
+                        @_save_invoice_atomic_17
+                """)
+                row = cursor.fetchone()
+                cursor.close()
 
-            # ---- STOCK CHECK (BULK) ----
-            
+            if row is None:
+                return {"success": False, "error": "No response from stored procedure"}
 
-            if not data['products']:
-                raise ValueError("Products missing")
+            invoice_id, invoice_number, error = row
 
-            if not isinstance(data['products'], list):
-                raise ValueError("Invalid products format")
+            # OUT params come back as their MySQL types; cast defensively
+            invoice_id     = int(invoice_id)     if invoice_id     is not None else -1
+            invoice_number = str(invoice_number) if invoice_number is not None else ""
+            error          = str(error)          if error          is not None else ""
 
-            product_ids = [int(p['id']) for p in data['products']]
-
-            format_strings = ','.join(['%s'] * len(product_ids))
-            cursor.execute(f"""
-                SELECT id, quantity FROM products 
-                WHERE id IN ({format_strings})
-            """, tuple(product_ids))
-
-            stock_map = {str(row['id']): row['quantity'] for row in cursor.fetchall()}
-
-            for p in data['products']:
-                if stock_map.get(p['id'], 0) < int(p['quantity']):
-                    return {"success": False, "error": "Out of stock"}
-
-            print(data)
-
-            # ---- CALL STORED PROCEDURE ----
-            cursor.callproc("sp_create_invoice", [
-                data['billno'],
-                customer['id'],
-                data['grand_total'],
-                data['paid_amount'],
-                data['payment_mode'],
-                data.get('transport_id'),
-                data.get('sales_note'),
-                data.get('user_id'),
-            ])
-
-            invoice_id = None
-            for result in cursor.stored_results():
-                invoice_id = result.fetchone()['invoice_id']
-
-            # ---- BULK INSERT ITEMS ----
-            items = []
-            for p in data['products']:
-                items.append((
-                    invoice_id,
-                    p['id'],
-                    int(p['quantity']),
-                    Decimal(p['price']),
-                    Decimal(p['total']),
-                    Decimal(p['tax'])
-                ))
-
-            cursor.executemany("""
-                INSERT INTO invoice_items 
-                (invoice_id, product_id, quantity, price, total_amount, gst_tax_amount)
-                VALUES (%s,%s,%s,%s,%s,%s)
-            """, items)
-
-            # ---- BULK INSERT CHARGES ----
-            charges = [
-                (invoice_id, c['name'], Decimal(c['amount']))
-                for c in data['charges']
-            ]
-
-            cursor.executemany("""
-                INSERT INTO additional_charges 
-                (invoice_id, charge_name, amount)
-                VALUES (%s,%s,%s)
-            """, charges)
-
-            conn.commit()
+            if error == "DUPLICATE_BILL":
+                return {"success": False, "error": "Bill number already exists."}
+            if error == "OUT_OF_STOCK":
+                return {"success": False, "error": "Some products are out of stock."}
+            if error or invoice_id == -1:
+                return {"success": False, "error": error or "Unknown DB error"}
 
             return {
-                "success": True,
-                "invoice_id": invoice_id
+                "success":        True,
+                "invoice_id":     invoice_id,
+                "invoice_number": invoice_number,
             }
 
-        except Exception as e:
-            conn.rollback()
-            import traceback
-            print(traceback.print_exc())
-            return {"success": False, "error": str(e)}
-
-        finally:
-            cursor.close()
-            conn.close()
-
-    def _validate(self, data):
-        if not data.get('products'):
-            raise ValueError("Products missing")
-
-        if Decimal(data['grand_total']) < 0:
-            raise ValueError("Invalid total")
+        except mysql.connector.Error as exc:
+            return {"success": False, "error": str(exc)}
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
 
 
 
@@ -477,21 +437,139 @@ def add_new_product():
 # ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
 
 
+def _parse_products(raw_products: list[dict], tax_rate: float) -> tuple[list, str | None]:
+    rows: list = []
+    for product in raw_products:
+        qty_raw = product.get("quantity")
+        try:
+            qty = int(qty_raw)
+            if qty <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return [], "Invalid Quantity!"
+
+        rate          = float(product["finalPrice"])
+        original      = rate / (1 + tax_rate / 100)
+        gst_amount    = round(rate - original, 2)
+        total_amount  = float(product["total"])
+
+        rows.append([
+            int(product["id"]),
+            qty,
+            round(original, 2),
+            gst_amount,
+            round(total_amount, 0),
+        ])
+    return rows, None
+
+def _lookup_customer(cursor, customer_id_raw: str) -> dict | None:
+    cursor.execute(
+        "SELECT id FROM buddy WHERE mobile = CAST(%s AS UNSIGNED) LIMIT 1",
+        (customer_id_raw,)
+    )
+    return cursor.fetchone()
+
 @sales_bp.route('/sales/save_invoice', methods=['POST'])
-def save_invoice():
+def save_invoice_into_database():
+
+    # ── 1. Parse & validate form ────────────────────────────────────────
+    form = request.form
+
+    billno       = form.get("billno")
+    customer_raw = form.get("customer_id", "")
+    delivery     = form.get("delivery_mode", "")
+    transport_id = form.get("transport_id") or None
+    payment_mode = form.get("payment_mode", "")
+    sales_note   = form.get("sales_note", "")
+    payment_note = form.get("payment_note", "")
+    gst_flag     = form.get("IncludeGST", "off")
+    event_id     = form.get("event_id") or None
+
     try:
-        # data = request.get_json()
-        data = request.form.to_dict()
-        sales_service = SalesService()
-        data['invoice_created_by_user_id'] = session.get('user_id')
-        data['products'] = json.loads(data['products'])
-        data['charges'] = json.loads(data['charges'])
+        grand_total  = float(form.get("grand_total", 0))
+        paid_amount  = float(form.get("paid_amount", 0)) if payment_mode != "not_paid" else 0.0
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid amount values"}), 200
 
-        result = sales_service.create_invoice(data)
-        return jsonify(result), 200 if result['success'] else 400
+    if grand_total < 0:
+        return jsonify({"success": False, "error": "Grand total cannot be negative"}), 200
 
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+    if not customer_raw:
+        return jsonify({"success": False, "error": "Invalid mobile number"}), 200
+
+    raw_products = form.get("products")
+    raw_charges  = form.get("charges", "[]")
+
+    if not raw_products:
+        return jsonify({"success": False, "error": "No products in the bill"}), 200
+
+    try:
+        products_list = json.loads(raw_products)
+        charges_list  = json.loads(raw_charges)
+    except json.JSONDecodeError:
+        return jsonify({"success": False, "error": "Malformed products/charges data"}), 200
+
+    tax_rate = 18.0 if gst_flag == "on" else 0.0
+    product_rows, err = _parse_products(products_list, tax_rate)
+    if err:
+        return jsonify({"success": False, "error": err}), 200
+
+    # ── 2. Single lightweight pre-flight DB query ───────────────────────
+    #       (customer lookup + optional transport update)
+    #       Uses one pooled connection, returned immediately.
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+
+            customer = _lookup_customer(cursor, customer_raw)
+            if not customer:
+                return jsonify({"success": False, "error": "Customer not found"}), 200
+
+            if delivery == "transport":
+                if not transport_id:
+                    return jsonify({"success": False, "error": "Transport ID required"}), 200
+                cursor.execute(
+                    "UPDATE buddy SET transport_id = %s WHERE id = %s",
+                    (transport_id, customer["id"])
+                )
+                conn.commit()
+            else:
+                transport_id = None
+
+            cursor.close()
+
+    except Exception as exc:
+        return jsonify({"success": False, "error": print(exc)}), 200
+
+    # ── 3. Delegate everything else to stored procedure ─────────────────
+    bill_data = {
+        "billno":                     billno,
+        "customer_id":                customer["id"],
+        "delivery_mode":              delivery,
+        "grand_total":                grand_total,
+        "paid_amount":                paid_amount,
+        "payment_mode":               payment_mode,
+        "payment_note":               payment_note,
+        "sales_note":                 sales_note,
+        "transport_id":               transport_id,
+        "event_id":                   event_id,
+        "gst_included":               gst_flag,
+        "invoice_created_by_user_id": session.get("user_id"),
+        "products":                   product_rows,
+        "charges":                    charges_list,
+        "completed":                  0,
+    }
+
+    result = Sales().save_invoice(bill_data)
+
+    if result["success"]:
+        return jsonify({
+            "success":        True,
+            "invoice_number": result["invoice_number"],
+            "invoice_id":     result["invoice_id"],
+        }), 200
+    else:
+        return jsonify({"success": False, "error": result["error"]}), 200
 
 @sales_bp.route('/sales/download_invoice_pdf/<string:invoice_id>', methods=['GET'])
 @sales_bp.route('/sales/share_invoice_pdf/<string:invoice_id>', methods=['POST'])
