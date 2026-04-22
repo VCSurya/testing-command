@@ -2411,7 +2411,7 @@
                     dropdown.innerHTML = '<div class="p-4 text-slate-400 text-sm">No customers found</div>';
                 } else {
                     dropdown.innerHTML = list.map(c => `
-                    <div onclick="selectCustomer(${c.mobile},'${c.name}','${c.address}','${c.pincode}','${c.transport_id}')" class="p-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 last:border-none transition-colors">
+                    <div onclick="selectCustomer(${c.id},${c.mobile},'${c.name}','${c.address}','${c.pincode}','${c.transport_id}')" class="p-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 last:border-none transition-colors">
                         <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-l font-bold text-slate-500">
                             ${c.mobile[0]}${c.name[0]}
                         </div>
@@ -2432,7 +2432,7 @@
 
 
             // Selection logic
-            window.selectCustomer = function (mobile, name, address, pincode, transport_id) {
+            window.selectCustomer = function (id, mobile, name, address, pincode, transport_id) {
                 searchInput.value = '';
                 dropdown.classList.add('hidden');
                 selectedDisplay.classList.remove('hidden');
@@ -2442,6 +2442,8 @@
                 document.getElementById('selectedPincode').textContent = pincode;
                 document.getElementById('selectedAddress').textContent = address;
                 document.getElementById('transportCompany').value = transport_id;
+                customerId = id;
+
 
                 if (document.getElementById('deliveryMode').value === 'transport') {
 
@@ -2466,6 +2468,8 @@
                 document.getElementById('noTransport').classList.remove('hidden');
                 document.getElementById('transportCard').classList.add('hidden');
                 document.getElementById('transportCompany').value = null;
+                customerId = null;
+
 
             }
 
@@ -2485,6 +2489,8 @@
             let grandTotal = 0;
             const GST_RATE = 18; // 18% GST
             let currentProduct = null;
+            var customerId = null;
+
 
 
             window.addCharge = function () {
@@ -2923,7 +2929,7 @@
             }
 
             // Load customers and products from the server
-            selectCustomer(invoiceData.c_mobile, invoiceData.c_name, invoiceData.c_address, invoiceData.c_pincode, invoiceData.c_transport_id);
+            selectCustomer(invoiceData.c_id, invoiceData.c_mobile, invoiceData.c_name, invoiceData.c_address, invoiceData.c_pincode, invoiceData.c_transport_id);
             updateProductTable();
             fetchEvents();
 
@@ -3042,7 +3048,7 @@
             if (invoiceData.payment_type === 'full_payment') {
                 document.getElementById('paymentType').value = invoiceData.payment_type || 'full_payment';
                 document.getElementById('leftToPayDisplay').value = 0;
-                grandTotal = invoiceData.grand_total;
+                grandTotal = Number(invoiceData.grand_total);
                 setPaymentTypeEvents(document.getElementById('paymentType').value);
 
             }
@@ -3050,7 +3056,7 @@
             if (invoiceData.payment_type === 'half_payment') {
                 document.getElementById('paymentType').value = invoiceData.payment_type || 'half_payment';
                 document.getElementById('leftToPayDisplay').value = invoiceData.grandTotal - invoiceData.paid_amount || 0;
-                grandTotal = invoiceData.grand_total;
+                grandTotal = Number(invoiceData.grand_total);
                 setPaymentTypeEvents(document.getElementById('paymentType').value);
 
             }
@@ -3310,7 +3316,7 @@
                             document.getElementById('customerPincode').value = '';
                             document.getElementById('customerMobile').value = '';
 
-                            selectCustomer(customerMobile, customerName, customerAddress, customerPincode, customerTransportCompany);
+                            selectCustomer(data.id,customerMobile, customerName, customerAddress, customerPincode, customerTransportCompany);
 
                         } else {
                             alert(data.error);
@@ -3853,7 +3859,6 @@
                     return;
                 }
 
-                var customerId = document.getElementById('selectedMobile').textContent;
 
                 if (!customerId || customerId === "" || customerId === "N/A") {
                     alert('Please Select a Customer.');

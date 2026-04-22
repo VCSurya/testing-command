@@ -1,11 +1,12 @@
+from asyncio.log import logger
 from flask import Blueprint, render_template, jsonify, request, session, send_file
+from invoice import _build_pdf, _fetch_invoice_data, _handle_invoice_pdf
 from utils import get_db_connection, login_required, get_invoice_id,cancel_order
 import mysql.connector
 from datetime import datetime
 import pytz
 import json
-import random
-import string
+import traceback
 from decimal import Decimal
 from reportlab.lib.enums import TA_RIGHT
 
@@ -91,64 +92,66 @@ class Sales:
         charges_json  = json.dumps(bill_data["charges"])
 
         args = [
-            int(bill_data["billno"]),
-            int(bill_data["customer_id"]),
-            bill_data["delivery_mode"],
-            float(bill_data["grand_total"]),
-            1 if bill_data.get("gst_included") == "on" else 0,
-            int(bill_data["invoice_created_by_user_id"]),
-            float(bill_data["paid_amount"]),
-            bill_data["payment_mode"],
-            bill_data.get("payment_note", ""),
-            bill_data.get("sales_note", ""),
-            bill_data.get("transport_id"),
-            bill_data.get("event_id"),
-            int(bill_data.get("completed", 0)),
-            products_json,
-            charges_json,
-            0,    # OUT p_invoice_id    → index 15
+            int(bill_data["billno"]),                                    # 0
+            int(bill_data["customer_id"]),                               # 1
+            bill_data["delivery_mode"],                                  # 2
+            float(bill_data["grand_total"]),                             # 3
+            1 if bill_data.get("gst_included") == "on" else 0,          # 4
+            int(bill_data["invoice_created_by_user_id"]),                # 5
+            float(bill_data["paid_amount"]),                             # 6
+            bill_data["payment_mode"],                                   # 7
+            bill_data.get("payment_note", ""),                           # 8
+            bill_data.get("sales_note", ""),                             # 9
+            bill_data.get("transport_id"),                               # 10
+            bill_data.get("event_id"),                                   # 11
+            int(bill_data.get("completed", 0)),                          # 12
+            products_json,                                               # 13
+            charges_json,                                                # 14
+            0,    # OUT p_invoice_id     → index 15
             "",   # OUT p_invoice_number → index 16
             "",   # OUT p_error          → index 17
         ]
 
+        conn   = None
+        cursor = None
         try:
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
+            conn   = get_db_connection()
+            cursor = conn.cursor()
 
-                # Call the stored procedure
-                cursor.callproc("save_invoice_atomic", args)
+            cursor.callproc("save_invoice_atomic", args)
 
-                # Consume any result sets first (required before SELECT works)
-                for _ in cursor.stored_results():
-                    pass
+            # Read the SELECT result set emitted by the SP at the end
+            row = None
+            for result in cursor.stored_results():
+                row = result.fetchone()
+                break  # only one result set expected
 
-                # Read OUT params via the auto-generated session variables
-                # mysql-connector names them: @_<procname>_<0-based-index>
-                cursor.execute("""
-                    SELECT
-                        @_save_invoice_atomic_15,
-                        @_save_invoice_atomic_16,
-                        @_save_invoice_atomic_17
-                """)
-                row = cursor.fetchone()
-                cursor.close()
+            print("DEBUG SP row:", row)
 
             if row is None:
-                return {"success": False, "error": "No response from stored procedure"}
+                return {"success": False, "error": "No result set from stored procedure"}
 
             invoice_id, invoice_number, error = row
 
-            # OUT params come back as their MySQL types; cast defensively
             invoice_id     = int(invoice_id)     if invoice_id     is not None else -1
             invoice_number = str(invoice_number) if invoice_number is not None else ""
             error          = str(error)          if error          is not None else ""
 
+            # Map SP error codes → clean user messages
             if error == "DUPLICATE_BILL":
-                return {"success": False, "error": "Bill number already exists."}
-            if error == "OUT_OF_STOCK":
-                return {"success": False, "error": "Some products are out of stock."}
-            if error or invoice_id == -1:
-                return {"success": False, "error": error or "Unknown DB error"}
+                return {"success": False, "error": "Bill number already exists. Please use a different bill number."}
+            if "OUT_OF_STOCK" in error:
+                return {"success": False, "error": "One or more products are out of stock. Please update your cart."}
+            if "INSERT_INVOICE_ERR" in error:
+                return {"success": False, "error": "Failed to save invoice. Please try again."}
+            if "INSERT_ITEM_ERR" in error:
+                return {"success": False, "error": "Failed to save invoice items. Please try again."}
+            if "STOCK_UPDATE_ERR" in error:
+                return {"success": False, "error": "Failed to update stock. Please try again."}
+            if error:
+                return {"success": False, "error": f"Database error: {error}"}
+            if invoice_id == -1:
+                return {"success": False, "error": "Unknown error occurred. Please try again."}
 
             return {
                 "success":        True,
@@ -157,11 +160,20 @@ class Sales:
             }
 
         except mysql.connector.Error as exc:
+            print(f"DB error in save_invoice: {exc}")
             return {"success": False, "error": str(exc)}
         except Exception as exc:
+            import traceback
+            traceback.print_exc()
             return {"success": False, "error": str(exc)}
 
-
+        finally:
+            if cursor:
+                try: cursor.close()
+                except: pass
+            if conn:
+                try: conn.close()
+                except: pass
 
 @sales_bp.route('/sales/input-transport/<string:input>/<string:id_mode>', methods=['GET'])
 @login_required('Sales')
@@ -181,9 +193,9 @@ def get_transport_input(input,id_mode):
                 return jsonify(customers)
         
         if input.isdigit():
-            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 15;")
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE pincode LIKE '{input}%' LIMIT 10;")
         else:
-            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE city LIKE '{input}%' or name LIKE '{input}%'  LIMIT 15;")
+            cursor.execute(f"SELECT id,pincode,name,city,days FROM `transport` WHERE city LIKE '{input}%' or name LIKE '{input}%'  LIMIT 10;")
 
         customers = cursor.fetchall()
         return jsonify(customers)
@@ -265,9 +277,9 @@ def get_customers_input(input):
     try:
         
         if input.isdigit():
-            cursor.execute(f"SELECT name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
+            cursor.execute(f"SELECT id,name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE mobile LIKE '{input}%' LIMIT 10;")
         else:
-            cursor.execute(f"SELECT name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
+            cursor.execute(f"SELECT id,name,address,state,pincode,mobile,transport_id FROM `buddy` WHERE name LIKE '%{input}%' LIMIT 10;")
 
         customers = cursor.fetchall()
         return jsonify(customers)
@@ -281,160 +293,128 @@ def get_customers_input(input):
 @sales_bp.route('/sales/add-customer', methods=['POST'])
 @login_required('Sales')
 def add_new_customer():
+    conn = None
+    cursor = None
     try:
         data = request.get_json()
-        required_fields = ['name', 'address', 'pincode', 'mobile']
-        if not all(field in data for field in required_fields):
-            return jsonify({'error': 'Missing required fields'}), 400
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid JSON payload'}), 400
 
-        name = data.get('name', '')
-        state = data.get('state', '')
-        address = data.get('address', '')
-        pincode = data.get('pincode', '')
-        mobile = data.get('mobile', '')
-        city = data.get('city', '')
-        company = data.get('company', '')
-        transport_id = data.get('transportCompany', None)
-
-        conn = get_db_connection()
-
-        if not conn:
-            return jsonify({'success': False,'error': 'Database connection failed'}), 500
+        # --- Validation (single pass) ---
+        required_fields = ['name', 'address', 'state', 'pincode', 'mobile']
+        name     = data.get('name', '').strip()
+        address  = data.get('address', '').strip()
+        state    = data.get('state', '').strip()
+        pincode  = data.get('pincode', '').strip()
+        mobile   = data.get('mobile', '').strip()
+        city     = data.get('city', '').strip()
+        company  = data.get('company', '').strip()
+        transport_id = data.get('transportCompany') or None
 
         if not all([name, address, state, pincode, mobile]):
-            return jsonify({'success': False,'error': 'Please fill in all fields with valid information.'}),500
+            return jsonify({'success': False, 'error': 'Please fill in all required fields.'}), 400
 
-        if not mobile.isdigit():
-            return jsonify({'success': False,'error': 'Enter valid mobile number'}),500
+        if not mobile.isdigit() or len(mobile) != 10:
+            return jsonify({'success': False, 'error': 'Enter a valid 10-digit mobile number.'}), 400
 
-        if not pincode.isdigit():
-            return jsonify({'success': False,'error': 'Enter valid PINCODE number'}),500
-    
+        if not pincode.isdigit() or len(pincode) != 6:
+            return jsonify({'success': False, 'error': 'Enter a valid 6-digit pincode.'}), 400
+
+        # --- DB connection ---
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+
         cursor = conn.cursor(dictionary=True)
 
-        # Check if mobile exists
-        cursor.execute("SELECT * FROM buddy WHERE mobile = %s", (mobile,))
-        existing_user = cursor.fetchone()
-        
-        if existing_user:
-            return jsonify({'success': False, 'error': f'{mobile}: Customer already exists'})
-                
+        # Check duplicate mobile
+        cursor.execute("SELECT id FROM buddy WHERE mobile = %s LIMIT 1", (mobile,))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'error': f'{mobile}: Customer already exists'}), 409
 
-        if transport_id and transport_id!='':        
-            # Check if valid transport exists
-            cursor.execute("SELECT * FROM transport WHERE id = %s and active = 1", (transport_id,))
-            existing_transport = cursor.fetchone()
-            
-            if not existing_transport:
-                return jsonify({'success': False, 'error': f'Selected Transport company does not exist'})
+        # Validate transport if provided
+        if transport_id:
+            cursor.execute("SELECT id FROM transport WHERE id = %s AND active = 1 LIMIT 1", (transport_id,))
+            if not cursor.fetchone():
+                return jsonify({'success': False, 'error': 'Selected transport company does not exist'}), 400
 
-        else:
-            transport_id = None
-
-        # Insert into database
-        cursor.execute("INSERT INTO buddy (name, address, state, pincode, mobile, city, company, transport_id, created_by) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s)",
-                                          (name, address, state, pincode, mobile, city, company, transport_id, session.get('user_id')))
+        # Insert
+        cursor.execute(
+            """
+            INSERT INTO buddy
+                (name, address, state, pincode, mobile, city, company, transport_id, created_by)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (name, address, state, pincode, mobile, city, company, transport_id, session.get('user_id'))
+        )
         conn.commit()
-        
-        mobile = int(mobile)
-        cursor.execute("SELECT name, address,pincode, mobile FROM buddy WHERE mobile = %s",(mobile,))
-        exist = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
 
-        if exist:
-            return jsonify({'success': True, "data":exist})
-        else:
-            return jsonify({'success': False, "error":"Somthing went wrong, Try Again!"})
-
+        # Return the data we already have — no extra SELECT needed
+        return jsonify({
+            'success': True,
+            'data': {
+                'id':      cursor.lastrowid,
+                'name':    name,
+                'address': address,
+                'pincode': pincode,
+                'mobile':  mobile,
+            }
+        }), 201
 
     except Exception as e:
-        conn.rollback()
-        import traceback
-        print(traceback.print_exc())
-        return jsonify({'success': False,'error': 'Internal server error'}), 500
+        if conn:
+            conn.rollback()
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()
 
+        
 @sales_bp.route('/sales/input-products/<string:input>', methods=['GET'])
 @login_required('Sales')
 def get_products_input(input):
-    
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([]), 500  # Return HTTP 500 if DB connection fails
-
-    cursor = conn.cursor(dictionary=True)
+    conn = None
+    cursor = None
     try:
-        cursor.execute(f"SELECT id,name,selling_price as price, quantity FROM products WHERE name LIKE '%{input}%' LIMIT 30")
+        # Sanitize and validate input early
+        search = input.strip()
+        if not search:
+            return jsonify([]), 200
+        if len(search) > 100:
+            return jsonify({'error': 'Search term too long'}), 400
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify([]), 500
+
+        cursor = conn.cursor(dictionary=True)
+
+        # Parameterized query — never interpolate user input into SQL
+        cursor.execute(
+            """
+            SELECT id, name, selling_price AS price, quantity
+            FROM products
+            WHERE name LIKE %s
+              AND active = 1
+            ORDER BY name ASC
+            LIMIT 10
+            """,
+            (f'%{search}%',)   # <-- wildcard added in Python, not in SQL string
+        )
+
         products = cursor.fetchall()
-        return jsonify(products)
+        return jsonify(products), 200
+
     except Exception as e:
         print(f"Error fetching products: {e}")
         return jsonify({'error': 'Failed to fetch products'}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@sales_bp.route('/sales/products')
-@login_required('Sales')
-def get_products():
-    conn = get_db_connection()
-    if not conn:
-        return jsonify([]), 500  # Return HTTP 500 if DB connection fails
-
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT * FROM products")
-        products = cursor.fetchall()
-        return jsonify([{
-            'id': p['id'],
-            'name': p['name'],
-            'price': float(p['selling_price'])
-        } for p in products])
-
-    except Exception as e:
-        print(f"Error fetching customers: {e}")
-        return jsonify({'error': 'Failed to fetch customers'}), 500
 
     finally:
-        cursor.close()
-        conn.close()
-
-
-@sales_bp.route('/sales/add_new_product', methods=['POST'])
-@login_required('Sales')
-def add_new_product():
-    try:
-        # Get form data
-        name = request.form.get('name')
-        price = request.form.get('price')
-        hsn_code = request.form.get('hsn_code')
-        gst_rate = request.form.get('gst_rate')
-        description = request.form.get('description')
-
-        # Connect to database
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database connection failed'}), 500
-
-        cursor = conn.cursor()
-
-        # Insert new product into database
-        cursor.execute("INSERT INTO products (name, price, hsn_code, gst_rate, description) VALUES (%s, %s, %s, %s, %s)",
-                       (name, price, hsn_code, gst_rate, description))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return jsonify({'message': 'Product added successfully'}), 200
-
-    except Exception as e:
-        print(f"Error adding product: {e}")
-        return jsonify({'error': str(e)}), 500
-
-# ImmutableMultiDict([('customer_id', '3'), ('delivery_mode', 'transport'), ('transport_company', ''), ('payment_mode', 'cash'), ('payment_note', ''), ('payment_type', 'full_payment'), ('paid_amount', '2000'), ('left_to_pay_display', '0.00'), ('IncludeGST', 'on'), ('grand_total', '2000'), ('sales_note', ''), ('products', '[{"id":9,"name":"\\" it\'s a boy \\" ring fabric ","finalPrice":2000,"quantity":1,"total":2000}]')])
+        if cursor: cursor.close()
+        if conn:   conn.close()
 
 
 def _parse_products(raw_products: list[dict], tax_rate: float) -> tuple[list, str | None]:
@@ -464,7 +444,7 @@ def _parse_products(raw_products: list[dict], tax_rate: float) -> tuple[list, st
 
 def _lookup_customer(cursor, customer_id_raw: str) -> dict | None:
     cursor.execute(
-        "SELECT id FROM buddy WHERE mobile = CAST(%s AS UNSIGNED) LIMIT 1",
+        "SELECT id FROM buddy WHERE id = %s LIMIT 1",
         (customer_id_raw,)
     )
     return cursor.fetchone()
@@ -571,513 +551,19 @@ def save_invoice_into_database():
     else:
         return jsonify({"success": False, "error": result["error"]}), 200
 
-@sales_bp.route('/sales/download_invoice_pdf/<string:invoice_id>', methods=['GET'])
-@sales_bp.route('/sales/share_invoice_pdf/<string:invoice_id>', methods=['POST'])
-def generate_bill_pdf(invoice_id):
-    """
-    Second function - Generate PDF from database data using invoice_id
-    """
-    try:
+@sales_bp.route("/sales/download_invoice_pdf/<string:invoice_number>", methods=["GET"])
+def download_invoice_pdf(invoice_number: str):
+    """Stream PDF inline (view in browser)."""
+    return _handle_invoice_pdf(invoice_number, as_attachment=False)
 
-        result = get_invoice_id(invoice_id)
-        invoice_id = None
-        if result['status']:
-            invoice_id = result['invoice_id']
-        else:
-            return jsonify({'error': 'Invoice not found'}), 404
 
-        from reportlab.lib.pagesizes import A4, inch
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
-        from reportlab.lib import colors
-        from reportlab.lib.units import inch
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from io import BytesIO
-        import datetime
+@sales_bp.route("/sales/share_invoice_pdf/<string:invoice_number>", methods=["POST"])
+def share_invoice_pdf(invoice_number: str):
+    """Return PDF as a downloadable attachment."""
+    return _handle_invoice_pdf(invoice_number, as_attachment=True)
 
 
-        # Get invoice data from database
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database connection failed'}), 500
-
-        cursor = conn.cursor(dictionary=True)
-
-        # Check invoice_number and invoice_id details
-        cursor.execute("""
-            SELECT invoice_id FROM `live_order_track` WHERE sales_proceed_for_packing = 1 AND cancel_order_status = 0 and invoice_id = %s;
-        """, (invoice_id,))
-        invoice_data = cursor.fetchone()
-        
-        if not invoice_data:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Invoice not found'}), 404
-
-        # Get invoice details
-        cursor.execute("""
-            SELECT i.*, c.name as c_name, c.mobile as c_mobile, c.address as c_address, c.pincode as c_pincode, c.state as c_state, lot.payment_confirm_status, 
-            t.pincode AS transport_pincode,
-            t.name AS transport_name,
-            t.city AS transport_city,
-            t.days AS transport_days,
-            u.name,
-            lot.sales_date_time AS invoice_date
-            FROM invoices i 
-            JOIN buddy c ON i.customer_id = c.id
-            JOIN live_order_track lot ON i.id = lot.invoice_id
-            JOIN users u ON i.invoice_created_by_user_id = u.id
-            LEFT JOIN transport t ON i.transport_id = t.id
-            WHERE i.id = %s;
-        """, (invoice_id,))
-
-        invoice_data = cursor.fetchone()
-
-        # Extract data from database
-        customer = {
-            'name': invoice_data.get('c_name',''),
-            'mobile': invoice_data.get('c_mobile',''),
-            'address': invoice_data.get('c_address',''),
-            'pincode': invoice_data.get('c_pincode',''),
-            'state': invoice_data.get('c_state',''),
-            'salesman': invoice_data.get('name','')
-        }
-
-        # Get invoice products
-        cursor.execute("""
-            SELECT ip.*, p.name as product_name 
-            FROM invoice_items ip 
-            JOIN products p ON ip.product_id = p.id 
-            WHERE ip.invoice_id = %s
-        """, (invoice_id,))
-
-        products = cursor.fetchall()
-        
-
-        # Get invoice charges
-        cursor.execute("""
-            SELECT charge_name,amount FROM `additional_charges` WHERE invoice_id = %s;
-        """, (invoice_id,))
-
-        charges = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-
-        # or however you store bill number
-        bill_no = invoice_id
-        delivery_mode = invoice_data['delivery_mode']
-        transport_name = invoice_data['transport_name']
-        transport_city = invoice_data['transport_city']
-        transport_days = invoice_data['transport_days']
-        transport_pincode = invoice_data['transport_pincode']
-        payment_mode = invoice_data['payment_mode']
-        paid_amount = float(invoice_data['paid_amount'])
-        grand_total = float(invoice_data['grand_total'])
-        IncludeGST = invoice_data['gst_included']
-        payment_confirm_status = invoice_data['payment_confirm_status']
-
-        # payment_type = invoice_data.get('payment_type', '')
-
-        # Convert products to the format expected by PDF generation
-        products_formatted = []
-        for product in products:
-            products_formatted.append({
-                # 'id': product['product_id'],
-                'name': product['product_name'],
-                'quantity': product['quantity'],
-                # 'unit': product.get('unit', 'PCS'),
-                # Reconstruct original rate
-                'og_price': product['price'],
-                'tax_price': product['gst_tax_amount'],
-                'total': product['total_amount'],
-                'hsn_code': '95059090'
-            })
-
-        # Get invoice creation date
-        formatted_time = invoice_data['invoice_date'].strftime("%d/%m/%Y") if invoice_data.get(
-            'invoice_date') else datetime.datetime.now().strftime("%d/%m/%Y")
-
-        # Generate PDF (rest of the PDF generation code remains the same)
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4,
-                                leftMargin=30, rightMargin=30,
-                                topMargin=10, bottomMargin=30)
-        elements = []
-
-        # Define styles
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CompanyTitle',
-            parent=styles['Heading1'],
-            fontSize=18,
-            fontName='Helvetica-Bold',
-            alignment=1,
-            spaceAfter=0
-        )
-
-        subtitle_style = ParagraphStyle(
-            'CompanyInfo',
-            parent=styles['Normal'],
-            fontSize=9,
-            alignment=1,
-            spaceAfter=0
-        )
-
-        normal_style = styles['Normal']
-
-        # Prepare BILL TO and SHIP TO
-        bill_to = Paragraph(
-            f"<b>BILL TO:</b><br/><br/>{customer['name']}<br/><br/>Mobile: {customer['mobile']}",
-            normal_style
-        )
-
-        ship_to = Paragraph(
-            f"<b>SHIP TO: </b>{customer['name']}<br/>Address: {customer['address']}<br/>Pincode: {customer['pincode']}<br/>State: {customer['state']}",
-            normal_style
-        )
-
-        # Invoice header
-        invoice_header = [
-            Paragraph(f"<b>Invoice No : {bill_no}</b>", normal_style),
-            Paragraph(f"<b>Invoice Date : {formatted_time}</b>", normal_style)
-        ]
-
-        invoice_data_table = [
-            invoice_header,
-            [bill_to, ship_to],
-        ]
-
-        invoice_table = Table(invoice_data_table, colWidths=[
-                              4 * inch, 4 * inch])
-        invoice_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (1, 0), 'LEFT'),
-            ('ALIGN', (0, 1), (1, 1), 'LEFT'),
-            ('GRID', (0, 0), (1, 1), 0.5, colors.black),
-            ('BACKGROUND', (0, 0), (1, 0), colors.lightgrey),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-
-        # Product table
-        headers = ["S.NO.", "ITEMS", "QTY.",
-                   "RATE", f"TAX ({18 if IncludeGST == 1 else 0}%)", "AMOUNT"]
-        col_widths = [0.5*inch, 3.8*inch, 0.9 *
-                      inch, 0.8*inch, 1*inch, 1*inch, 1*inch]
-
-        product_data = [headers]
-        total_tax_amount = 0
-
-        for idx, product in enumerate(products_formatted, 1):
-
-            product_data.append([
-                str(idx),
-                product['name'],
-                f"{product['quantity']} PCS",
-                f"{product['og_price']}",
-                f"{product['tax_price']}",
-                f"{product['total']}"
-            ])
-            total_tax_amount += float(product['tax_price'])
-
-
-        product_data.append([])
-        for charge in charges:
-            product_data.append([
-                "",
-                f"{charge['charge_name']}",
-                '',
-                '',
-                '',
-                f"{charge['amount']}"
-            ])
-
-        product_table = Table(product_data, colWidths=col_widths)
-        product_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-            ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-            ('ALIGN', (3, 1), (6, -1), 'RIGHT'),
-        ]))
-
-        # Total section
-        if paid_amount == grand_total:
-            total_data = [
-                ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
-                 "", "", f"Rs {grand_total:.2f}"],
-            ]
-
-        elif paid_amount < grand_total:
-            
-            if payment_confirm_status == 1:
-                
-                total_data = [
-                    ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
-                    "", "", f"Rs {grand_total:.2f}"],
-                ]
-
-            else:
-
-                total_data = [
-                    ["", "GRAND TOTAL", f"{sum(int(p['quantity']) for p in products_formatted)} PCS",
-                    "", "", f"Rs {grand_total:.2f}"],
-                    ["", "RECEIVED AMOUNT", "", "", "", f"Rs {paid_amount:.2f}"],
-                    ["", "REMAINING AMOUNT", "", "", "",
-                        f"Rs {(grand_total - paid_amount):.2f}"],
-                ]
-
-        total_table = Table(total_data, colWidths=[
-                            0.5*inch, 3.8*inch, 0.9*inch, 0.8*inch, 1*inch, 1*inch, 1*inch])
-        total_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-            ('ALIGN', (2, 0), (2, 0), 'CENTER'),
-        ]))
-
-        # Tax summary table
-        tax_summary_table = None
-        if IncludeGST:
-            tax_headers = ["HSN/SAC", "Taxable Value",
-                           "CGST Amount", "SGST Amount", "Total Tax Amount"]
-            tax_widths = [2*inch, 1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch]
-
-            tax_data = [tax_headers]
-            half_tax = total_tax_amount / 2
-
-            tax_data.append([
-                "95059090",
-                f"{grand_total - total_tax_amount}",
-                f"{half_tax:0.2f} (9%)",
-                f"{half_tax:0.2f} (9%)",
-                f"Rs {total_tax_amount:.2f}"
-            ])
-
-            tax_summary_table = Table(tax_data, colWidths=tax_widths)
-            tax_summary_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
-
-        def capitalize_each_word(line):
-            words = line.split()
-            result_words = []
-            for word in words:
-                parts = word.split('_')
-                capitalized_parts = [part.capitalize() for part in parts]
-                result_words.append(' '.join(capitalized_parts))
-            return ' '.join(result_words)
-
-        delivery_mode_table = [
-            ["Delivery Mode", capitalize_each_word(delivery_mode), "", "Salesman", capitalize_each_word(customer['salesman'])]
-        ]
-
-        delivery_mode_table = Table(
-            delivery_mode_table,
-            colWidths=[1.5*inch, 2.3*inch, 0.2*inch, 1.5*inch, 2.5*inch]
-        )
-
-        delivery_mode_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            ('BACKGROUND', (3, 0), (3, -1), colors.lightgrey),
-
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (3, 0), (3, -1), 'Helvetica-Bold'),
-
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-
-            # Grid only for the two groups (not the spacer column)
-            ('GRID', (0,0), (1,-1), 0.5, colors.black),
-            ('GRID', (3,0), (4,-1), 0.5, colors.black),
-        ]))
-
-
-        if delivery_mode == "transport":
-            info_data = [
-                ["Transport Name", "City" , "Pincode"]
-            ]
-            info_data.append([transport_name,transport_city,transport_pincode])
-
-            info_table = Table(info_data, colWidths=[3.8*inch, 3.4*inch,0.8*inch])
-            info_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ]))
-
-        # Amount in words function
-        def number_to_words(num):
-            ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-                    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-                    'Seventeen', 'Eighteen', 'Nineteen']
-            tens = ['', '', 'Twenty', 'Thirty', 'Forty',
-                    'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-
-            def two_digits(n):
-                if n < 20:
-                    return ones[n]
-                return tens[n // 10] + (' ' + ones[n % 10] if n % 10 != 0 else '')
-
-            def three_digits(n):
-                if n < 100:
-                    return two_digits(n)
-                return ones[n // 100] + ' Hundred' + (' and ' + two_digits(n % 100) if n % 100 != 0 else '')
-
-            result = ''
-            if num >= 10000000:
-                result += number_to_words(num // 10000000) + ' Crore'
-                num %= 10000000
-                if num:
-                    result += ' '
-            if num >= 100000:
-                result += number_to_words(num // 100000) + ' Lakh'
-                num %= 100000
-                if num:
-                    result += ' '
-            if num >= 1000:
-                result += number_to_words(num // 1000) + ' Thousand'
-                num %= 1000
-                if num:
-                    result += ' '
-            if num > 0:
-                result += three_digits(num)
-
-            return result or 'Zero'
-
-        # Amount in words
-        amount_words = number_to_words(int(grand_total)) + " Rupees"
-        if grand_total % 1:
-            paise = int((grand_total % 1) * 100)
-            if paise:
-                amount_words += f" and {number_to_words(paise)} Paise"
-
-        words_data = [
-            [f"Total Amount (in words):"],
-            [amount_words]
-        ]
-
-        words_table = Table(words_data, colWidths=[8*inch])
-        words_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.black),
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (0, -1), 0.5, colors.black),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ]))
-
-        # Terms and conditions
-        terms_conditions = [
-            "1. Goods once sold will not be taken back or exchanged",
-            "2. No cancellation & No changes after confirm booking",
-            "3. Your parcel will be dispatched within 3-4 working days",
-            "4. packing & forwarding charges will be additional",
-            "5. delivery charges not included in packing & forwarding charges",
-            "6. Your complaint is only valid if you have a proper opening video of the parcel.\n   { from the seal pack parcel to the end without pause & cut }",
-            "7. Your complaint is only valid for 2 days after you receive .",
-            "8. Our Complain Number - 9638095151 ( Do message us on WhatsApp only )"
-        ]
-
-        terms_data = [
-            ["Terms and Conditions"],
-            ["\n".join(terms_conditions)]
-        ]
-
-        terms_table = Table(terms_data, colWidths=[8*inch])
-        terms_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.black),
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (0, -1), 0.5, colors.black),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ]))
-
-        signature_style = ParagraphStyle(
-            'SignatureStyle',
-            alignment=TA_RIGHT,
-            fontSize=12
-        )
-
-        # Build PDF elements
-        elements.append(Paragraph("SMART TRADERS", title_style))
-        elements.append(Paragraph(
-            "Ahmedabad, Gujarat, 382330, Ahmedabad, Gujarat, 382330", subtitle_style))
-        elements.append(
-            Paragraph("GSTIN: 24DCFPS1329A1Z1 Mobile: 9316876474", subtitle_style))
-        elements.append(Spacer(1, 10))
-
-        elements.append(invoice_table)
-        elements.append(Spacer(1, 10))
-        elements.append(product_table)
-        elements.append(total_table)
-        elements.append(Spacer(1, 10))
-        elements.append(delivery_mode_table)
-        if delivery_mode == "transport":
-            elements.append(Spacer(1, 10))
-            elements.append(info_table)
-            
-        elements.append(Spacer(1, 10))
-
-        if tax_summary_table:
-            elements.append(tax_summary_table)
-            elements.append(Spacer(1, 10))
-
-        elements.append(words_table)
-        elements.append(Spacer(1, 10))
-        elements.append(terms_table)
-        elements.append(Spacer(1, 10))
-        elements.append(Paragraph("TAX INVOICE ORIGINAL FOR RECIPIENT",
-                                  ParagraphStyle('Footer',
-                                                 parent=normal_style,
-                                                 alignment=1,
-                                                 fontName='Helvetica-Bold')))
-
-        elements.append(Spacer(1, 40))
-        elements.append(Spacer(1, 5))
-        elements.append(Paragraph("Authorized Signature", signature_style))
-
-        # Build PDF
-        doc.title = f"{customer['name']}"
-        doc.build(elements)
-        buffer.seek(0)
-
-        # Return PDF file
-        return send_file(
-            buffer,
-            as_attachment=False,
-            download_name=f"{customer['name']}_{bill_no}.pdf",
-            mimetype='application/pdf'
-        )
-
-    except Exception as e:  
-        import traceback
-        print(f"Error generating PDF: {traceback.print_exc()}")
-        return jsonify({'error': 'Invoice Not Found!'}), 500
-
-
-# -------------------------------------------------------------- My Orders -----------------------------------------------------------------------------------------------
-
+# -------------------- My Orders --------------------------
 
 class MyOrders:
     def __init__(self):
@@ -1137,11 +623,6 @@ class MyOrders:
             item.pop('sales_proceed_for_packing')
 
             item['trackingStatus'] = trackingStatus
-
-
-
-
-
 
         return data
 
@@ -1378,7 +859,7 @@ class MyOrders:
 
         return merged_orders[0]
 
-    def fetch_ready_to_go_orders(self, user_id):
+    def fetch_ready_to_go_orders(self):
         query = f"""
             SELECT 
 
@@ -1397,7 +878,7 @@ class MyOrders:
  
         """
 
-        self.cursor.execute(query, (user_id,))
+        self.cursor.execute(query, (session.get('user_id'),))
         all_order_data = self.cursor.fetchall()
 
         if not all_order_data:
@@ -1405,75 +886,6 @@ class MyOrders:
 
         return all_order_data
     
-    def fetch_ready_to_go_order_detailes(self, invoiceNumber):
-        query = f"""
-            SELECT 
-
-                inv.id,
-                inv.invoice_number,
-                inv.grand_total,
-                inv.payment_mode,
-                inv.paid_amount,
-                inv.left_to_paid,
-                inv.sales_note,
-                inv.payment_note,
-                inv.gst_included,
-                inv.created_at,
-                inv.delivery_mode,
-                
-                b.name AS customer,
-                b.address,
-                b.state,
-                b.pincode,
-                b.mobile,
-
-                ii.quantity,
-                ii.price,
-                ii.gst_tax_amount,
-                ii.total_amount,
-            
-                p.name,
-                p.quantity as stock,
-
-                lot.sales_proceed_for_packing,
-
-                transport.pincode AS transport_pincode,
-                transport.name AS transport_name,
-                transport.city AS transport_city,
-                transport.days AS transport_days
-                
-            
-            FROM invoices inv
-            LEFT JOIN buddy b ON inv.customer_id = b.id
-            LEFT JOIN users u ON inv.invoice_created_by_user_id = u.id
-            LEFT JOIN invoice_items ii ON inv.id = ii.invoice_id
-            LEFT JOIN products p ON ii.product_id = p.id
-            LEFT JOIN live_order_track lot ON inv.id = lot.invoice_id
-            LEFT JOIN transport ON inv.transport_id = transport.id
-
-            WHERE inv.invoice_number = %s
-            AND lot.cancel_order_status = 0
-            AND lot.sales_proceed_for_packing = 0
-            AND inv.completed = 0   
-            ORDER BY inv.created_at DESC; 
- 
-        """
-
-        self.cursor.execute(query, (invoiceNumber,))
-        all_order_data = self.cursor.fetchall()
-
-        if not all_order_data:
-            return []
-
-        # Merge products into orders
-        merged_orders = self.merge_orders_products(all_order_data)
-        
-        for invoice_id in merged_orders:
-            charges = self.get_additional_charges(invoice_id['id']) 
-            invoice_id['charges'] = charges
-
-        return merged_orders[0]    
-
     def delete_invoice(self, invoice_id):
         try:
             query = """
@@ -1489,7 +901,6 @@ class MyOrders:
         except Exception as e:
             self.conn.rollback()  # rollback on connection, not cursor
             return {"success": False, "message": f"Error deleting invoice {invoice_id}: {e}"}
-
                 
     def start_shipment(self, invoiceNumber):
         try:
@@ -1755,41 +1166,27 @@ def start_shipment():
 @login_required('Sales')
 def sales_my_ready_to_go_orders_list():
 
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Database connection failed'}), 500
-
-    cursor = conn.cursor(dictionary=True)
     try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
+        
         my_orders = MyOrders()
-        orders = my_orders.fetch_ready_to_go_orders(
-            user_id)  # 0 for ready to go orders
+        
+        orders = my_orders.fetch_ready_to_go_orders()
+        
         my_orders.close()
+
         if not orders:
             return jsonify([]), 200
-        # Format the orders for JSON response
 
         return jsonify(orders)
 
     except Exception as e:
-        print(f"Error fetching orders: {e}")
-        import traceback
-        print(traceback.print_exc())
-        return jsonify({'error': 'Failed to fetch orders'}), 500
+        return jsonify({'error': 'Failed to fetch orders','msg': str(e)}), 500
 
-    finally:
-        cursor.close()
-        conn.close()
 
 @sales_bp.route('/sales/ready-to-go-invoice-details/<invoiceNumber>', methods=['GET'])
 @login_required('Sales')
-def ready_to_go_invoice_details(invoiceNumber):
-    """
-    Fetch the list of orders for the logged-in sales user.
-    """
+def sales_draft_invoice_details(invoiceNumber):
+    
     conn = get_db_connection()
     if not conn:
         return jsonify({'error': 'Database connection failed'}), 500
@@ -1799,19 +1196,29 @@ def ready_to_go_invoice_details(invoiceNumber):
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 401
-        my_orders = MyOrders()
-        orders = my_orders.fetch_ready_to_go_order_detailes(invoiceNumber)
-        my_orders.close()
-        if not orders:
-            return jsonify([]), 200
+        
+        cursor.callproc('get_sales_draft_invoice_details', (invoiceNumber,))
+            
+        result = None
+        for res in cursor.stored_results():
+            result = res.fetchone()
 
-        return jsonify(orders)
+        if not result:
+            return None
+
+        for field in ["products", "charges"]:
+            if result.get(field):
+                try:
+                    result[field] = json.loads(result[field])
+                except Exception:
+                    result[field] = []
+            else:
+                result[field] = []
+
+        return result
 
     except Exception as e:
-        import traceback
-        print(traceback.print_exc())
-        print(f"Error fetching orders: {e}")
-        return jsonify({'error': 'Failed to fetch orders'}), 500
+        return jsonify({'error': str(e)}), 500
 
     finally:
         cursor.close()
@@ -1819,7 +1226,8 @@ def ready_to_go_invoice_details(invoiceNumber):
 
 
 
-# -------------------------------------------------------------- Canceled Orders -----------------------------------------------------------------------------------------------
+
+# -------------- Canceled Orders ---------------
 
 class Canceled_Orders:
 
@@ -2288,79 +1696,6 @@ class EditBill:
         finally:
             cursor.close()
 
-    def verify_invoice_for_edit(self, invoice_id):
-
-        query = "SELECT sales_proceed_for_packing FROM live_order_track WHERE invoice_id = %s"
-        self.cursor.execute(query, (invoice_id,))
-        invoice = self.cursor.fetchone()
-
-        if not invoice:
-            raise Exception("Invoice not found")
-
-        if invoice['sales_proceed_for_packing'] == 0:
-            return {'success': True, 'message': 'Invoice can be edited'}
-
-        return {'success': False, 'message': 'Invoice cannot be edited'}
-
-    def get_invoice(self, invoice_id):
-
-        query = """
-                SELECT invoices.id,buddy.mobile as c_mobile,buddy.address as c_address,buddy.name as c_name,buddy.pincode as c_pincode, buddy.transport_id as c_transport_id, invoices.grand_total,
-                invoices.payment_mode, invoices.paid_amount, invoices.transport_id,
-                invoices.sales_note, invoices.payment_note, invoices.gst_included, 
-                invoices.delivery_mode, invoices.event_id, ip.id, ip.product_id,t.name as t_name,
-                t.pincode as t_pincode, t.city as t_city , t.days as t_days,
-
-                ip.quantity, ip.total_amount, p.name as product_name, p.quantity as stock 
-                FROM invoice_items ip 
-                JOIN products p ON ip.product_id = p.id 
-                JOIN invoices ON invoices.id = ip.invoice_id
-                JOIN buddy ON invoices.customer_id = buddy.id
-                LEFT JOIN transport t ON invoices.transport_id = t.id
-                WHERE ip.invoice_id = %s;
-        """
-
-        self.cursor.execute(query, (invoice_id,))
-        invoice_data = self.cursor.fetchall()
-
-        # Extract common fields
-        common_keys = ['c_mobile','c_address','c_name','c_pincode' ,'grand_total', 'payment_mode', 'paid_amount', 'transport_id',
-                       't_name','t_pincode', 't_city' , 't_days' ,'c_transport_id',
-                       'sales_note', 'payment_note', 'gst_included', 'delivery_mode', 'event_id']
-
-        # Build the unified dict with Decimal -> float conversion
-        unified_dict = {
-            key: float(invoice_data[0][key]) if isinstance(
-                invoice_data[0][key], Decimal) else invoice_data[0][key]
-            for key in common_keys
-        }
-
-        # Create products list with basePrice and without total_amount
-        unified_dict['products'] = []
-        unified_dict['charges'] = []
-        
-        for item in invoice_data:
-            quantity = item['quantity']
-            total_amount = float(item['total_amount']) if isinstance(
-                item['total_amount'], Decimal) else item['total_amount']
-            base_price = total_amount / quantity if quantity else 0
-
-            product = {
-                'id': item['id'],
-                'product_id': item['product_id'],
-                'product_name': item['product_name'],
-                'quantity': quantity,
-                'basePrice': base_price,
-                'stock': item['stock'],
-            }
-
-            unified_dict['products'].append(product)
-
-        obj = MyOrders()
-        charges = obj.get_additional_charges(invoice_id)
-        unified_dict['charges'] = charges
-    
-        return unified_dict
 
     def update_invoice_detail(self, invoice_data):
         if not self.conn:
@@ -2485,40 +1820,50 @@ class EditBill:
         self.conn.close()
 
 
-@sales_bp.route('/sales/edit-invoice/<invoice_number>', methods=['GET'])
+@sales_bp.route('/sales/edit-invoice/<invoiceNumber>', methods=['GET'])
 @login_required('Sales')
-def edit_invoice(invoice_number):
+def edit_invoice(invoiceNumber):
     """
     Edit an existing invoice.
     """
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+
     try:
         
-        # invoice_id = int(invoice_number[10:])
-        result = get_invoice_id(invoice_number)
-        invoice_id = None
-        if result['status']:
-            invoice_id = result['invoice_id']
-        else:
+        cursor.callproc('Get_Edit_Invoice_Details', (invoiceNumber,))
+            
+        result = None
+        for res in cursor.stored_results():
+            result = res.fetchone()
+
+        if not result:
+            return None
+
+        for field in ["products", "charges"]:
+            if result.get(field):
+                try:
+                    result[field] = json.loads(result[field])
+                except Exception:
+                    result[field] = []
+            else:
+                result[field] = []
+
+        if result is None:
             return render_template('dashboards/sales/ready_to_go.html'), 200
-        
-        my_obj = EditBill()
-        response = my_obj.verify_invoice_for_edit(invoice_id)
+            
+        result['number'] = invoiceNumber
 
-        if not response['success']:
-            return jsonify({'success': False, 'message': response['message']}), 400
-
-        invoice_data = my_obj.get_invoice(invoice_id)
-        invoice_data['id'] = invoice_id
-        invoice_data['number'] = invoice_number
-
-        if invoice_data['grand_total'] == invoice_data['paid_amount']:
-            invoice_data['payment_type'] = 'full_payment'
+        if result['grand_total'] == result['paid_amount']:
+            result['payment_type'] = 'full_payment'
         else:
-            invoice_data['payment_type'] = 'half_payment'
+            result['payment_type'] = 'half_payment'
 
-        my_obj.close()
-
-        return render_template('dashboards/sales/edit_invoice.html', data=invoice_data), 200
+        return render_template('dashboards/sales/edit_invoice.html', data=result), 200
 
     except Exception as e:
         return render_template('dashboards/sales/sell.html'), 200

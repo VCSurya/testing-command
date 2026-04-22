@@ -333,9 +333,6 @@ def packing_invoice_details(invoiceNumber):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
         
         cursor.callproc('get_packing_invoice_details', (invoiceNumber,))
             
