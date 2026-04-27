@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surya Expo Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f1f5f9;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.4);
+        }
+        .daily-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+        }
+        .stat-value {
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-[1600px] mx-auto">
+        <!-- Header -->
+        <header class="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div class="space-y-4">
+                <div class="flex items-center gap-4 justify-center md:justify-start">
+                    <div class="h-12 w-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                        <i class="fa-solid fa-shop text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="expo-title" class="text-4xl font-black text-white tracking-tighter">Surya</h1>
+                        <div class="flex flex-wrap items-center gap-4 mt-2">
+                            <!-- Location Badge -->
+                            <div class="flex items-center gap-2 text-slate-400 bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-800">
+                                <i class="fa-solid fa-location-dot text-indigo-500 text-xs"></i>
+                                <span id="event-location" class="text-xs font-bold uppercase tracking-wider">Loading...</span>
+                            </div>
+                            <!-- Date Badge -->
+                            <div class="flex items-center gap-2 text-slate-400 bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-800">
+                                <i class="fa-solid fa-calendar text-indigo-500 text-xs"></i>
+                                <span id="event-dates" class="text-xs font-bold uppercase tracking-wider">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center md:items-end gap-3">
+                <p id="expo-days-info" class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">0 OF 0 DAYS TRACKED</p>
+                <div id="status-badge" class="flex items-center gap-3 bg-slate-900/80 px-5 py-2.5 rounded-2xl shadow-xl border border-slate-700/50 w-fit">
+                    <span id="status-dot-container" class="relative flex h-3 w-3">
+                        <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span id="status-dot" class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                    <span id="expo-status" class="text-sm font-bold text-slate-200 uppercase tracking-widest">Checking...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Statistics -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-12">
+            <!-- Total Revenue -->
+            <div class="glass-card p-5 rounded-3xl border-t-4 border-t-indigo-500">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Revenue</p>
+                <h3 id="total-revenue" class="text-2xl stat-value text-white">₹0</h3>
+                <div id="goal-container" class="mt-3">
+                    <span id="goal-text" class="text-[11px] font-bold text-indigo-400">Target Not Set</span>
+                </div>
+            </div>
+
+            <!-- Money Received -->
+            <div class="glass-card p-5 rounded-3xl border-t-4 border-t-violet-500">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Money Received</p>
+                <h3 id="total-received" class="text-2xl stat-value text-white">₹0</h3>
+                <p id="pending-amount" class="text-[11px] text-slate-500 mt-3 font-medium">₹0 Pending</p>
+            </div>
+
+            <!-- Total Cash -->
+            <div class="glass-card p-5 rounded-3xl border-t-4 border-t-emerald-500">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Cash</p>
+                <h3 id="total-cash" class="text-2xl stat-value text-white">₹0</h3>
+                <div class="w-full bg-slate-800 h-1.5 mt-4 rounded-full overflow-hidden">
+                    <div id="cash-progress" class="bg-emerald-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Total Online -->
+            <div class="glass-card p-5 rounded-3xl border-t-4 border-t-sky-500">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Online</p>
+                <h3 id="total-online" class="text-2xl stat-value text-white">₹0</h3>
+                <div class="w-full bg-slate-800 h-1.5 mt-4 rounded-full overflow-hidden">
+                    <div id="online-progress" class="bg-sky-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Sales Volume -->
+            <div class="glass-card p-5 rounded-3xl border-t-4 border-t-amber-500">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Sales</p>
+                <h3 id="total-sales" class="text-2xl stat-value text-white">0</h3>
+                <p id="avg-order" class="text-[11px] text-slate-500 mt-3 font-medium">Avg ₹0 / sale</p>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="flex items-center gap-4 mb-8">
+            <h2 class="text-xl font-black text-white uppercase tracking-tighter">Daily Breakdown</h2>
+            <div class="h-[1px] flex-1 bg-slate-800"></div>
+        </div>
+
+        <!-- Daily Cards List -->
+        <div id="daily-list" class="space-y-6">
+            <div class="flex items-center gap-3 text-slate-500 animate-pulse p-10 justify-center">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <p class="font-bold uppercase tracking-widest text-xs">Syncing Sales Data...</p>
+            </div>
+        </div>
+
+        <footer class="mt-20 text-center py-10 border-t border-slate-900">
+            <p class="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">Surya Sales Analytics • Internal Use Only</p>
+        </footer>
+    </div>
+
+    <script>
+        function initDashboard() {
+            // Data directly from your provided JSON
+            const data = {
+                "dailyBreakdown": [
+                    { "cash": 0.0, "date": "April 22", "dayNumber": 1, "isCompleted": true, "label": "1 Day", "online": 0.0, "revenue": 0.0, "salesCount": 0 },
+                    { "cash": 6520.0, "date": "April 23", "dayNumber": 2, "isCompleted": true, "label": "2 Day", "online": 17000.0, "revenue": 25520.0, "salesCount": 6 },
+                    { "cash": 0.0, "date": "April 24", "dayNumber": 3, "isCompleted": false, "label": "3 Day", "online": 0.0, "revenue": 0.0, "salesCount": 0 }
+                ],
+                "event_end_date": "24 April 2026",
+                "event_start_date": "22 April 2026",
+                "expoName": "Surya",
+                "location": "Goa",
+                "status": "Ongoing",
+                "targetRevenue": 0,
+                "totalDaysScheduled": 3,
+                "totals": {
+                    "cash": 5520.0,
+                    "online": 17000.0,
+                    "received_money": 22520.0,
+                    "revenue": 25520.0,
+                    "salesCount": 6
+                }
+            };
+
+            // 1. Header Updates (Including New Fields)
+            document.getElementById('expo-title').innerText = data.expoName;
+            document.getElementById('event-location').innerText = data.location;
+            document.getElementById('event-dates').innerText = `${data.event_start_date} - ${data.event_end_date}`;
+            document.getElementById('expo-status').innerText = data.status;
+            
+            const completedCount = data.dailyBreakdown.filter(d => d.isCompleted).length;
+            document.getElementById('expo-days-info').innerText = `${completedCount} OF ${data.totalDaysScheduled} DAYS TRACKED`;
+
+            // 2. Summary Totals
+            const totals = data.totals;
+            document.getElementById('total-revenue').innerText = `₹${totals.revenue.toLocaleString()}`;
+            document.getElementById('total-received').innerText = `₹${totals.received_money.toLocaleString()}`;
+            document.getElementById('total-cash').innerText = `₹${totals.cash.toLocaleString()}`;
+            document.getElementById('total-online').innerText = `₹${totals.online.toLocaleString()}`;
+            document.getElementById('total-sales').innerText = totals.salesCount;
+
+            const totalPending = totals.revenue - totals.received_money;
+            document.getElementById('pending-amount').innerText = `₹${totalPending.toLocaleString()} Pending Collection`;
+
+            if (data.targetRevenue > 0) {
+                const goalPct = Math.round((totals.revenue / data.targetRevenue) * 100);
+                document.getElementById('goal-text').innerText = `${goalPct}% of ₹${data.targetRevenue.toLocaleString()} Target`;
+            } else {
+                document.getElementById('goal-text').innerText = "No Revenue Target Set";
+                document.getElementById('goal-text').className = "text-[11px] font-bold text-slate-500";
+            }
+
+            const avgOverall = totals.salesCount > 0 ? Math.round(totals.revenue / totals.salesCount) : 0;
+            document.getElementById('avg-order').innerText = `Avg ₹${avgOverall.toLocaleString()} / sale`;
+
+            // Ratio of Cash vs Online based on Received Money
+            setTimeout(() => {
+                if (totals.received_money > 0) {
+                    const cashPct = (totals.cash / totals.received_money) * 100;
+                    const onlinePct = (totals.online / totals.received_money) * 100;
+                    document.getElementById('cash-progress').style.width = `${cashPct}%`;
+                    document.getElementById('online-progress').style.width = `${onlinePct}%`;
+                }
+            }, 200);
+
+            // Status Badge Colors
+            const ping = document.getElementById('status-ping');
+            const dot = document.getElementById('status-dot');
+            if (data.status === "Ongoing") {
+                ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
+                dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-amber-500';
+            } else if (data.status === "Completed") {
+                ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75';
+                dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-green-500';
+            }
+
+            // 4. Daily List
+            const dailyList = document.getElementById('daily-list');
+            dailyList.innerHTML = '';
+
+            data.dailyBreakdown.forEach(day => {
+                const isFaded = !day.isCompleted;
+                const received = day.cash + day.online;
+                const dayPending = day.revenue - received;
+
+                const cardHtml = `
+                    <div class="daily-card rounded-3xl transition-all duration-500 ${isFaded ? 'opacity-40 grayscale' : 'hover:border-slate-600 shadow-2xl'}">
+                        <div class="px-6 py-5 border-b border-slate-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs text-indigo-400 border border-slate-700">
+                                    0${day.dayNumber}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white uppercase tracking-tight">${day.label}</h4>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${day.date}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-4 w-full sm:w-auto">
+                                <div class="bg-slate-900/50 px-5 py-2.5 rounded-2xl border border-slate-800 min-w-[140px]">
+                                    <span class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Total Revenue</span>
+                                    <span class="text-xl font-black text-white">₹${day.revenue.toLocaleString()}</span>
+                                </div>
+                                <div class="bg-indigo-500/5 px-5 py-2.5 rounded-2xl border border-indigo-500/20 min-w-[140px]">
+                                    <span class="block text-[9px] font-black text-indigo-400/70 uppercase tracking-widest mb-0.5">Money Received</span>
+                                    <span class="text-xl font-black text-indigo-400">₹${received.toLocaleString()}</span>
+                                    ${dayPending > 0 ? `<span class="block text-[8px] font-bold text-amber-500 uppercase mt-0.5">₹${dayPending.toLocaleString()} Pending</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="flex items-center gap-5">
+                                <div class="h-14 w-14 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner">
+                                    <i class="fa-solid fa-money-bill-1-wave text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Cash Received</p>
+                                    <p class="text-xl font-black text-slate-200">₹${day.cash.toLocaleString()}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-5">
+                                <div class="h-14 w-14 rounded-2xl bg-sky-500/5 border border-sky-500/10 flex items-center justify-center text-sky-500 shadow-inner">
+                                    <i class="fa-solid fa-mobile-button text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Online Received</p>
+                                    <p class="text-xl font-black text-slate-200">₹${day.online.toLocaleString()}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-5">
+                                <div class="h-14 w-14 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner">
+                                    <i class="fa-solid fa-receipt text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Sales Volume</p>
+                                    <p class="text-xl font-black text-slate-200">${day.salesCount} <span class="text-xs font-normal text-slate-500 uppercase tracking-tighter">Orders</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dailyList.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

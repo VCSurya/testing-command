@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, session,current_app
+from flask import Blueprint,json, render_template, jsonify, request, session,current_app
 from utils import get_db_connection, login_required, encrypt_password, decrypt_password,invoice_detailes,delete_user_log
 import mysql.connector
 from datetime import datetime
@@ -959,6 +959,120 @@ def restor_transport(user_id):
         """, (user_id,))
         conn.commit()
         return jsonify({'success': True, 'message': 'Transport restore successfully'})
+    except Exception as err:
+        return jsonify({'success': False, 'message': str(err)})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+@admin_bp.route('/admin/event/<int:event_id>', methods=['GET'])
+@login_required(['Admin','Manager'])
+def event_dasnbored(event_id):
+    
+    # Get database connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'success': False, 'message': 'Database connection error'})
+    
+    cursor = conn.cursor()
+    try:
+        
+        # Update user in database
+        cursor.execute("""
+            
+            SELECT JSON_OBJECT(
+                'expoName',           me.name,
+                'location',           me.location,
+                'event_start_date',     DATE_FORMAT(me.start_date, '%d %M %Y'),
+                'event_end_date',       DATE_FORMAT(me.end_date, '%d %M %Y'),
+                'totalDaysScheduled', DATEDIFF(me.end_date, me.start_date) + 1,
+                'status',             CASE 
+                                        WHEN CURDATE() BETWEEN me.start_date AND me.end_date THEN 'Ongoing'
+                                        WHEN CURDATE() > me.end_date THEN 'Completed'
+                                        ELSE 'Upcoming'
+                                    END,
+                'targetRevenue',      0,
+                'totals', JSON_OBJECT(
+                    'revenue',    COALESCE(SUM(inv.grand_total), 0),
+                    'received_money',    COALESCE(SUM(inv.paid_amount), 0),
+                    'cash',       COALESCE(SUM(CASE WHEN inv.payment_mode = 'cash'   THEN inv.paid_amount ELSE 0 END), 0),
+                    'online',     COALESCE(SUM(CASE WHEN inv.payment_mode = 'online' THEN inv.paid_amount ELSE 0 END), 0),
+                    'salesCount', COUNT(inv.id)
+                ),
+                'dailyBreakdown', (
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'dayNumber',   DATEDIFF(all_days.event_day, me2.start_date) + 1,
+                            'label',       CONCAT(DATEDIFF(all_days.event_day, me2.start_date) + 1, ' Day'),
+                            'date',        DATE_FORMAT(all_days.event_day, '%M %d'),
+                            'revenue',     COALESCE(daily.day_revenue, 0),
+                            'cash',        COALESCE(daily.day_cash, 0),
+                            'online',      COALESCE(daily.day_online, 0),
+                            'salesCount',  COALESCE(daily.day_count, 0),
+                            -- 👇 true if the day is in the past OR has actual sales data
+                            'isCompleted', IF(all_days.event_day <= CURDATE(), TRUE, FALSE)
+                        )
+                        ORDER BY all_days.event_day
+                    )
+                    FROM (
+                        -- Generate every date in the event window
+                        SELECT DATE(me2.start_date + INTERVAL seq.n DAY) AS event_day
+                        FROM market_events me2
+                        JOIN (
+                            SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+                            UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+                            UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11
+                            UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+                            UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19
+                            UNION ALL SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23
+                            UNION ALL SELECT 24 UNION ALL SELECT 25 UNION ALL SELECT 26 UNION ALL SELECT 27
+                            UNION ALL SELECT 28 UNION ALL SELECT 29 UNION ALL SELECT 30
+                        ) AS seq
+                        WHERE me2.id = 6
+                        AND DATE(me2.start_date + INTERVAL seq.n DAY) <= me2.end_date
+                    ) AS all_days
+
+                    JOIN market_events me2 ON me2.id = 6
+
+                    LEFT JOIN (
+                        SELECT
+                            DATE(lot2.sales_date_time)                                                    AS invoice_date,
+                            SUM(inv2.grand_total)                                                         AS day_revenue,
+                            SUM(CASE WHEN inv2.payment_mode = 'cash'   THEN inv2.paid_amount ELSE 0 END) AS day_cash,
+                            SUM(CASE WHEN inv2.payment_mode = 'online' THEN inv2.paid_amount ELSE 0 END) AS day_online,
+                            COUNT(inv2.id)                                                                AS day_count
+                        FROM invoices inv2
+                        JOIN live_order_track lot2 ON lot2.invoice_id = inv2.id
+                        WHERE lot2.sales_proceed_for_packing = 1
+                        AND lot2.cancel_order_status      = 0
+                        AND inv2.cancel_order_status      = 0
+                        AND inv2.event_id                 = 6
+                        AND DATE(lot2.sales_date_time) BETWEEN (SELECT start_date FROM market_events WHERE id = 6)
+                                                            AND (SELECT end_date   FROM market_events WHERE id = 6)
+                        GROUP BY DATE(lot2.sales_date_time)
+                    ) AS daily ON daily.invoice_date = all_days.event_day
+                )
+            ) AS result
+
+            FROM market_events me
+            LEFT JOIN invoices inv      ON inv.event_id = me.id
+                                    AND inv.cancel_order_status = 0
+            LEFT JOIN live_order_track lot ON lot.invoice_id = inv.id
+                                        AND lot.sales_proceed_for_packing = 1
+                                        AND lot.cancel_order_status = 0
+            WHERE me.id = %s
+            AND me.active = 1;
+
+
+        """, (event_id,))
+        
+        data = cursor.fetchall()
+        # return jsonify(json.loads(data[0][0]))
+    
+        return render_template('dashboards/admin/expo.html', data=json.loads(data[0][0]))
+
     except Exception as err:
         return jsonify({'success': False, 'message': str(err)})
     finally:

@@ -67,3 +67,61 @@ CREATE INDEX idx_additional_charges_invoice_id
 
 CREATE INDEX idx_live_order_track_invoice_id
     ON live_order_track (invoice_id, cancel_order_status, sales_proceed_for_packing);
+
+
+
+
+ALTER TABLE transport ADD INDEX idx_pincode (pincode);
+ALTER TABLE transport ADD INDEX idx_name (name);
+ALTER TABLE transport ADD INDEX idx_city (city);
+ALTER TABLE transport ADD FULLTEXT INDEX ft_name_city (name, city);
+
+
+-- For the digit/mobile path — prefix LIKE uses this index efficiently
+ALTER TABLE `buddy` ADD INDEX idx_mobile (mobile);
+
+-- For the name path — FULLTEXT is far faster than LIKE '%...%' at scale
+ALTER TABLE `buddy` ADD FULLTEXT INDEX ft_name (name);
+
+
+
+
+SELECT grand_total,paid_amount,payment_mode,left_to_paid, 
+
+DATE(lot.sales_date_time) as invoice_date
+
+from invoices 
+
+JOIN live_order_track as lot ON lot.invoice_id = invoices.id
+
+WHERE
+
+lot.sales_proceed_for_packing = 1
+
+AND lot.cancel_order_status = 0
+
+AND invoices.cancel_order_status = 0
+
+AND invoices.event_id = 6;
+
+
+SELECT 
+    name,
+    location,
+    
+    CASE 
+        WHEN CURDATE() BETWEEN start_date AND end_date THEN 'Ongoing'
+        WHEN CURDATE() > end_date THEN 'Completed'
+        ELSE 'Upcoming'
+    END AS status,
+    
+    CASE 
+        WHEN CURDATE() >= start_date 
+        THEN DATEDIFF(LEAST(CURDATE(), end_date), start_date) + 1
+        ELSE 0
+    END AS completed_days
+
+FROM market_events
+WHERE id = 6 AND active = 1;
+
+

@@ -1613,6 +1613,15 @@
 
             return `
                      <div class="invoice-details">
+                        ${invoiceObj.expo != null && invoiceObj.expo != '' ? `
+                            <div class="relative overflow-hidden bg-white px-3 py-1 border-l-4 border-indigo-500 rounded-lg shadow-sm">
+                                <div class="relative z-10">
+                                    <h1 class="text-2xl font-black text-indigo-900 ">${invoiceObj.expo.toUpperCase()}</h1>
+                                </div>
+                            </div>
+                            <br>
+                        ` : ''}                   
+                   
                         <div id="invoice_date_2" ><strong> Date:</strong> 
                             <span style="font-size:0.9em;color:#000;">${invoiceObj.date}</span>
                         </div>
@@ -1678,10 +1687,6 @@
                                 <span class="value">${invoiceObj.transport_pincode}</span>
                             </div>
 
-                            <div class="info-group">
-                                <span class="label">Delivery</span>
-                                <span class="value">${invoiceObj.transport_days} - Days</span>
-                            </div>
                         </div>
 
                     ` : `
@@ -1712,7 +1717,7 @@
                                     <div class="label-group">
                                         <div class="label">
                                             ${i === 0 && invoiceObj.trackingStatus === 0
-                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                            ? ``
                             : step}
                                         </div>
                                         <div class="date">${invoiceObj.trackingDates[i] || ''}
@@ -1758,7 +1763,7 @@
                                             <div class="label-group">
                                                 <div class="label">
                                                     ${i === 0 && invoiceObj.trackingStatus === 0
-                            ? `<button onclick="confirmAndStart('${invoiceObj.live_order_track_id}')">Sell</button>`
+                            ? ``
                             : step}
                                                 </div>
                                                 <div class="date">${invoiceObj.trackingDates[i] || ''}</div>
@@ -1967,7 +1972,7 @@
 
                     try {
 
-                        const res = await fetch(`/sales/invoice-detailes/${invoiceNumber}`);
+                        const res = await fetch(`/sales/invoice-details/${invoiceNumber}`);
                         const data = await res.json();
 
                         const html = buildInvoiceDetails(data);

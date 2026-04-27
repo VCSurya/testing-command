@@ -1,202 +1,104 @@
-sp_main: BEGIN
+sp_label: BEGIN
 
-    DECLARE v_count        INT           DEFAULT 0;
-    DECLARE v_left_to_pay  DECIMAL(12,2) DEFAULT 0;
-    DECLARE v_inv_num      VARCHAR(20)   DEFAULT '';
-    DECLARE v_idx          INT           DEFAULT 0;
-    DECLARE v_total        INT           DEFAULT 0;
-    DECLARE v_prod_id      BIGINT        DEFAULT 0;
-    DECLARE v_qty          INT           DEFAULT 0;
-    DECLARE v_price        DECIMAL(12,4) DEFAULT 0;
-    DECLARE v_gst          DECIMAL(12,4) DEFAULT 0;
-    DECLARE v_tamount      DECIMAL(12,2) DEFAULT 0;
-    DECLARE v_cname        VARCHAR(255)  DEFAULT '';
-    DECLARE v_camount      INT           DEFAULT 0;
-    DECLARE v_had_error    TINYINT       DEFAULT 0;
-    DECLARE v_err_msg      VARCHAR(500)  DEFAULT '';
+    DECLARE v_inv_id             INT DEFAULT NULL;
+    DECLARE v_lot_id             INT DEFAULT NULL;
+    DECLARE v_delivery_mode      VARCHAR(50) DEFAULT NULL;
+    DECLARE v_payment_mode       VARCHAR(50) DEFAULT NULL;
+    DECLARE v_left_to_paid       INT DEFAULT 0;
+    DECLARE v_left_to_paid_mode  VARCHAR(50) DEFAULT NULL;
+    DECLARE v_step               VARCHAR(100) DEFAULT 'init';  -- 👈 tracks current step
 
-    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+    DECLARE v_errno              INT DEFAULT 0;
+    DECLARE v_errmsg             VARCHAR(255) DEFAULT '';
+
+    -- Capture actual error code + message
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SET v_had_error = 1;
-        GET DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
+        GET DIAGNOSTICS CONDITION 1
+            v_errno  = MYSQL_ERRNO,
+            v_errmsg = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_success = 0;
+        SET p_message = CONCAT('Error at step [', v_step, '] — ', v_errno, ': ', v_errmsg);
     END;
 
-    -- Initialize OUT params
-    SET p_invoice_id     = -1;
-    SET p_invoice_number = '';
-    SET p_error          = '';
-
-    -- ── 1. Duplicate bill check ──────────────────────────────────────────
-    SELECT COUNT(*) INTO v_count FROM invoices WHERE id = p_bill_id;
-
-    IF v_had_error THEN
-        SET p_error = CONCAT('BILL_CHECK_ERR: ', v_err_msg);
-        SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-        LEAVE sp_main;
-    END IF;
-
-    IF v_count > 0 THEN
-        SET p_error = 'DUPLICATE_BILL';
-        SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-        LEAVE sp_main;
-    END IF;
-
-    -- ── 2. Stock check ───────────────────────────────────────────────────
-    SET v_total = JSON_LENGTH(p_products_json);
-    SET v_idx   = 0;
-
-    WHILE v_idx < v_total DO
-        SET v_prod_id = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][0]'))) AS UNSIGNED);
-        SET v_qty     = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][1]'))) AS UNSIGNED);
-
-        SET v_count = 0;
-        SELECT COUNT(*) INTO v_count
-        FROM products
-        WHERE id = v_prod_id AND quantity >= v_qty;
-
-        IF v_had_error THEN
-            SET p_error = CONCAT('STOCK_CHECK_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-
-        IF v_count = 0 THEN
-            SET p_error = CONCAT('OUT_OF_STOCK: product_id=', v_prod_id);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-
-        SET v_idx = v_idx + 1;
-    END WHILE;
-
-    -- ── 3. Generate unique invoice number ────────────────────────────────
-    SET v_count = 1;
-    WHILE v_count > 0 DO
-        SET v_inv_num   = CONVERT(UPPER(SUBSTRING(MD5(UUID()), 1, 10)) USING utf8mb4);
-        SET v_count     = 0;
-        SET v_had_error = 0;
-
-        SELECT COUNT(*) INTO v_count
-        FROM invoices
-        WHERE invoice_number = v_inv_num COLLATE utf8mb4_general_ci;
-
-        IF v_had_error THEN
-            SET p_error = CONCAT('INV_NUM_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-    END WHILE;
-
-    -- ── 4. START TRANSACTION ─────────────────────────────────────────────
     START TRANSACTION;
 
-    SET v_left_to_pay = p_grand_total - p_paid_amount;
-    SET v_had_error   = 0;
+    SET v_step = 'fetch_invoice';
+    SELECT
+        i.id,
+        lot.id,
+        i.delivery_mode,
+        i.payment_mode,
+        CAST(i.left_to_paid AS SIGNED)
+    INTO
+        v_inv_id,
+        v_lot_id,
+        v_delivery_mode,
+        v_payment_mode,
+        v_left_to_paid
+    FROM live_order_track AS lot
+    JOIN invoices AS i ON i.id = lot.invoice_id
+    WHERE i.invoice_number COLLATE utf8mb4_unicode_ci = p_invoice_number
+    LIMIT 1
+    FOR UPDATE;
 
-    -- ── 5. Insert invoice ────────────────────────────────────────────────
-    INSERT INTO invoices (
-        id, customer_id, delivery_mode, grand_total, gst_included,
-        invoice_created_by_user_id, left_to_paid, paid_amount,
-        payment_mode, payment_note, sales_note, transport_id,
-        invoice_number, event_id, completed, created_at
-    ) VALUES (
-        p_bill_id, p_customer_id, p_delivery_mode, p_grand_total, p_gst_included,
-        p_created_by, v_left_to_pay, p_paid_amount,
-        p_payment_mode, p_payment_note, p_sales_note, p_transport_id,
-        v_inv_num, p_event_id, p_completed, NOW()
-    );
-
-    IF v_had_error THEN
+    SET v_step = 'validate_invoice';
+    IF v_lot_id IS NULL THEN
         ROLLBACK;
-        SET p_error = CONCAT('INSERT_INVOICE_ERR: ', v_err_msg);
-        SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-        LEAVE sp_main;
+        SET p_success = 0;
+        SET p_message = 'Invoice not found';
+        LEAVE sp_label;
     END IF;
 
-    SET p_invoice_id     = p_bill_id;
-    SET p_invoice_number = v_inv_num;
-
-    -- ── 6. Insert invoice items + decrement stock ────────────────────────
-    SET v_idx = 0;
-    WHILE v_idx < v_total DO
-        SET v_had_error = 0;
-
-        SET v_prod_id = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][0]'))) AS UNSIGNED);
-        SET v_qty     = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][1]'))) AS UNSIGNED);
-        SET v_price   = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][2]'))) AS DECIMAL(12,4));
-        SET v_gst     = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][3]'))) AS DECIMAL(12,4));
-        SET v_tamount = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_products_json, CONCAT('$[', v_idx, '][4]'))) AS DECIMAL(12,2));
-
-        INSERT INTO invoice_items (
-            invoice_id, product_id, quantity, price,
-            total_amount, gst_tax_amount, created_at
-        ) VALUES (
-            p_invoice_id, v_prod_id, v_qty, v_price,
-            v_tamount, v_gst, NOW()
-        );
-
-        IF v_had_error THEN
-            ROLLBACK;
-            SET p_invoice_id = -1;
-            SET p_error      = CONCAT('INSERT_ITEM_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-
-        UPDATE products SET quantity = quantity - v_qty WHERE id = v_prod_id;
-
-        IF v_had_error THEN
-            ROLLBACK;
-            SET p_invoice_id = -1;
-            SET p_error      = CONCAT('STOCK_UPDATE_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-
-        SET v_idx = v_idx + 1;
-    END WHILE;
-
-    -- ── 7. Insert additional charges ─────────────────────────────────────
-    SET v_total = JSON_LENGTH(p_charges_json);
-    SET v_idx   = 0;
-
-    WHILE v_idx < v_total DO
-        SET v_had_error = 0;
-        SET v_cname   = JSON_UNQUOTE(JSON_EXTRACT(p_charges_json, CONCAT('$[', v_idx, '].name')));
-        SET v_camount = CAST(JSON_UNQUOTE(JSON_EXTRACT(p_charges_json, CONCAT('$[', v_idx, '].amount'))) AS SIGNED);
-
-        INSERT INTO additional_charges (invoice_id, charge_name, amount, created_at)
-        VALUES (p_invoice_id, v_cname, v_camount, NOW());
-
-        IF v_had_error THEN
-            ROLLBACK;
-            SET p_invoice_id = -1;
-            SET p_error      = CONCAT('INSERT_CHARGE_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
-
-        SET v_idx = v_idx + 1;
-    END WHILE;
-
-    -- ── 8. Live order track ──────────────────────────────────────────────
-    IF p_completed = 0 THEN
-        SET v_had_error = 0;
-
-        INSERT IGNORE INTO live_order_track (invoice_id) VALUES (p_invoice_id);
-
-        IF v_had_error THEN
-            ROLLBACK;
-            SET p_invoice_id = -1;
-            SET p_error      = CONCAT('LIVE_TRACK_ERR: ', v_err_msg);
-            SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-            LEAVE sp_main;
-        END IF;
+    SET v_step = 'check_stock';
+    IF EXISTS (
+        SELECT 1
+        FROM invoice_items ii
+        JOIN products p ON p.id = ii.product_id
+        WHERE ii.invoice_id = v_inv_id
+          AND p.quantity < ii.quantity
+    ) THEN
+        ROLLBACK;
+        SET p_success = 0;
+        SET p_message = 'Insufficient stock for one or more products';
+        LEAVE sp_label;
     END IF;
 
+    SET v_step = 'update_live_order_track';
+    IF v_delivery_mode IN ('transport', 'post') THEN
+        UPDATE live_order_track
+        SET sales_proceed_for_packing = 1,
+            sales_date_time           = NOW()
+        WHERE id = v_lot_id;
+    ELSE
+        SET v_left_to_paid_mode = IF(v_left_to_paid = 0, v_payment_mode, 'not_paid');
+        UPDATE live_order_track
+        SET
+            sales_proceed_for_packing     = 1,
+            sales_date_time               = NOW(),
+            packing_proceed_for_transport = 1,
+            packing_date_time             = NOW(),
+            packing_proceed_by            = p_user_id,
+            transport_proceed_for_builty  = 1,
+            transport_date_time           = NOW(),
+            transport_proceed_by          = p_user_id,
+            builty_proceed_by             = p_user_id,
+            builty_received               = 1,
+            builty_date_time              = NOW(),
+            left_to_paid_mode             = v_left_to_paid_mode
+        WHERE id = v_lot_id;
+    END IF;
+
+    SET v_step = 'deduct_stock';
+    UPDATE products p
+    JOIN   invoice_items ii ON ii.product_id = p.id
+    SET    p.quantity = p.quantity - ii.quantity
+    WHERE  ii.invoice_id = v_inv_id;
+
+    SET v_step = 'commit';
     COMMIT;
+    SET p_success = 1;
+    SET p_message = 'Order successfully shipped';
 
-    -- ── SUCCESS result set ───────────────────────────────────────────────
-    SELECT p_invoice_id AS invoice_id, p_invoice_number AS invoice_number, p_error AS error;
-
-END sp_main
+END sp_label
