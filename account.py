@@ -58,18 +58,76 @@ class AccountModel:
         
         return result
 
-    def payment_recived(self,data):
+    def payment_recived(self, data):
         try:
-            update_query = """
-            UPDATE live_order_track SET payment_confirm_status = 1, payment_note = %s, payment_verify_by  = %s,left_to_paid_mode = %s,payment_date_time = NOW() WHERE invoice_id = %s;
-            """
-            self.cursor.execute(update_query, (data['accountNote'],session.get('user_id'),data['paymentMethod'],data['inv_id'],))
-            self.conn.commit() 
-            return {"success": True}
+            # Step 1: get delivery_mode
+            self.cursor.execute(
+                "SELECT delivery_mode FROM invoices WHERE id = %s",
+                (data['inv_id'],)
+            )
+            result = self.cursor.fetchone()
+
+            if not result:
+                return {"success": False, "msg": "Invoice not found"}
             
+            delivery_mode = result['delivery_mode']
+
+            # Step 2: decide query
+            if delivery_mode in ('porter', 'at_store'):
+                update_query = """
+                UPDATE live_order_track 
+                SET payment_confirm_status = 1,
+                    payment_note = %s,
+                    payment_verify_by = %s,
+                    left_to_paid_mode = %s,
+                    payment_date_time = NOW(),
+                    verify_by_manager = 1,
+                    verify_by_manager_id = %s,
+                    verify_manager_date_time = NOW()
+                WHERE invoice_id = %s
+                """
+
+                params = (
+                    data['accountNote'],
+                    session.get('user_id'),
+                    data['paymentMethod'],
+                    session.get('user_id'),
+                    data['inv_id']
+                )
+
+                self.cursor.execute(update_query, params)
+
+                # 👉 SECOND QUERY (update invoice)
+                self.cursor.execute(
+                    "UPDATE invoices SET completed = 1 WHERE id = %s",
+                    (data['inv_id'],)
+                )
+
+            else:
+                update_query = """
+                UPDATE live_order_track 
+                SET payment_confirm_status = 1,
+                    payment_note = %s,
+                    payment_verify_by = %s,
+                    left_to_paid_mode = %s,
+                    payment_date_time = NOW()
+                WHERE invoice_id = %s
+                """
+                params = (
+                    data['accountNote'],
+                    session.get('user_id'),
+                    data['paymentMethod'],
+                    data['inv_id']
+                )
+
+            self.cursor.execute(update_query, params)
+            self.conn.commit()
+
+            return {"success": True}
+
         except Exception as e:
-            self.conn.rollback()  # rollback on connection, not cursor
-            return {"success": False,"msg":e}
+            self.conn.rollback()
+            return {"success": False, "msg": str(e)}
 
     def payment_verify(self,data):
         try:
@@ -207,7 +265,6 @@ def payment_recived():
 
         pay_obj = AccountModel()
         response = pay_obj.payment_recived(data)
-
         if response.get('success'):
             return jsonify({"success": True, "message": "Payment Recived Successfully"}),200
 

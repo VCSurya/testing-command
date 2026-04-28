@@ -915,7 +915,7 @@ def sales_invoice_details(invoiceNumber):
         if not result:
             return None
 
-        for field in ["products", "charges"]:
+        for field in ["products", "charges","trackingDates"]:
             if result.get(field):
                 try:
                     result[field] = json.loads(result[field])

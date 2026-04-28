@@ -86,6 +86,9 @@ sp_label: BEGIN
             builty_proceed_by             = p_user_id,
             builty_received               = 1,
             builty_date_time              = NOW(),
+            verify_by_manager             = 1,
+            verify_by_manager_id          = p_user_id,
+            verify_manager_date_time      = NOW(),
             left_to_paid_mode             = v_left_to_paid_mode
         WHERE id = v_lot_id;
     END IF;
