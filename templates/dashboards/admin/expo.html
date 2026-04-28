@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surya Expo Dashboard</title>
+    <title>Expo Dashboard</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.ico') }}" type="image/x-icon">
     <script src="{{url_for('static',filename='tailwind.js')}}"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -144,10 +144,6 @@
             </div>
         </div>
 
-        <footer class="mt-20 text-center py-10 border-t border-slate-900">
-            <p class="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">Surya Sales Analytics • Internal
-                Use Only</p>
-        </footer>
     </div>
     <script type="application/json" id="work-data">
             {{ data | tojson }}
@@ -160,6 +156,7 @@
             );
 
             // 1. Header Updates (Including New Fields)
+            document.title = `${data.expoName} Dashboard | Expo Dashboard`;
             document.getElementById('expo-title').innerText = data.expoName;
             document.getElementById('event-location').innerText = data.location;
             document.getElementById('event-dates').innerText = `${data.event_start_date} - ${data.event_end_date}`;
